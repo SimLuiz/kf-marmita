@@ -118,20 +118,44 @@ function Page() {
       </div>
 
       {!selected ? (
-        <div className="space-y-2">
-          {employees.map((emp) => (
-            <button
-              key={emp.id}
-              onClick={() => setSelected(emp)}
-              className="w-full bg-card rounded-xl p-4 flex items-center gap-3 text-left hover:bg-accent transition-colors"
-              style={{ boxShadow: "var(--shadow-card)" }}
-            >
-              <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                {emp.name.charAt(0).toUpperCase()}
-              </div>
-              <span className="font-medium">{emp.name}</span>
-            </button>
-          ))}
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por nome ou CPF"
+              className="pl-9"
+            />
+          </div>
+          <div className="space-y-2">
+            {filtered.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-6">
+                Nenhum funcionário encontrado.
+              </p>
+            ) : (
+              filtered.map((emp) => (
+                <button
+                  key={emp.id}
+                  onClick={() => setSelected(emp)}
+                  className="w-full bg-card rounded-xl p-4 flex items-center gap-3 text-left hover:bg-accent transition-colors"
+                  style={{ boxShadow: "var(--shadow-card)" }}
+                >
+                  <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold shrink-0">
+                    {emp.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{emp.name}</div>
+                    {(emp.cpf || emp.company) && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {[emp.cpf, emp.company].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
