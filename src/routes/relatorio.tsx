@@ -101,10 +101,10 @@ td.num,th.num{text-align:right}
 </style></head><body>
 <h1>Relatório de Marmitas</h1>
 <div class="sub">${monthName}</div>
-<table><thead><tr><th>Funcionário</th><th class="num">Marmitas</th></tr></thead>
+<table><thead><tr><th>Funcionário</th><th>CPF</th><th>Empresa</th><th class="num">Marmitas</th></tr></thead>
 <tbody>
-${rows.map((r) => `<tr><td>${escapeHtml(r.name)}</td><td class="num">${r.count}</td></tr>`).join("")}
-<tr><td>TOTAL</td><td class="num">${total}</td></tr>
+${rows.map((r) => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.cpf ?? "—")}</td><td>${escapeHtml(r.company ?? "—")}</td><td class="num">${r.count}</td></tr>`).join("")}
+<tr><td colspan="3">TOTAL</td><td class="num">${total}</td></tr>
 </tbody></table>
 <button style="margin-top:24px;padding:10px 18px;font-size:14px" onclick="window.print()">Imprimir / Salvar PDF</button>
 <script>setTimeout(()=>window.print(),300)</script>
