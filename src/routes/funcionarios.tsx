@@ -160,11 +160,18 @@ function Page() {
           </p>
         )}
         {list.map((emp) => (
-          <button
+          <div
             key={emp.id}
-            type="button"
+            role="button"
+            tabIndex={0}
             onClick={() => navigate({ to: "/funcionarios/$id", params: { id: emp.id } })}
-            className="w-full bg-card rounded-xl p-4 flex items-center gap-3 text-left hover:bg-accent/40 transition-colors"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate({ to: "/funcionarios/$id", params: { id: emp.id } });
+              }
+            }}
+            className="w-full bg-card rounded-xl p-4 flex items-center gap-3 text-left hover:bg-accent/40 transition-colors cursor-pointer"
             style={{ boxShadow: "var(--shadow-card)" }}
           >
             <div className="h-10 w-10 shrink-0 rounded-full bg-accent flex items-center justify-center font-semibold text-accent-foreground">
@@ -187,26 +194,24 @@ function Page() {
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <Button
-                asChild
                 variant="ghost"
                 size="icon"
                 onClick={(e) => openEdit(emp, e)}
                 aria-label="Editar"
               >
-                <span><Pencil className="h-4 w-4" /></span>
+                <Pencil className="h-4 w-4" />
               </Button>
               <Button
-                asChild
                 variant="ghost"
                 size="icon"
                 onClick={(e) => remove(emp.id, e)}
                 aria-label="Remover"
               >
-                <span><Trash2 className="h-4 w-4 text-destructive" /></span>
+                <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </div>
-          </button>
+          </div>
         ))}
       </div>
 
