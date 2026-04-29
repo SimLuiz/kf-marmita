@@ -1,13 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
+import { EditEmployeeDialog } from "@/components/EditEmployeeDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Building2, IdCard } from "lucide-react";
+import {
+  Trash2,
+  UserPlus,
+  Building2,
+  IdCard,
+  Pencil,
+  ChevronRight,
+} from "lucide-react";
 
 interface Employee {
   id: string;
@@ -35,11 +43,13 @@ function formatCPF(v: string) {
 
 function Page() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [list, setList] = useState<Employee[]>([]);
   const [name, setName] = useState("");
   const [cpf, setCpf] = useState("");
   const [company, setCompany] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState<Employee | null>(null);
 
   const load = async () => {
     const { data, error } = await supabase
@@ -77,7 +87,8 @@ function Page() {
     load();
   };
 
-  const remove = async (id: string) => {
+  const remove = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!confirm("Excluir este funcionário e todos os seus registros?")) return;
     const { error } = await supabase.from("employees").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -85,11 +96,18 @@ function Page() {
     load();
   };
 
+  const openEdit = (emp: Employee, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditing(emp);
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Funcionários</h2>
-        <p className="text-sm text-muted-foreground">{list.length} cadastrados</p>
+        <p className="text-sm text-muted-foreground">
+          {list.length} cadastrados · toque em um nome para ver as marmitas
+        </p>
       </div>
 
       <form
@@ -142,42 +160,62 @@ function Page() {
           </p>
         )}
         {list.map((emp) => (
-          <div
+          <button
             key={emp.id}
-            className="bg-card rounded-xl p-4 flex items-center justify-between gap-3"
+            type="button"
+            onClick={() => navigate({ to: "/funcionarios/$id", params: { id: emp.id } })}
+            className="w-full bg-card rounded-xl p-4 flex items-center gap-3 text-left hover:bg-accent/40 transition-colors"
             style={{ boxShadow: "var(--shadow-card)" }}
           >
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="h-10 w-10 shrink-0 rounded-full bg-accent flex items-center justify-center font-semibold text-accent-foreground">
-                {emp.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <div className="font-medium truncate">{emp.name}</div>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-                  {emp.cpf && (
-                    <span className="inline-flex items-center gap-1">
-                      <IdCard className="h-3 w-3" /> {emp.cpf}
-                    </span>
-                  )}
-                  {emp.company && (
-                    <span className="inline-flex items-center gap-1">
-                      <Building2 className="h-3 w-3" /> {emp.company}
-                    </span>
-                  )}
-                </div>
+            <div className="h-10 w-10 shrink-0 rounded-full bg-accent flex items-center justify-center font-semibold text-accent-foreground">
+              {emp.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-medium truncate">{emp.name}</div>
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                {emp.cpf && (
+                  <span className="inline-flex items-center gap-1">
+                    <IdCard className="h-3 w-3" /> {emp.cpf}
+                  </span>
+                )}
+                {emp.company && (
+                  <span className="inline-flex items-center gap-1">
+                    <Building2 className="h-3 w-3" /> {emp.company}
+                  </span>
+                )}
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => remove(emp.id)}
-              aria-label="Remover"
-            >
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                onClick={(e) => openEdit(emp, e)}
+                aria-label="Editar"
+              >
+                <span><Pencil className="h-4 w-4" /></span>
+              </Button>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                onClick={(e) => remove(emp.id, e)}
+                aria-label="Remover"
+              >
+                <span><Trash2 className="h-4 w-4 text-destructive" /></span>
+              </Button>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </button>
         ))}
       </div>
+
+      <EditEmployeeDialog
+        employee={editing}
+        open={!!editing}
+        onOpenChange={(o) => !o && setEditing(null)}
+        onSaved={load}
+      />
     </div>
   );
 }
