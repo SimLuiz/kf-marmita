@@ -46,6 +46,7 @@ export type Database = {
           created_at: string
           employee_id: string
           id: string
+          meal_type_id: string | null
           owner_id: string
           photo_path: string
           taken_at: string
@@ -54,6 +55,7 @@ export type Database = {
           created_at?: string
           employee_id: string
           id?: string
+          meal_type_id?: string | null
           owner_id: string
           photo_path: string
           taken_at?: string
@@ -62,6 +64,7 @@ export type Database = {
           created_at?: string
           employee_id?: string
           id?: string
+          meal_type_id?: string | null
           owner_id?: string
           photo_path?: string
           taken_at?: string
@@ -74,7 +77,70 @@ export type Database = {
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "meal_records_meal_type_id_fkey"
+            columns: ["meal_type_id"]
+            isOneToOne: false
+            referencedRelation: "meal_types"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      meal_types: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          price: number
+          supplier_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          price?: number
+          supplier_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          price?: number
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_types_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
