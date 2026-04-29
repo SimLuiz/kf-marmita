@@ -16,18 +16,24 @@ export type Database = {
     Tables: {
       employees: {
         Row: {
+          company: string | null
+          cpf: string | null
           created_at: string
           id: string
           name: string
           owner_id: string
         }
         Insert: {
+          company?: string | null
+          cpf?: string | null
           created_at?: string
           id?: string
           name: string
           owner_id: string
         }
         Update: {
+          company?: string | null
+          cpf?: string | null
           created_at?: string
           id?: string
           name?: string
