@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RelatorioRouteImport } from './routes/relatorio'
 import { Route as RegistrarRouteImport } from './routes/registrar'
 import { Route as FuncionariosRouteImport } from './routes/funcionarios'
+import { Route as FornecedoresRouteImport } from './routes/fornecedores'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FuncionariosIdRouteImport } from './routes/funcionarios.$id'
 
@@ -30,6 +31,11 @@ const FuncionariosRoute = FuncionariosRouteImport.update({
   path: '/funcionarios',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FornecedoresRoute = FornecedoresRouteImport.update({
+  id: '/fornecedores',
+  path: '/fornecedores',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,6 +49,7 @@ const FuncionariosIdRoute = FuncionariosIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/registrar': typeof RegistrarRoute
   '/relatorio': typeof RelatorioRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/registrar': typeof RegistrarRoute
   '/relatorio': typeof RelatorioRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/registrar': typeof RegistrarRoute
   '/relatorio': typeof RelatorioRoute
@@ -67,15 +76,23 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/fornecedores'
     | '/funcionarios'
     | '/registrar'
     | '/relatorio'
     | '/funcionarios/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/funcionarios' | '/registrar' | '/relatorio' | '/funcionarios/$id'
+  to:
+    | '/'
+    | '/fornecedores'
+    | '/funcionarios'
+    | '/registrar'
+    | '/relatorio'
+    | '/funcionarios/$id'
   id:
     | '__root__'
     | '/'
+    | '/fornecedores'
     | '/funcionarios'
     | '/registrar'
     | '/relatorio'
@@ -84,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FornecedoresRoute: typeof FornecedoresRoute
   FuncionariosRoute: typeof FuncionariosRouteWithChildren
   RegistrarRoute: typeof RegistrarRoute
   RelatorioRoute: typeof RelatorioRoute
@@ -110,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/funcionarios'
       fullPath: '/funcionarios'
       preLoaderRoute: typeof FuncionariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fornecedores': {
+      id: '/fornecedores'
+      path: '/fornecedores'
+      fullPath: '/fornecedores'
+      preLoaderRoute: typeof FornecedoresRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -143,6 +168,7 @@ const FuncionariosRouteWithChildren = FuncionariosRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FornecedoresRoute: FornecedoresRoute,
   FuncionariosRoute: FuncionariosRouteWithChildren,
   RegistrarRoute: RegistrarRoute,
   RelatorioRoute: RelatorioRoute,
