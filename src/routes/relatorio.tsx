@@ -18,6 +18,8 @@ export const Route = createFileRoute("/relatorio")({
 interface Row {
   employee_id: string;
   name: string;
+  cpf: string | null;
+  company: string | null;
   count: number;
 }
 
@@ -47,7 +49,7 @@ function Page() {
     setLoading(true);
     (async () => {
       const [{ data: emps }, { data: recs }] = await Promise.all([
-        supabase.from("employees").select("id,name").order("name"),
+        supabase.from("employees").select("id,name,cpf,company").order("name"),
         supabase
           .from("meal_records")
           .select("employee_id")
@@ -58,9 +60,11 @@ function Page() {
       (recs ?? []).forEach((r) => {
         counts.set(r.employee_id, (counts.get(r.employee_id) ?? 0) + 1);
       });
-      const merged: Row[] = (emps ?? []).map((e) => ({
+      const merged: Row[] = (emps ?? []).map((e: any) => ({
         employee_id: e.id,
         name: e.name,
+        cpf: e.cpf ?? null,
+        company: e.company ?? null,
         count: counts.get(e.id) ?? 0,
       }));
       merged.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
@@ -73,9 +77,12 @@ function Page() {
   const monthName = monthLabel(cursor);
 
   const exportCSV = () => {
-    const header = "Funcionário;Marmitas\n";
-    const body = rows.map((r) => `"${r.name.replace(/"/g, '""')}";${r.count}`).join("\n");
-    const csv = "\uFEFF" + header + body + `\n;\nTotal;${total}\n`;
+    const q = (v: string | null | undefined) => `"${(v ?? "").replace(/"/g, '""')}"`;
+    const header = "Funcionário;CPF;Empresa;Marmitas\n";
+    const body = rows
+      .map((r) => `${q(r.name)};${q(r.cpf)};${q(r.company)};${r.count}`)
+      .join("\n");
+    const csv = "\uFEFF" + header + body + `\n;;;\nTotal;;;${total}\n`;
     download(csv, `relatorio-${monthName.replace(/\s/g, "-")}.csv`, "text/csv;charset=utf-8");
   };
 
