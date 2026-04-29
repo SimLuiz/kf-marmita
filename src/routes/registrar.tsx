@@ -4,12 +4,15 @@ import { ProtectedShell } from "@/components/ProtectedShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Camera, Check, RotateCcw, X } from "lucide-react";
+import { Camera, Check, RotateCcw, Search, X } from "lucide-react";
 
 interface Employee {
   id: string;
   name: string;
+  cpf?: string | null;
+  company?: string | null;
 }
 
 export const Route = createFileRoute("/registrar")({
@@ -28,16 +31,28 @@ function Page() {
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("employees")
-      .select("id,name")
+      .select("id,name,cpf,company")
       .order("name")
       .then(({ data }) => setEmployees(data ?? []));
   }, [user]);
+
+  const filtered = employees.filter((e) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    const digits = q.replace(/\D/g, "");
+    const cpfDigits = (e.cpf ?? "").replace(/\D/g, "");
+    return (
+      e.name.toLowerCase().includes(q) ||
+      (digits.length > 0 && cpfDigits.includes(digits))
+    );
+  });
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -103,20 +118,44 @@ function Page() {
       </div>
 
       {!selected ? (
-        <div className="space-y-2">
-          {employees.map((emp) => (
-            <button
-              key={emp.id}
-              onClick={() => setSelected(emp)}
-              className="w-full bg-card rounded-xl p-4 flex items-center gap-3 text-left hover:bg-accent transition-colors"
-              style={{ boxShadow: "var(--shadow-card)" }}
-            >
-              <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
-                {emp.name.charAt(0).toUpperCase()}
-              </div>
-              <span className="font-medium">{emp.name}</span>
-            </button>
-          ))}
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por nome ou CPF"
+              className="pl-9"
+            />
+          </div>
+          <div className="space-y-2">
+            {filtered.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-6">
+                Nenhum funcionário encontrado.
+              </p>
+            ) : (
+              filtered.map((emp) => (
+                <button
+                  key={emp.id}
+                  onClick={() => setSelected(emp)}
+                  className="w-full bg-card rounded-xl p-4 flex items-center gap-3 text-left hover:bg-accent transition-colors"
+                  style={{ boxShadow: "var(--shadow-card)" }}
+                >
+                  <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold shrink-0">
+                    {emp.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{emp.name}</div>
+                    {(emp.cpf || emp.company) && (
+                      <div className="text-xs text-muted-foreground truncate">
+                        {[emp.cpf, emp.company].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
