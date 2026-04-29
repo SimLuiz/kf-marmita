@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
 import { EditEmployeeDialog } from "@/components/EditEmployeeDialog";
@@ -42,6 +42,16 @@ function formatCPF(v: string) {
 }
 
 function Page() {
+  const location = useLocation();
+
+  if (location.pathname !== "/funcionarios") {
+    return <Outlet />;
+  }
+
+  return <FuncionariosList />;
+}
+
+function FuncionariosList() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [list, setList] = useState<Employee[]>([]);
