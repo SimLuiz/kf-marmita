@@ -4,12 +4,15 @@ import { ProtectedShell } from "@/components/ProtectedShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Camera, Check, RotateCcw, X } from "lucide-react";
+import { Camera, Check, RotateCcw, Search, X } from "lucide-react";
 
 interface Employee {
   id: string;
   name: string;
+  cpf?: string | null;
+  company?: string | null;
 }
 
 export const Route = createFileRoute("/registrar")({
