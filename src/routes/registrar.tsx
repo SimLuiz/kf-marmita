@@ -31,16 +31,28 @@ function Page() {
   const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("employees")
-      .select("id,name")
+      .select("id,name,cpf,company")
       .order("name")
       .then(({ data }) => setEmployees(data ?? []));
   }, [user]);
+
+  const filtered = employees.filter((e) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    const digits = q.replace(/\D/g, "");
+    const cpfDigits = (e.cpf ?? "").replace(/\D/g, "");
+    return (
+      e.name.toLowerCase().includes(q) ||
+      (digits.length > 0 && cpfDigits.includes(digits))
+    );
+  });
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
