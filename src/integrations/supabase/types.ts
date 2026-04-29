@@ -14,7 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      employees: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: []
+      }
+      meal_records: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          owner_id: string
+          photo_path: string
+          taken_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          owner_id: string
+          photo_path: string
+          taken_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          owner_id?: string
+          photo_path?: string
+          taken_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
