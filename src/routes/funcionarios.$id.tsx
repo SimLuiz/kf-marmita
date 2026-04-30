@@ -346,59 +346,6 @@ function Page() {
           })()
         )}
       </div>
-            {records.map((rec) => {
-              const date = new Date(rec.taken_at);
-              return (
-                <div
-                  key={rec.id}
-                  className="bg-card rounded-xl p-3 flex items-center gap-3"
-                  style={{ boxShadow: "var(--shadow-card)" }}
-                >
-                  {rec.photoUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => setLightbox(rec.photoUrl!)}
-                      className="h-16 w-16 rounded-lg overflow-hidden bg-muted shrink-0"
-                    >
-                      <img
-                        src={rec.photoUrl}
-                        alt="Marmita"
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    </button>
-                  ) : (
-                    <div className="h-16 w-16 rounded-lg bg-muted shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium capitalize">
-                      {date.toLocaleDateString("pt-BR", {
-                        weekday: "long",
-                        day: "2-digit",
-                        month: "2-digit",
-                      })}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {date.toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeRecord(rec)}
-                    aria-label="Excluir registro"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
       <EditEmployeeDialog
         employee={emp}
