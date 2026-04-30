@@ -213,16 +213,31 @@ function Page() {
         </Button>
       </div>
 
-      <div
-        className="bg-card rounded-2xl p-5 text-center"
-        style={{ boxShadow: "var(--shadow-card)" }}
-      >
-        <Utensils className="h-5 w-5 mx-auto text-primary mb-1" />
-        <div className="text-3xl font-bold text-primary">{records.length}</div>
-        <div className="text-xs text-muted-foreground uppercase tracking-wide">
-          marmitas no mês
-        </div>
-      </div>
+      {(() => {
+        const total = records.reduce((s, r) => s + (Number(r.meal_types?.price) || 0), 0);
+        const fmt = (v: number) =>
+          v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        return (
+          <div
+            className="bg-card rounded-2xl p-5 grid grid-cols-2 gap-3 text-center"
+            style={{ boxShadow: "var(--shadow-card)" }}
+          >
+            <div>
+              <Utensils className="h-5 w-5 mx-auto text-primary mb-1" />
+              <div className="text-3xl font-bold text-primary">{records.length}</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                marmitas no mês
+              </div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-primary">{fmt(total)}</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                valor total
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
