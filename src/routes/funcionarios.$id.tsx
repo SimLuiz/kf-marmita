@@ -250,7 +250,102 @@ function Page() {
             Nenhuma retirada registrada neste mês.
           </p>
         ) : (
-          <div className="space-y-2">
+          (() => {
+            const fmt = (v: number) =>
+              v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            const groups = new Map<string, RecordWithUrl[]>();
+            for (const r of records) {
+              const key = new Date(r.taken_at).toISOString().slice(0, 10);
+              if (!groups.has(key)) groups.set(key, []);
+              groups.get(key)!.push(r);
+            }
+            const days = Array.from(groups.entries()).sort((a, b) =>
+              b[0].localeCompare(a[0])
+            );
+            return (
+              <div className="space-y-4">
+                {days.map(([day, items]) => {
+                  const dayDate = new Date(day + "T00:00:00");
+                  const dayTotal = items.reduce(
+                    (s, r) => s + (Number(r.meal_types?.price) || 0),
+                    0
+                  );
+                  return (
+                    <div key={day} className="space-y-2">
+                      <div className="flex items-center justify-between px-1">
+                        <div className="text-sm font-semibold capitalize">
+                          {dayDate.toLocaleDateString("pt-BR", {
+                            weekday: "long",
+                            day: "2-digit",
+                            month: "2-digit",
+                          })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {items.length} {items.length === 1 ? "marmita" : "marmitas"} ·{" "}
+                          <span className="font-semibold text-foreground">
+                            {fmt(dayTotal)}
+                          </span>
+                        </div>
+                      </div>
+                      {items.map((rec) => {
+                        const date = new Date(rec.taken_at);
+                        const price = Number(rec.meal_types?.price) || 0;
+                        return (
+                          <div
+                            key={rec.id}
+                            className="bg-card rounded-xl p-3 flex items-center gap-3"
+                            style={{ boxShadow: "var(--shadow-card)" }}
+                          >
+                            {rec.photoUrl ? (
+                              <button
+                                type="button"
+                                onClick={() => setLightbox(rec.photoUrl!)}
+                                className="h-16 w-16 rounded-lg overflow-hidden bg-muted shrink-0"
+                              >
+                                <img
+                                  src={rec.photoUrl}
+                                  alt="Marmita"
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                />
+                              </button>
+                            ) : (
+                              <div className="h-16 w-16 rounded-lg bg-muted shrink-0" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">
+                                {rec.meal_types?.name ?? "Marmita"}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {rec.meal_types?.suppliers?.name ?? "Sem fornecedor"}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {date.toLocaleTimeString("pt-BR", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}{" "}
+                                · <span className="font-semibold text-foreground">{fmt(price)}</span>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeRecord(rec)}
+                              aria-label="Excluir registro"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()
+        )}
+      </div>
             {records.map((rec) => {
               const date = new Date(rec.taken_at);
               return (
