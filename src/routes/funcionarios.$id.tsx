@@ -27,6 +27,12 @@ interface Record {
   id: string;
   taken_at: string;
   photo_path: string;
+  meal_type_id: string | null;
+  meal_types: {
+    name: string;
+    price: number;
+    suppliers: { name: string } | null;
+  } | null;
 }
 interface RecordWithUrl extends Record {
   photoUrl: string | null;
