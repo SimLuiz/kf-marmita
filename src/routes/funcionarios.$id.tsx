@@ -27,6 +27,12 @@ interface Record {
   id: string;
   taken_at: string;
   photo_path: string;
+  meal_type_id: string | null;
+  meal_types: {
+    name: string;
+    price: number;
+    suppliers: { name: string } | null;
+  } | null;
 }
 interface RecordWithUrl extends Record {
   photoUrl: string | null;
@@ -86,7 +92,7 @@ function Page() {
     setLoading(true);
     const { data, error } = await supabase
       .from("meal_records")
-      .select("id,taken_at,photo_path")
+      .select("id,taken_at,photo_path,meal_type_id,meal_types(name,price,suppliers(name))")
       .eq("employee_id", id)
       .gte("taken_at", range.start.toISOString())
       .lt("taken_at", range.end.toISOString())
@@ -207,16 +213,31 @@ function Page() {
         </Button>
       </div>
 
-      <div
-        className="bg-card rounded-2xl p-5 text-center"
-        style={{ boxShadow: "var(--shadow-card)" }}
-      >
-        <Utensils className="h-5 w-5 mx-auto text-primary mb-1" />
-        <div className="text-3xl font-bold text-primary">{records.length}</div>
-        <div className="text-xs text-muted-foreground uppercase tracking-wide">
-          marmitas no mês
-        </div>
-      </div>
+      {(() => {
+        const total = records.reduce((s, r) => s + (Number(r.meal_types?.price) || 0), 0);
+        const fmt = (v: number) =>
+          v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        return (
+          <div
+            className="bg-card rounded-2xl p-5 grid grid-cols-2 gap-3 text-center"
+            style={{ boxShadow: "var(--shadow-card)" }}
+          >
+            <div>
+              <Utensils className="h-5 w-5 mx-auto text-primary mb-1" />
+              <div className="text-3xl font-bold text-primary">{records.length}</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                marmitas no mês
+              </div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-primary">{fmt(total)}</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                valor total
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
@@ -229,58 +250,100 @@ function Page() {
             Nenhuma retirada registrada neste mês.
           </p>
         ) : (
-          <div className="space-y-2">
-            {records.map((rec) => {
-              const date = new Date(rec.taken_at);
-              return (
-                <div
-                  key={rec.id}
-                  className="bg-card rounded-xl p-3 flex items-center gap-3"
-                  style={{ boxShadow: "var(--shadow-card)" }}
-                >
-                  {rec.photoUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => setLightbox(rec.photoUrl!)}
-                      className="h-16 w-16 rounded-lg overflow-hidden bg-muted shrink-0"
-                    >
-                      <img
-                        src={rec.photoUrl}
-                        alt="Marmita"
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    </button>
-                  ) : (
-                    <div className="h-16 w-16 rounded-lg bg-muted shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium capitalize">
-                      {date.toLocaleDateString("pt-BR", {
-                        weekday: "long",
-                        day: "2-digit",
-                        month: "2-digit",
+          (() => {
+            const fmt = (v: number) =>
+              v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            const groups = new Map<string, RecordWithUrl[]>();
+            for (const r of records) {
+              const key = new Date(r.taken_at).toISOString().slice(0, 10);
+              if (!groups.has(key)) groups.set(key, []);
+              groups.get(key)!.push(r);
+            }
+            const days = Array.from(groups.entries()).sort((a, b) =>
+              b[0].localeCompare(a[0])
+            );
+            return (
+              <div className="space-y-4">
+                {days.map(([day, items]) => {
+                  const dayDate = new Date(day + "T00:00:00");
+                  const dayTotal = items.reduce(
+                    (s, r) => s + (Number(r.meal_types?.price) || 0),
+                    0
+                  );
+                  return (
+                    <div key={day} className="space-y-2">
+                      <div className="flex items-center justify-between px-1">
+                        <div className="text-sm font-semibold capitalize">
+                          {dayDate.toLocaleDateString("pt-BR", {
+                            weekday: "long",
+                            day: "2-digit",
+                            month: "2-digit",
+                          })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {items.length} {items.length === 1 ? "marmita" : "marmitas"} ·{" "}
+                          <span className="font-semibold text-foreground">
+                            {fmt(dayTotal)}
+                          </span>
+                        </div>
+                      </div>
+                      {items.map((rec) => {
+                        const date = new Date(rec.taken_at);
+                        const price = Number(rec.meal_types?.price) || 0;
+                        return (
+                          <div
+                            key={rec.id}
+                            className="bg-card rounded-xl p-3 flex items-center gap-3"
+                            style={{ boxShadow: "var(--shadow-card)" }}
+                          >
+                            {rec.photoUrl ? (
+                              <button
+                                type="button"
+                                onClick={() => setLightbox(rec.photoUrl!)}
+                                className="h-16 w-16 rounded-lg overflow-hidden bg-muted shrink-0"
+                              >
+                                <img
+                                  src={rec.photoUrl}
+                                  alt="Marmita"
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                />
+                              </button>
+                            ) : (
+                              <div className="h-16 w-16 rounded-lg bg-muted shrink-0" />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium truncate">
+                                {rec.meal_types?.name ?? "Marmita"}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {rec.meal_types?.suppliers?.name ?? "Sem fornecedor"}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {date.toLocaleTimeString("pt-BR", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}{" "}
+                                · <span className="font-semibold text-foreground">{fmt(price)}</span>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeRecord(rec)}
+                              aria-label="Excluir registro"
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        );
                       })}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {date.toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeRecord(rec)}
-                    aria-label="Excluir registro"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            );
+          })()
         )}
       </div>
 
