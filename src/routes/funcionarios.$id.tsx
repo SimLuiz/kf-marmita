@@ -350,6 +350,25 @@ function Page() {
         onSaved={loadEmployee}
       />
 
+      <AdminPasswordDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+        title="Excluir registro"
+        description="Digite a senha do admin para excluir este registro de marmita."
+        onConfirmed={async () => {
+          if (!pendingDelete) return;
+          const { error } = await supabase
+            .from("meal_records")
+            .delete()
+            .eq("id", pendingDelete.id);
+          if (error) throw new Error(error.message);
+          await supabase.storage.from("meal-photos").remove([pendingDelete.photo_path]);
+          toast.success("Registro removido");
+          setPendingDelete(null);
+          loadRecords();
+        }}
+      />
+
       {lightbox && (
         <button
           type="button"
