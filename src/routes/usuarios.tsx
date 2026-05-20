@@ -1,0 +1,246 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { ProtectedShell } from "@/components/ProtectedShell";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { UserPlus, Trash2, ShieldCheck, KeyRound, User as UserIcon } from "lucide-react";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
+import {
+  listAppUsers,
+  createAppUser,
+  deleteAppUser,
+  resetAppUserPassword,
+} from "@/lib/admin-users.functions";
+
+export const Route = createFileRoute("/usuarios")({
+  component: () => (
+    <ProtectedShell>
+      <Page />
+    </ProtectedShell>
+  ),
+});
+
+interface AppUser {
+  id: string;
+  username: string;
+  created_at: string;
+  roles: string[];
+}
+
+function Page() {
+  const { isAdmin, loading } = useAuth();
+  const navigate = useNavigate();
+  const listFn = useServerFn(listAppUsers);
+  const createFn = useServerFn(createAppUser);
+  const deleteFn = useServerFn(deleteAppUser);
+  const resetFn = useServerFn(resetAppUserPassword);
+
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [uname, setUname] = useState("");
+  const [pwd, setPwd] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<AppUser | null>(null);
+  const [resetFor, setResetFor] = useState<AppUser | null>(null);
+  const [newPwd, setNewPwd] = useState("");
+
+  useEffect(() => {
+    if (!loading && !isAdmin) {
+      toast.error("Acesso restrito ao administrador");
+      navigate({ to: "/" });
+    }
+  }, [loading, isAdmin, navigate]);
+
+  const load = async () => {
+    try {
+      const data = (await listFn()) as AppUser[];
+      setUsers(data);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao listar usuários");
+    }
+  };
+
+  useEffect(() => {
+    if (isAdmin) load();
+  }, [isAdmin]);
+
+  const add = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uname.trim() || pwd.length < 6) {
+      return toast.error("Usuário e senha (mínimo 6 caracteres) obrigatórios");
+    }
+    setBusy(true);
+    try {
+      await createFn({ data: { username: uname.trim(), password: pwd } });
+      toast.success("Usuário criado");
+      setUname("");
+      setPwd("");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao criar usuário");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetFor || newPwd.length < 6) return;
+    try {
+      await resetFn({ data: { userId: resetFor.id, password: newPwd } });
+      toast.success("Senha alterada");
+      setResetFor(null);
+      setNewPwd("");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro");
+    }
+  };
+
+  if (!isAdmin) return null;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Usuários do sistema</h2>
+        <p className="text-sm text-muted-foreground">
+          Apenas o admin pode criar, alterar a senha ou excluir usuários.
+        </p>
+      </div>
+
+      <form
+        onSubmit={add}
+        className="bg-card rounded-2xl p-4 space-y-3"
+        style={{ boxShadow: "var(--shadow-card)" }}
+      >
+        <div className="space-y-1.5">
+          <Label htmlFor="u">Usuário</Label>
+          <Input
+            id="u"
+            placeholder="ex: joao"
+            value={uname}
+            onChange={(e) => setUname(e.target.value)}
+            autoCapitalize="none"
+            maxLength={32}
+            required
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="p">Senha</Label>
+          <Input
+            id="p"
+            type="password"
+            value={pwd}
+            onChange={(e) => setPwd(e.target.value)}
+            minLength={6}
+            required
+          />
+        </div>
+        <Button type="submit" className="w-full" disabled={busy}>
+          <UserPlus className="h-4 w-4 mr-1" /> Cadastrar usuário
+        </Button>
+      </form>
+
+      <div className="space-y-2">
+        {users.length === 0 && (
+          <p className="text-center text-sm text-muted-foreground py-6">
+            Nenhum usuário cadastrado.
+          </p>
+        )}
+        {users.map((u) => {
+          const admin = u.roles.includes("admin");
+          return (
+            <div
+              key={u.id}
+              className="bg-card rounded-xl p-4 flex items-center gap-3"
+              style={{ boxShadow: "var(--shadow-card)" }}
+            >
+              <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center">
+                {admin ? (
+                  <ShieldCheck className="h-5 w-5 text-primary" />
+                ) : (
+                  <UserIcon className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate">{u.username}</div>
+                <div className="text-xs text-muted-foreground">
+                  {admin ? "Administrador" : "Usuário comum"}
+                </div>
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setResetFor(u)}
+                aria-label="Alterar senha"
+              >
+                <KeyRound className="h-4 w-4" />
+              </Button>
+              {!admin && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setPending(u)}
+                  aria-label="Excluir"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <AdminPasswordDialog
+        open={!!pending}
+        onOpenChange={(o) => !o && setPending(null)}
+        title="Excluir usuário"
+        description={`Digite sua senha de admin para excluir "${pending?.username ?? ""}".`}
+        onConfirmed={async () => {
+          if (!pending) return;
+          await deleteFn({ data: { userId: pending.id } });
+          toast.success("Usuário excluído");
+          setPending(null);
+          load();
+        }}
+      />
+
+      {/* Reset password dialog */}
+      {resetFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <form
+            onSubmit={doReset}
+            className="bg-card rounded-2xl p-5 w-full max-w-sm space-y-3"
+            style={{ boxShadow: "var(--shadow-card)" }}
+          >
+            <h3 className="font-semibold">Nova senha para {resetFor.username}</h3>
+            <Input
+              type="password"
+              minLength={6}
+              required
+              autoFocus
+              value={newPwd}
+              onChange={(e) => setNewPwd(e.target.value)}
+              placeholder="Mínimo 6 caracteres"
+            />
+            <div className="flex gap-2 justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setResetFor(null);
+                  setNewPwd("");
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit">Salvar</Button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}

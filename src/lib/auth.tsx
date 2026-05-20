@@ -2,50 +2,98 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+const ADMIN_DOMAIN = "marmita.local";
+
+export function usernameToEmail(username: string) {
+  return `${username.trim().toLowerCase()}@${ADMIN_DOMAIN}`;
+}
+
 interface AuthCtx {
   session: Session | null;
   user: User | null;
+  username: string | null;
+  isAdmin: boolean;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (username: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  verifyAdminPassword: (password: string) => Promise<boolean>;
 }
 
 const Ctx = createContext<AuthCtx | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const loadRoleAndProfile = async (s: Session | null) => {
+    if (!s?.user) {
+      setUsername(null);
+      setIsAdmin(false);
+      return;
+    }
+    const [{ data: profile }, { data: roles }] = await Promise.all([
+      supabase.from("profiles").select("username").eq("id", s.user.id).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", s.user.id),
+    ]);
+    setUsername(profile?.username ?? null);
+    setIsAdmin(!!roles?.some((r) => r.role === "admin"));
+  };
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
+      // Defer to avoid deadlock
+      setTimeout(() => loadRoleAndProfile(s), 0);
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      setLoading(false);
+      loadRoleAndProfile(data.session).finally(() => setLoading(false));
     });
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const signIn: AuthCtx["signIn"] = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
-  };
-  const signUp: AuthCtx["signUp"] = async (email, password) => {
-    const { error } = await supabase.auth.signUp({
-      email,
+  const signIn: AuthCtx["signIn"] = async (uname, password) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: usernameToEmail(uname),
       password,
-      options: { emailRedirectTo: `${window.location.origin}/` },
     });
     return { error: error?.message ?? null };
   };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
+  const verifyAdminPassword = async (password: string) => {
+    // Verify on a throwaway client so the current session is not disturbed
+    const { createClient } = await import("@supabase/supabase-js");
+    const url = import.meta.env.VITE_SUPABASE_URL as string;
+    const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+    const tmp = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+    });
+    const { error } = await tmp.auth.signInWithPassword({
+      email: usernameToEmail("admin"),
+      password,
+    });
+    return !error;
+  };
+
   return (
-    <Ctx.Provider value={{ session, user: session?.user ?? null, loading, signIn, signUp, signOut }}>
+    <Ctx.Provider
+      value={{
+        session,
+        user: session?.user ?? null,
+        username,
+        isAdmin,
+        loading,
+        signIn,
+        signOut,
+        verifyAdminPassword,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );

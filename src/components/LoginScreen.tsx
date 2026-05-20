@@ -7,23 +7,18 @@ import { toast } from "sonner";
 import { UtensilsCrossed } from "lucide-react";
 
 export function LoginScreen() {
-  const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("");
+  const { signIn } = useAuth();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const fn = mode === "login" ? signIn : signUp;
-    const { error } = await fn(email, password);
+    const { error } = await signIn(username, password);
     setLoading(false);
     if (error) {
-      toast.error(error);
-    } else if (mode === "signup") {
-      toast.success("Conta criada! Você já pode entrar.");
-      setMode("login");
+      toast.error("Usuário ou senha inválidos");
     }
   };
 
@@ -39,7 +34,7 @@ export function LoginScreen() {
           </div>
           <h1 className="text-2xl font-bold">Marmita Control</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Controle de retiradas dos funcionários
+            Acesso restrito · entre com seu usuário
           </p>
         </div>
 
@@ -49,14 +44,16 @@ export function LoginScreen() {
           style={{ boxShadow: "var(--shadow-card)" }}
         >
           <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
+            <Label htmlFor="username">Usuário</Label>
             <Input
-              id="email"
-              type="email"
-              autoComplete="email"
+              id="username"
+              type="text"
+              autoComplete="username"
+              autoCapitalize="none"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="admin"
             />
           </div>
           <div className="space-y-2">
@@ -64,7 +61,7 @@ export function LoginScreen() {
             <Input
               id="password"
               type="password"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              autoComplete="current-password"
               required
               minLength={6}
               value={password}
@@ -72,17 +69,11 @@ export function LoginScreen() {
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "..." : mode === "login" ? "Entrar" : "Criar conta"}
+            {loading ? "Entrando..." : "Entrar"}
           </Button>
-          <button
-            type="button"
-            onClick={() => setMode(mode === "login" ? "signup" : "login")}
-            className="w-full text-sm text-muted-foreground hover:text-foreground"
-          >
-            {mode === "login"
-              ? "Primeiro acesso? Criar conta de admin"
-              : "Já tenho conta. Entrar"}
-          </button>
+          <p className="text-xs text-muted-foreground text-center pt-1">
+            Novos usuários só podem ser criados pelo administrador.
+          </p>
         </form>
       </div>
     </div>
