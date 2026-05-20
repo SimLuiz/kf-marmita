@@ -53,7 +53,7 @@ function Page() {
 }
 
 function FuncionariosList() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [list, setList] = useState<Employee[]>([]);
   const [name, setName] = useState("");
@@ -61,6 +61,7 @@ function FuncionariosList() {
   const [company, setCompany] = useState("");
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Employee | null>(null);
 
   const load = async () => {
     const { data, error } = await supabase
@@ -98,13 +99,9 @@ function FuncionariosList() {
     load();
   };
 
-  const remove = async (id: string, e: React.MouseEvent) => {
+  const askRemove = (emp: Employee, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Excluir este funcionário e todos os seus registros?")) return;
-    const { error } = await supabase.from("employees").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Funcionário removido");
-    load();
+    setPendingDelete(emp);
   };
 
   const openEdit = (emp: Employee, e: React.MouseEvent) => {
