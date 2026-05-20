@@ -2,6 +2,7 @@ import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/rea
 import { useEffect, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
 import { EditEmployeeDialog } from "@/components/EditEmployeeDialog";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,7 @@ function Page() {
 }
 
 function FuncionariosList() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [list, setList] = useState<Employee[]>([]);
   const [name, setName] = useState("");
@@ -60,6 +61,7 @@ function FuncionariosList() {
   const [company, setCompany] = useState("");
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Employee | null>(null);
 
   const load = async () => {
     const { data, error } = await supabase
@@ -97,13 +99,9 @@ function FuncionariosList() {
     load();
   };
 
-  const remove = async (id: string, e: React.MouseEvent) => {
+  const askRemove = (emp: Employee, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Excluir este funcionário e todos os seus registros?")) return;
-    const { error } = await supabase.from("employees").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Funcionário removido");
-    load();
+    setPendingDelete(emp);
   };
 
   const openEdit = (emp: Employee, e: React.MouseEvent) => {
@@ -203,22 +201,26 @@ function FuncionariosList() {
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => openEdit(emp, e)}
-                aria-label="Editar"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => remove(emp.id, e)}
-                aria-label="Remover"
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              {isAdmin && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => openEdit(emp, e)}
+                    aria-label="Editar"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => askRemove(emp, e)}
+                    aria-label="Remover"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </>
+              )}
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </div>
           </div>
@@ -230,6 +232,24 @@ function FuncionariosList() {
         open={!!editing}
         onOpenChange={(o) => !o && setEditing(null)}
         onSaved={load}
+      />
+
+      <AdminPasswordDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+        title="Excluir funcionário"
+        description={`Digite a senha do admin para excluir "${pendingDelete?.name ?? ""}" e todos os seus registros.`}
+        onConfirmed={async () => {
+          if (!pendingDelete) return;
+          const { error } = await supabase
+            .from("employees")
+            .delete()
+            .eq("id", pendingDelete.id);
+          if (error) throw new Error(error.message);
+          toast.success("Funcionário removido");
+          setPendingDelete(null);
+          load();
+        }}
       />
     </div>
   );

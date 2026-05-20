@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as RelatorioRouteImport } from './routes/relatorio'
 import { Route as RegistrarRouteImport } from './routes/registrar'
 import { Route as FuncionariosRouteImport } from './routes/funcionarios'
@@ -16,6 +17,11 @@ import { Route as FornecedoresRouteImport } from './routes/fornecedores'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FuncionariosIdRouteImport } from './routes/funcionarios.$id'
 
+const UsuariosRoute = UsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RelatorioRoute = RelatorioRouteImport.update({
   id: '/relatorio',
   path: '/relatorio',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/registrar': typeof RegistrarRoute
   '/relatorio': typeof RelatorioRoute
+  '/usuarios': typeof UsuariosRoute
   '/funcionarios/$id': typeof FuncionariosIdRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/registrar': typeof RegistrarRoute
   '/relatorio': typeof RelatorioRoute
+  '/usuarios': typeof UsuariosRoute
   '/funcionarios/$id': typeof FuncionariosIdRoute
 }
 export interface FileRoutesById {
@@ -70,6 +78,7 @@ export interface FileRoutesById {
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/registrar': typeof RegistrarRoute
   '/relatorio': typeof RelatorioRoute
+  '/usuarios': typeof UsuariosRoute
   '/funcionarios/$id': typeof FuncionariosIdRoute
 }
 export interface FileRouteTypes {
@@ -80,6 +89,7 @@ export interface FileRouteTypes {
     | '/funcionarios'
     | '/registrar'
     | '/relatorio'
+    | '/usuarios'
     | '/funcionarios/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -88,6 +98,7 @@ export interface FileRouteTypes {
     | '/funcionarios'
     | '/registrar'
     | '/relatorio'
+    | '/usuarios'
     | '/funcionarios/$id'
   id:
     | '__root__'
@@ -96,6 +107,7 @@ export interface FileRouteTypes {
     | '/funcionarios'
     | '/registrar'
     | '/relatorio'
+    | '/usuarios'
     | '/funcionarios/$id'
   fileRoutesById: FileRoutesById
 }
@@ -105,10 +117,18 @@ export interface RootRouteChildren {
   FuncionariosRoute: typeof FuncionariosRouteWithChildren
   RegistrarRoute: typeof RegistrarRoute
   RelatorioRoute: typeof RelatorioRoute
+  UsuariosRoute: typeof UsuariosRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/usuarios': {
+      id: '/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/relatorio': {
       id: '/relatorio'
       path: '/relatorio'
@@ -172,16 +192,8 @@ const rootRouteChildren: RootRouteChildren = {
   FuncionariosRoute: FuncionariosRouteWithChildren,
   RegistrarRoute: RegistrarRoute,
   RelatorioRoute: RelatorioRoute,
+  UsuariosRoute: UsuariosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -32,13 +33,15 @@ const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function Page() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [types, setTypes] = useState<MealType[]>([]);
   const [newSupplier, setNewSupplier] = useState("");
   const [editingSup, setEditingSup] = useState<{ id: string; name: string } | null>(null);
   const [typeForms, setTypeForms] = useState<Record<string, { name: string; price: string }>>({});
   const [editingType, setEditingType] = useState<{ id: string; name: string; price: string } | null>(null);
+  const [pendingSup, setPendingSup] = useState<Supplier | null>(null);
+  const [pendingType, setPendingType] = useState<MealType | null>(null);
 
   const load = async () => {
     const [{ data: sups }, { data: mts }] = await Promise.all([
@@ -65,13 +68,7 @@ function Page() {
     load();
   };
 
-  const removeSupplier = async (id: string) => {
-    if (!confirm("Excluir fornecedor e todos os seus tipos de marmita?")) return;
-    const { error } = await supabase.from("suppliers").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Fornecedor removido");
-    load();
-  };
+  const askRemoveSupplier = (s: Supplier) => setPendingSup(s);
 
   const saveSupplier = async () => {
     if (!editingSup || !editingSup.name.trim()) return;
@@ -101,13 +98,7 @@ function Page() {
     load();
   };
 
-  const removeType = async (id: string) => {
-    if (!confirm("Excluir esta marmita?")) return;
-    const { error } = await supabase.from("meal_types").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Removido");
-    load();
-  };
+  const askRemoveType = (t: MealType) => setPendingType(t);
 
   const saveType = async () => {
     if (!editingType || !editingType.name.trim()) return;
@@ -185,16 +176,20 @@ function Page() {
                   ) : (
                     <>
                       <span className="font-semibold flex-1 truncate">{s.name}</span>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setEditingSup({ id: s.id, name: s.name })}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => removeSupplier(s.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {isAdmin && (
+                        <>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setEditingSup({ id: s.id, name: s.name })}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => askRemoveSupplier(s)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
@@ -240,22 +235,26 @@ function Page() {
                         <span className="text-sm font-semibold text-primary">
                           {brl(t.price)}
                         </span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() =>
-                            setEditingType({
-                              id: t.id,
-                              name: t.name,
-                              price: String(t.price).replace(".", ","),
-                            })
-                          }
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={() => removeType(t.id)}>
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
+                        {isAdmin && (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() =>
+                                setEditingType({
+                                  id: t.id,
+                                  name: t.name,
+                                  price: String(t.price).replace(".", ","),
+                                })
+                              }
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => askRemoveType(t)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     )
                   )}
@@ -288,6 +287,36 @@ function Page() {
           })}
         </div>
       )}
+
+      <AdminPasswordDialog
+        open={!!pendingSup}
+        onOpenChange={(o: boolean) => !o && setPendingSup(null)}
+        title="Excluir fornecedor"
+        description={`Digite a senha do admin para excluir "${pendingSup?.name ?? ""}" e todos os seus tipos de marmita.`}
+        onConfirmed={async () => {
+          if (!pendingSup) return;
+          const { error } = await supabase.from("suppliers").delete().eq("id", pendingSup.id);
+          if (error) throw new Error(error.message);
+          toast.success("Fornecedor removido");
+          setPendingSup(null);
+          load();
+        }}
+      />
+
+      <AdminPasswordDialog
+        open={!!pendingType}
+        onOpenChange={(o: boolean) => !o && setPendingType(null)}
+        title="Excluir marmita"
+        description={`Digite a senha do admin para excluir "${pendingType?.name ?? ""}".`}
+        onConfirmed={async () => {
+          if (!pendingType) return;
+          const { error } = await supabase.from("meal_types").delete().eq("id", pendingType.id);
+          if (error) throw new Error(error.message);
+          toast.success("Removido");
+          setPendingType(null);
+          load();
+        }}
+      />
     </div>
   );
 }

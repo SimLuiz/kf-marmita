@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
 import { EditEmployeeDialog } from "@/components/EditEmployeeDialog";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -51,12 +52,13 @@ const monthLabel = (d: Date) =>
 
 function Page() {
   const { id } = Route.useParams();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [emp, setEmp] = useState<Employee | null>(null);
   const [records, setRecords] = useState<RecordWithUrl[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<RecordWithUrl | null>(null);
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     d.setDate(1);
@@ -123,14 +125,7 @@ function Page() {
     if (user) loadRecords();
   }, [user, id, range.start, range.end]);
 
-  const removeRecord = async (rec: RecordWithUrl) => {
-    if (!confirm("Excluir este registro de marmita?")) return;
-    const { error } = await supabase.from("meal_records").delete().eq("id", rec.id);
-    if (error) return toast.error(error.message);
-    await supabase.storage.from("meal-photos").remove([rec.photo_path]);
-    toast.success("Registro removido");
-    loadRecords();
-  };
+  const askRemoveRecord = (rec: RecordWithUrl) => setPendingDelete(rec);
 
   if (!emp) {
     return (
@@ -151,9 +146,11 @@ function Page() {
           </Link>
         </Button>
         <h2 className="text-xl font-bold flex-1 truncate">{emp.name}</h2>
-        <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-          <Pencil className="h-4 w-4 mr-1" /> Editar
-        </Button>
+        {isAdmin && (
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="h-4 w-4 mr-1" /> Editar
+          </Button>
+        )}
       </div>
 
       <div
@@ -327,14 +324,16 @@ function Page() {
                                 · <span className="font-semibold text-foreground">{fmt(price)}</span>
                               </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeRecord(rec)}
-                              aria-label="Excluir registro"
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => askRemoveRecord(rec)}
+                                aria-label="Excluir registro"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
                           </div>
                         );
                       })}
@@ -352,6 +351,25 @@ function Page() {
         open={editOpen}
         onOpenChange={setEditOpen}
         onSaved={loadEmployee}
+      />
+
+      <AdminPasswordDialog
+        open={!!pendingDelete}
+        onOpenChange={(o: boolean) => !o && setPendingDelete(null)}
+        title="Excluir registro"
+        description="Digite a senha do admin para excluir este registro de marmita."
+        onConfirmed={async () => {
+          if (!pendingDelete) return;
+          const { error } = await supabase
+            .from("meal_records")
+            .delete()
+            .eq("id", pendingDelete.id);
+          if (error) throw new Error(error.message);
+          await supabase.storage.from("meal-photos").remove([pendingDelete.photo_path]);
+          toast.success("Registro removido");
+          setPendingDelete(null);
+          loadRecords();
+        }}
       />
 
       {lightbox && (
