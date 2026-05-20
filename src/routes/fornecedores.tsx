@@ -235,22 +235,26 @@ function Page() {
                         <span className="text-sm font-semibold text-primary">
                           {brl(t.price)}
                         </span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() =>
-                            setEditingType({
-                              id: t.id,
-                              name: t.name,
-                              price: String(t.price).replace(".", ","),
-                            })
-                          }
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={() => removeType(t.id)}>
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
+                        {isAdmin && (
+                          <>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() =>
+                                setEditingType({
+                                  id: t.id,
+                                  name: t.name,
+                                  price: String(t.price).replace(".", ","),
+                                })
+                              }
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" onClick={() => askRemoveType(t)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     )
                   )}
