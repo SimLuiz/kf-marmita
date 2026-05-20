@@ -98,13 +98,7 @@ function Page() {
     load();
   };
 
-  const removeType = async (id: string) => {
-    if (!confirm("Excluir esta marmita?")) return;
-    const { error } = await supabase.from("meal_types").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Removido");
-    load();
-  };
+  const askRemoveType = (t: MealType) => setPendingType(t);
 
   const saveType = async () => {
     if (!editingType || !editingType.name.trim()) return;
