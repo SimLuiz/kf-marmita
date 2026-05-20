@@ -353,7 +353,7 @@ function Page() {
 
       <AdminPasswordDialog
         open={!!pendingDelete}
-        onOpenChange={(o) => !o && setPendingDelete(null)}
+        onOpenChange={(o: boolean) => !o && setPendingDelete(null)}
         title="Excluir registro"
         description="Digite a senha do admin para excluir este registro de marmita."
         onConfirmed={async () => {
