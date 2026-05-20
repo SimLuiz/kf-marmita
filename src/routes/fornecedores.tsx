@@ -287,6 +287,36 @@ function Page() {
           })}
         </div>
       )}
+
+      <AdminPasswordDialog
+        open={!!pendingSup}
+        onOpenChange={(o: boolean) => !o && setPendingSup(null)}
+        title="Excluir fornecedor"
+        description={`Digite a senha do admin para excluir "${pendingSup?.name ?? ""}" e todos os seus tipos de marmita.`}
+        onConfirmed={async () => {
+          if (!pendingSup) return;
+          const { error } = await supabase.from("suppliers").delete().eq("id", pendingSup.id);
+          if (error) throw new Error(error.message);
+          toast.success("Fornecedor removido");
+          setPendingSup(null);
+          load();
+        }}
+      />
+
+      <AdminPasswordDialog
+        open={!!pendingType}
+        onOpenChange={(o: boolean) => !o && setPendingType(null)}
+        title="Excluir marmita"
+        description={`Digite a senha do admin para excluir "${pendingType?.name ?? ""}".`}
+        onConfirmed={async () => {
+          if (!pendingType) return;
+          const { error } = await supabase.from("meal_types").delete().eq("id", pendingType.id);
+          if (error) throw new Error(error.message);
+          toast.success("Removido");
+          setPendingType(null);
+          load();
+        }}
+      />
     </div>
   );
 }
