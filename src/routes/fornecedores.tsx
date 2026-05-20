@@ -33,13 +33,15 @@ const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 function Page() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [types, setTypes] = useState<MealType[]>([]);
   const [newSupplier, setNewSupplier] = useState("");
   const [editingSup, setEditingSup] = useState<{ id: string; name: string } | null>(null);
   const [typeForms, setTypeForms] = useState<Record<string, { name: string; price: string }>>({});
   const [editingType, setEditingType] = useState<{ id: string; name: string; price: string } | null>(null);
+  const [pendingSup, setPendingSup] = useState<Supplier | null>(null);
+  const [pendingType, setPendingType] = useState<MealType | null>(null);
 
   const load = async () => {
     const [{ data: sups }, { data: mts }] = await Promise.all([
