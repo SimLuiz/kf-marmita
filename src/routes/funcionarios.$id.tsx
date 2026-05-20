@@ -321,14 +321,16 @@ function Page() {
                                 · <span className="font-semibold text-foreground">{fmt(price)}</span>
                               </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeRecord(rec)}
-                              aria-label="Excluir registro"
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {isAdmin && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => askRemoveRecord(rec)}
+                                aria-label="Excluir registro"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
                           </div>
                         );
                       })}
