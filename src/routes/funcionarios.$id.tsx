@@ -124,14 +124,7 @@ function Page() {
     if (user) loadRecords();
   }, [user, id, range.start, range.end]);
 
-  const removeRecord = async (rec: RecordWithUrl) => {
-    if (!confirm("Excluir este registro de marmita?")) return;
-    const { error } = await supabase.from("meal_records").delete().eq("id", rec.id);
-    if (error) return toast.error(error.message);
-    await supabase.storage.from("meal-photos").remove([rec.photo_path]);
-    toast.success("Registro removido");
-    loadRecords();
-  };
+  const askRemoveRecord = (rec: RecordWithUrl) => setPendingDelete(rec);
 
   if (!emp) {
     return (
