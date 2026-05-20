@@ -176,16 +176,20 @@ function Page() {
                   ) : (
                     <>
                       <span className="font-semibold flex-1 truncate">{s.name}</span>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setEditingSup({ id: s.id, name: s.name })}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="ghost" onClick={() => removeSupplier(s.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {isAdmin && (
+                        <>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => setEditingSup({ id: s.id, name: s.name })}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => askRemoveSupplier(s)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
