@@ -201,22 +201,26 @@ function FuncionariosList() {
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => openEdit(emp, e)}
-                aria-label="Editar"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => remove(emp.id, e)}
-                aria-label="Remover"
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              {isAdmin && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => openEdit(emp, e)}
+                    aria-label="Editar"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => askRemove(emp, e)}
+                    aria-label="Remover"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </>
+              )}
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </div>
           </div>
@@ -228,6 +232,24 @@ function FuncionariosList() {
         open={!!editing}
         onOpenChange={(o) => !o && setEditing(null)}
         onSaved={load}
+      />
+
+      <AdminPasswordDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => !o && setPendingDelete(null)}
+        title="Excluir funcionário"
+        description={`Digite a senha do admin para excluir "${pendingDelete?.name ?? ""}" e todos os seus registros.`}
+        onConfirmed={async () => {
+          if (!pendingDelete) return;
+          const { error } = await supabase
+            .from("employees")
+            .delete()
+            .eq("id", pendingDelete.id);
+          if (error) throw new Error(error.message);
+          toast.success("Funcionário removido");
+          setPendingDelete(null);
+          load();
+        }}
       />
     </div>
   );
