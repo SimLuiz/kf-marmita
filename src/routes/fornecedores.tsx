@@ -68,13 +68,7 @@ function Page() {
     load();
   };
 
-  const removeSupplier = async (id: string) => {
-    if (!confirm("Excluir fornecedor e todos os seus tipos de marmita?")) return;
-    const { error } = await supabase.from("suppliers").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Fornecedor removido");
-    load();
-  };
+  const askRemoveSupplier = (s: Supplier) => setPendingSup(s);
 
   const saveSupplier = async () => {
     if (!editingSup || !editingSup.name.trim()) return;
