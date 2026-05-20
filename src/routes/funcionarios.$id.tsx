@@ -146,9 +146,11 @@ function Page() {
           </Link>
         </Button>
         <h2 className="text-xl font-bold flex-1 truncate">{emp.name}</h2>
-        <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-          <Pencil className="h-4 w-4 mr-1" /> Editar
-        </Button>
+        {isAdmin && (
+          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+            <Pencil className="h-4 w-4 mr-1" /> Editar
+          </Button>
+        )}
       </div>
 
       <div
