@@ -51,12 +51,13 @@ const monthLabel = (d: Date) =>
 
 function Page() {
   const { id } = Route.useParams();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [emp, setEmp] = useState<Employee | null>(null);
   const [records, setRecords] = useState<RecordWithUrl[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<RecordWithUrl | null>(null);
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     d.setDate(1);
