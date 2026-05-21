@@ -122,25 +122,27 @@ function Page() {
         </p>
       </div>
 
-      <form
-        onSubmit={addSupplier}
-        className="bg-card rounded-2xl p-4 space-y-3"
-        style={{ boxShadow: "var(--shadow-card)" }}
-      >
-        <div className="space-y-1.5">
-          <Label htmlFor="sup">Novo fornecedor</Label>
-          <Input
-            id="sup"
-            placeholder="Nome do fornecedor"
-            value={newSupplier}
-            onChange={(e) => setNewSupplier(e.target.value)}
-            maxLength={100}
-          />
-        </div>
-        <Button type="submit" className="w-full" disabled={!newSupplier.trim()}>
-          <Plus className="h-4 w-4 mr-1" /> Cadastrar fornecedor
-        </Button>
-      </form>
+      {isAdmin && (
+        <form
+          onSubmit={addSupplier}
+          className="bg-card rounded-2xl p-4 space-y-3"
+          style={{ boxShadow: "var(--shadow-card)" }}
+        >
+          <div className="space-y-1.5">
+            <Label htmlFor="sup">Novo fornecedor</Label>
+            <Input
+              id="sup"
+              placeholder="Nome do fornecedor"
+              value={newSupplier}
+              onChange={(e) => setNewSupplier(e.target.value)}
+              maxLength={100}
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={!newSupplier.trim()}>
+            <Plus className="h-4 w-4 mr-1" /> Cadastrar fornecedor
+          </Button>
+        </form>
+      )}
 
       {suppliers.length === 0 ? (
         <p className="text-center text-muted-foreground text-sm py-8">
@@ -260,28 +262,30 @@ function Page() {
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-1">
-                  <Input
-                    placeholder="Tipo (ex: Executiva)"
-                    value={f.name}
-                    onChange={(e) =>
-                      setTypeForms({ ...typeForms, [s.id]: { ...f, name: e.target.value } })
-                    }
-                    className="flex-1"
-                  />
-                  <Input
-                    placeholder="Valor"
-                    inputMode="decimal"
-                    value={f.price}
-                    onChange={(e) =>
-                      setTypeForms({ ...typeForms, [s.id]: { ...f, price: e.target.value } })
-                    }
-                    className="w-24"
-                  />
-                  <Button onClick={() => addType(s.id)} disabled={!f.name.trim()}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-2 pt-1">
+                    <Input
+                      placeholder="Tipo (ex: Executiva)"
+                      value={f.name}
+                      onChange={(e) =>
+                        setTypeForms({ ...typeForms, [s.id]: { ...f, name: e.target.value } })
+                      }
+                      className="flex-1"
+                    />
+                    <Input
+                      placeholder="Valor"
+                      inputMode="decimal"
+                      value={f.price}
+                      onChange={(e) =>
+                        setTypeForms({ ...typeForms, [s.id]: { ...f, price: e.target.value } })
+                      }
+                      className="w-24"
+                    />
+                    <Button onClick={() => addType(s.id)} disabled={!f.name.trim()}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             );
           })}
