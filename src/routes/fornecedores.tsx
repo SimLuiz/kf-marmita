@@ -262,28 +262,30 @@ function Page() {
                   )}
                 </div>
 
-                <div className="flex gap-2 pt-1">
-                  <Input
-                    placeholder="Tipo (ex: Executiva)"
-                    value={f.name}
-                    onChange={(e) =>
-                      setTypeForms({ ...typeForms, [s.id]: { ...f, name: e.target.value } })
-                    }
-                    className="flex-1"
-                  />
-                  <Input
-                    placeholder="Valor"
-                    inputMode="decimal"
-                    value={f.price}
-                    onChange={(e) =>
-                      setTypeForms({ ...typeForms, [s.id]: { ...f, price: e.target.value } })
-                    }
-                    className="w-24"
-                  />
-                  <Button onClick={() => addType(s.id)} disabled={!f.name.trim()}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
+                {isAdmin && (
+                  <div className="flex gap-2 pt-1">
+                    <Input
+                      placeholder="Tipo (ex: Executiva)"
+                      value={f.name}
+                      onChange={(e) =>
+                        setTypeForms({ ...typeForms, [s.id]: { ...f, name: e.target.value } })
+                      }
+                      className="flex-1"
+                    />
+                    <Input
+                      placeholder="Valor"
+                      inputMode="decimal"
+                      value={f.price}
+                      onChange={(e) =>
+                        setTypeForms({ ...typeForms, [s.id]: { ...f, price: e.target.value } })
+                      }
+                      className="w-24"
+                    />
+                    <Button onClick={() => addType(s.id)} disabled={!f.name.trim()}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             );
           })}
