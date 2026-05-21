@@ -53,7 +53,7 @@ export function LoginScreen() {
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="admin"
+              placeholder="Digite seu usuário"
             />
           </div>
           <div className="space-y-2">
