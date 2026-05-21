@@ -56,10 +56,16 @@ function Page() {
 
   const load = async () => {
     try {
-      const data = (await listFn()) as AppUser[];
-      setUsers(data);
+      const data = await listFn();
+      setUsers(Array.isArray(data) ? (data as AppUser[]) : []);
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao listar usuários");
+      const msg =
+        e instanceof Response
+          ? `${e.status} ${await e.text().catch(() => e.statusText)}`
+          : e?.message ?? "Erro ao listar usuários";
+      console.error("listAppUsers failed:", e);
+      toast.error(msg);
+      setUsers([]);
     }
   };
 
