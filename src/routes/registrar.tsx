@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Camera, Check, RotateCcw, Search, Truck, Utensils, X } from "lucide-react";
+import { Check, Eraser, RotateCcw, Search, Truck, Utensils, X } from "lucide-react";
 
 interface Employee {
   id: string;
@@ -33,6 +33,117 @@ export const Route = createFileRoute("/registrar")({
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+function SignaturePad({
+  onChange,
+}: {
+  onChange: (blob: Blob | null) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+  const hasInk = useRef(false);
+  const last = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const resize = () => {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * ratio;
+      canvas.height = rect.height * ratio;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.scale(ratio, ratio);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, rect.width, rect.height);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = "#0f172a";
+      }
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
+
+  const pos = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const rect = canvasRef.current!.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  };
+
+  const start = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    canvasRef.current!.setPointerCapture(e.pointerId);
+    drawing.current = true;
+    last.current = pos(e);
+  };
+  const move = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!drawing.current) return;
+    const ctx = canvasRef.current!.getContext("2d");
+    if (!ctx || !last.current) return;
+    const p = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(last.current.x, last.current.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    last.current = p;
+    hasInk.current = true;
+  };
+  const end = () => {
+    if (!drawing.current) return;
+    drawing.current = false;
+    last.current = null;
+    if (hasInk.current) {
+      canvasRef.current!.toBlob(
+        (b) => onChange(b),
+        "image/png",
+      );
+    }
+  };
+
+  const clear = () => {
+    const canvas = canvasRef.current!;
+    const ctx = canvas.getContext("2d")!;
+    const rect = canvas.getBoundingClientRect();
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, rect.width, rect.height);
+    hasInk.current = false;
+    onChange(null);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div
+        className="rounded-2xl overflow-hidden bg-white border border-border"
+        style={{ boxShadow: "var(--shadow-card)" }}
+      >
+        <canvas
+          ref={canvasRef}
+          onPointerDown={start}
+          onPointerMove={move}
+          onPointerUp={end}
+          onPointerLeave={end}
+          onPointerCancel={end}
+          className="block w-full touch-none"
+          style={{ height: 260 }}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">Assine no quadro acima</span>
+        <Button type="button" variant="ghost" size="sm" onClick={clear}>
+          <Eraser className="h-4 w-4 mr-1" /> Limpar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function Page() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -41,11 +152,9 @@ function Page() {
   const [mealTypes, setMealTypes] = useState<MealType[]>([]);
   const [selected, setSelected] = useState<Employee | null>(null);
   const [selectedType, setSelectedType] = useState<MealType | null>(null);
-  const [photoBlob, setPhotoBlob] = useState<Blob | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [sigBlob, setSigBlob] = useState<Blob | null>(null);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
-  const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -72,29 +181,14 @@ function Page() {
     );
   });
 
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    setPhotoBlob(f);
-    setPhotoPreview(URL.createObjectURL(f));
-  };
-
-  const reset = () => {
-    setPhotoBlob(null);
-    if (photoPreview) URL.revokeObjectURL(photoPreview);
-    setPhotoPreview(null);
-    if (fileInput.current) fileInput.current.value = "";
-  };
-
   const save = async () => {
-    if (!selected || !selectedType || !photoBlob || !user) return;
+    if (!selected || !selectedType || !sigBlob || !user) return;
     setSaving(true);
     try {
-      const ext = photoBlob.type.split("/")[1] || "jpg";
-      const path = `${user.id}/${Date.now()}-${selected.id}.${ext}`;
+      const path = `${user.id}/${Date.now()}-${selected.id}.png`;
       const { error: upErr } = await supabase.storage
         .from("meal-photos")
-        .upload(path, photoBlob, { contentType: photoBlob.type });
+        .upload(path, sigBlob, { contentType: "image/png" });
       if (upErr) throw upErr;
 
       const { error: insErr } = await supabase.from("meal_records").insert({
@@ -106,7 +200,7 @@ function Page() {
       if (insErr) throw insErr;
 
       toast.success(`Marmita registrada para ${selected.name}`);
-      reset();
+      setSigBlob(null);
       setSelected(null);
       setSelectedType(null);
       navigate({ to: "/" });
@@ -150,7 +244,7 @@ function Page() {
         <p className="text-sm text-muted-foreground">
           {step === 1 && "1. Escolha o funcionário"}
           {step === 2 && "2. Escolha a marmita"}
-          {step === 3 && "3. Tire a foto"}
+          {step === 3 && "3. Colete a assinatura"}
         </p>
       </div>
 
@@ -207,7 +301,7 @@ function Page() {
             </div>
             <span className="font-semibold truncate">{selected.name}</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => { setSelected(null); setSelectedType(null); reset(); }}>
+          <Button variant="ghost" size="sm" onClick={() => { setSelected(null); setSelectedType(null); setSigBlob(null); }}>
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -269,46 +363,20 @@ function Page() {
             </div>
           </div>
 
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={onFile}
-            className="hidden"
-          />
+          <SignaturePad onChange={setSigBlob} />
 
-          {!photoPreview ? (
-            <button
-              onClick={() => fileInput.current?.click()}
-              className="w-full aspect-square rounded-2xl border-2 border-dashed border-primary/40 bg-accent/30 flex flex-col items-center justify-center gap-3 hover:bg-accent/50 transition-colors"
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setSigBlob(null)}
+              disabled={saving || !sigBlob}
             >
-              <Camera className="h-12 w-12 text-primary" />
-              <span className="font-semibold text-primary">Tirar foto</span>
-              <span className="text-xs text-muted-foreground">Toque para abrir a câmera</span>
-            </button>
-          ) : (
-            <>
-              <div
-                className="rounded-2xl overflow-hidden bg-card"
-                style={{ boxShadow: "var(--shadow-card)" }}
-              >
-                <img
-                  src={photoPreview}
-                  alt="Marmita"
-                  className="w-full aspect-square object-cover"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Button variant="outline" onClick={reset} disabled={saving}>
-                  <RotateCcw className="h-4 w-4 mr-1" /> Refazer
-                </Button>
-                <Button onClick={save} disabled={saving}>
-                  <Check className="h-4 w-4 mr-1" /> {saving ? "Salvando..." : "Confirmar"}
-                </Button>
-              </div>
-            </>
-          )}
+              <RotateCcw className="h-4 w-4 mr-1" /> Refazer
+            </Button>
+            <Button onClick={save} disabled={saving || !sigBlob}>
+              <Check className="h-4 w-4 mr-1" /> {saving ? "Salvando..." : "Confirmar"}
+            </Button>
+          </div>
         </div>
       )}
     </div>
