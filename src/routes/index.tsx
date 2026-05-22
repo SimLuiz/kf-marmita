@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Users, Camera, FileText, Utensils } from "lucide-react";
+import { Users, Pen, FileText, Utensils } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: () => (
