@@ -73,9 +73,9 @@ function Dashboard() {
         className="block rounded-2xl p-6 text-primary-foreground text-center"
         style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-soft)" }}
       >
-        <Camera className="h-8 w-8 mx-auto mb-2" />
+        <Pen className="h-8 w-8 mx-auto mb-2" />
         <div className="text-lg font-bold">Registrar retirada</div>
-        <div className="text-sm opacity-90">Tirar foto da marmita</div>
+        <div className="text-sm opacity-90">Assinar retirada</div>
       </Link>
 
       <div className="grid grid-cols-2 gap-3">
