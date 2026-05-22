@@ -153,6 +153,7 @@ function Page() {
   const [selected, setSelected] = useState<Employee | null>(null);
   const [selectedType, setSelectedType] = useState<MealType | null>(null);
   const [sigBlob, setSigBlob] = useState<Blob | null>(null);
+  const [padKey, setPadKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
 
