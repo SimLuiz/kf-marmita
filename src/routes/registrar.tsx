@@ -364,12 +364,12 @@ function Page() {
             </div>
           </div>
 
-          <SignaturePad onChange={setSigBlob} />
+          <SignaturePad key={padKey} onChange={setSigBlob} />
 
           <div className="grid grid-cols-2 gap-3">
             <Button
               variant="outline"
-              onClick={() => setSigBlob(null)}
+              onClick={() => { setSigBlob(null); setPadKey((k) => k + 1); }}
               disabled={saving || !sigBlob}
             >
               <RotateCcw className="h-4 w-4 mr-1" /> Refazer
