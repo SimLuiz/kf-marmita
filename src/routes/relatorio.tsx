@@ -16,6 +16,7 @@ export const Route = createFileRoute("/relatorio")({
 });
 
 interface DetailRow {
+  id: string;
   employee_id: string;
   name: string;
   cpf: string | null;
@@ -23,8 +24,7 @@ interface DetailRow {
   supplier: string;
   meal: string;
   price: number;
-  count: number;
-  subtotal: number;
+  taken_at: string;
   photo_path: string | null;
 }
 
