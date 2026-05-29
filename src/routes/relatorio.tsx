@@ -25,6 +25,7 @@ interface DetailRow {
   price: number;
   count: number;
   subtotal: number;
+  photo_path: string | null;
 }
 
 const monthLabel = (d: Date) =>
@@ -42,6 +43,7 @@ function Page() {
   });
   const [rows, setRows] = useState<DetailRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sigUrls, setSigUrls] = useState<Record<string, string>>({});
 
   const range = useMemo(() => {
     const start = new Date(cursor);
@@ -60,7 +62,7 @@ function Page() {
         supabase.from("meal_types").select("id,supplier_id,name,price"),
         supabase
           .from("meal_records")
-          .select("employee_id,meal_type_id")
+          .select("id,employee_id,meal_type_id,photo_path,taken_at")
           .gte("taken_at", range.start.toISOString())
           .lt("taken_at", range.end.toISOString()),
       ]);
@@ -95,6 +97,7 @@ function Page() {
             price,
             count: 1,
             subtotal: price,
+            photo_path: r.photo_path ?? null,
           });
         }
       });
@@ -106,6 +109,25 @@ function Page() {
           a.meal.localeCompare(b.meal)
       );
       setRows(merged);
+
+      // Build signed URLs for the first signature per employee
+      const uniquePaths = new Map<string, string>();
+      merged.forEach((r) => {
+        if (r.photo_path && !uniquePaths.has(r.employee_id)) {
+          uniquePaths.set(r.employee_id, r.photo_path);
+        }
+      });
+      const urlMap: Record<string, string> = {};
+      await Promise.all(
+        Array.from(uniquePaths.entries()).map(async ([empId, path]) => {
+          const { data } = await supabase.storage
+            .from("meal-photos")
+            .createSignedUrl(path, 60 * 60 * 24);
+          if (data?.signedUrl) urlMap[empId] = data.signedUrl;
+        })
+      );
+      setSigUrls(urlMap);
+
       setLoading(false);
     })();
   }, [user, range.start, range.end]);
@@ -279,7 +301,7 @@ ${rows
                     )}
                   </div>
                 </div>
-                <div className="text-right shrink-0">
+              <div className="text-right shrink-0">
                   <div className="text-lg font-bold text-primary">{brl(g.total)}</div>
                   <div className="text-[10px] text-muted-foreground uppercase">
                     {g.count} marmita{g.count !== 1 && "s"}
@@ -303,6 +325,17 @@ ${rows
                   </div>
                 ))}
               </div>
+              {sigUrls[g.row.employee_id] && (
+                <div className="pt-2 border-t">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Assinatura</div>
+                  <img
+                    src={sigUrls[g.row.employee_id]}
+                    alt={`Assinatura de ${g.row.name}`}
+                    className="w-full h-24 object-contain bg-white rounded-lg border border-border"
+                    loading="lazy"
+                  />
+                </div>
+              )}
             </div>
           ))
         )}
