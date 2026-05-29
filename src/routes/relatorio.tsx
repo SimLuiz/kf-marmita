@@ -109,6 +109,25 @@ function Page() {
           a.meal.localeCompare(b.meal)
       );
       setRows(merged);
+
+      // Build signed URLs for the first signature per employee
+      const uniquePaths = new Map<string, string>();
+      merged.forEach((r) => {
+        if (r.photo_path && !uniquePaths.has(r.employee_id)) {
+          uniquePaths.set(r.employee_id, r.photo_path);
+        }
+      });
+      const urlMap: Record<string, string> = {};
+      await Promise.all(
+        Array.from(uniquePaths.entries()).map(async ([empId, path]) => {
+          const { data } = await supabase.storage
+            .from("meal-photos")
+            .createSignedUrl(path, 60 * 60 * 24);
+          if (data?.signedUrl) urlMap[empId] = data.signedUrl;
+        })
+      );
+      setSigUrls(urlMap);
+
       setLoading(false);
     })();
   }, [user, range.start, range.end]);
