@@ -96,6 +96,7 @@ function Page() {
             price,
             count: 1,
             subtotal: price,
+            photo_path: r.photo_path ?? null,
           });
         }
       });
