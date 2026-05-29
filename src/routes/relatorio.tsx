@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ProtectedShell } from "@/components/ProtectedShell";
+import { ProtectedShell } from "@components/ProtectedShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,15 @@ const monthLabel = (d: Date) =>
   d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmtDateTime = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
 function Page() {
   const { user } = useAuth();
@@ -64,7 +73,8 @@ function Page() {
           .from("meal_records")
           .select("id,employee_id,meal_type_id,photo_path,taken_at")
           .gte("taken_at", range.start.toISOString())
-          .lt("taken_at", range.end.toISOString()),
+          .lt("taken_at", range.end.toISOString())
+          .order("taken_at", { ascending: false }),
       ]);
 
       const empMap = new Map<string, any>((emps.data ?? []).map((e: any) => [e.id, e]));
@@ -73,46 +83,31 @@ function Page() {
         (mts.data ?? []).map((t: any) => [t.id, { ...t, price: Number(t.price) }])
       );
 
-      // Group by employee + meal type
-      const groups = new Map<string, DetailRow>();
+      const list: DetailRow[] = [];
       (recs.data ?? []).forEach((r: any) => {
         const emp = empMap.get(r.employee_id);
         if (!emp) return;
         const mt = r.meal_type_id ? mtMap.get(r.meal_type_id) : null;
         const sup = mt ? supMap.get(mt.supplier_id) : null;
-        const key = `${r.employee_id}|${r.meal_type_id ?? "none"}`;
-        const existing = groups.get(key);
-        if (existing) {
-          existing.count += 1;
-          existing.subtotal += existing.price;
-        } else {
-          const price = mt ? Number(mt.price) : 0;
-          groups.set(key, {
-            employee_id: emp.id,
-            name: emp.name,
-            cpf: emp.cpf ?? null,
-            company: emp.company ?? null,
-            supplier: sup?.name ?? "—",
-            meal: mt?.name ?? "(não informada)",
-            price,
-            count: 1,
-            subtotal: price,
-            photo_path: r.photo_path ?? null,
-          });
-        }
+        list.push({
+          id: r.id,
+          employee_id: emp.id,
+          name: emp.name,
+          cpf: emp.cpf ?? null,
+          company: emp.company ?? null,
+          supplier: sup?.name ?? "—",
+          meal: mt?.name ?? "(não informada)",
+          price: mt ? Number(mt.price) : 0,
+          taken_at: r.taken_at,
+          photo_path: r.photo_path ?? null,
+        });
       });
 
-      const merged = Array.from(groups.values()).sort(
-        (a, b) =>
-          a.name.localeCompare(b.name) ||
-          a.supplier.localeCompare(b.supplier) ||
-          a.meal.localeCompare(b.meal)
-      );
-      setRows(merged);
+      setRows(list);
 
       // Build signed URLs for the first signature per employee
       const uniquePaths = new Map<string, string>();
-      merged.forEach((r) => {
+      list.forEach((r) => {
         if (r.photo_path && !uniquePaths.has(r.employee_id)) {
           uniquePaths.set(r.employee_id, r.photo_path);
         }
@@ -132,8 +127,8 @@ function Page() {
     })();
   }, [user, range.start, range.end]);
 
-  const totalCount = rows.reduce((s, r) => s + r.count, 0);
-  const totalValue = rows.reduce((s, r) => s + r.subtotal, 0);
+  const totalCount = rows.length;
+  const totalValue = rows.reduce((s, r) => s + r.price, 0);
   const monthName = monthLabel(cursor);
 
   // grouped per employee for on-screen display
@@ -143,10 +138,10 @@ function Page() {
       const g = m.get(r.employee_id);
       if (g) {
         g.items.push(r);
-        g.count += r.count;
-        g.total += r.subtotal;
+        g.count += 1;
+        g.total += r.price;
       } else {
-        m.set(r.employee_id, { row: r, items: [r], count: r.count, total: r.subtotal });
+        m.set(r.employee_id, { row: r, items: [r], count: 1, total: r.price });
       }
     });
     return Array.from(m.values());
@@ -154,21 +149,20 @@ function Page() {
 
   const exportCSV = () => {
     const q = (v: string | null | undefined) => `"${(v ?? "").replace(/"/g, '""')}"`;
-    const n = (v: number) =>
-      v.toFixed(2).replace(".", ","); // BR decimal for Excel pt-BR
+    const n = (v: number) => v.toFixed(2).replace(".", ",");
     const header =
-      "Funcionário;CPF;Empresa;Fornecedor;Marmita;Valor unit.;Quantidade;Subtotal\n";
+      "Funcionário;CPF;Empresa;Fornecedor;Marmita;Data/hora;Valor\n";
     const body = rows
       .map(
         (r) =>
-          `${q(r.name)};${q(r.cpf)};${q(r.company)};${q(r.supplier)};${q(r.meal)};${n(r.price)};${r.count};${n(r.subtotal)}`
+          `${q(r.name)};${q(r.cpf)};${q(r.company)};${q(r.supplier)};${q(r.meal)};${q(fmtDateTime(r.taken_at))};${n(r.price)}`
       )
       .join("\n");
     const csv =
       "\uFEFF" +
       header +
       body +
-      `\n;;;;;;;\nTOTAL;;;;;;${totalCount};${n(totalValue)}\n`;
+      `\n;;;;;;\nTOTAL;;;;;${totalCount};${n(totalValue)}\n`;
     download(csv, `relatorio-${monthName.replace(/\s/g, "-")}.csv`, "text/csv;charset=utf-8");
   };
 
@@ -189,16 +183,16 @@ td.num,th.num{text-align:right}
 <div class="sub">${monthName}</div>
 <table><thead><tr>
 <th>Funcionário</th><th>CPF</th><th>Empresa</th><th>Fornecedor</th><th>Marmita</th>
-<th class="num">Valor unit.</th><th class="num">Qtd</th><th class="num">Subtotal</th>
+<th>Data/hora</th><th class="num">Valor</th>
 </tr></thead>
 <tbody>
 ${rows
   .map(
     (r) =>
-      `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.cpf ?? "—")}</td><td>${escapeHtml(r.company ?? "—")}</td><td>${escapeHtml(r.supplier)}</td><td>${escapeHtml(r.meal)}</td><td class="num">${brl(r.price)}</td><td class="num">${r.count}</td><td class="num">${brl(r.subtotal)}</td></tr>`
+      `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.cpf ?? "—")}</td><td>${escapeHtml(r.company ?? "—")}</td><td>${escapeHtml(r.supplier)}</td><td>${escapeHtml(r.meal)}</td><td>${escapeHtml(fmtDateTime(r.taken_at))}</td><td class="num">${brl(r.price)}</td></tr>`
   )
   .join("")}
-<tr class="total"><td colspan="6">TOTAL</td><td class="num">${totalCount}</td><td class="num">${brl(totalValue)}</td></tr>
+<tr class="total"><td colspan="6">TOTAL (${totalCount})</td><td class="num">${brl(totalValue)}</td></tr>
 </tbody></table>
 <button style="margin-top:24px;padding:10px 18px;font-size:14px" onclick="window.print()">Imprimir / Salvar PDF</button>
 <script>setTimeout(()=>window.print(),300)</script>
@@ -301,7 +295,7 @@ ${rows
                     )}
                   </div>
                 </div>
-              <div className="text-right shrink-0">
+                <div className="text-right shrink-0">
                   <div className="text-lg font-bold text-primary">{brl(g.total)}</div>
                   <div className="text-[10px] text-muted-foreground uppercase">
                     {g.count} marmita{g.count !== 1 && "s"}
@@ -315,12 +309,14 @@ ${rows
                     className="flex items-center justify-between text-xs gap-2"
                   >
                     <div className="min-w-0 truncate">
-                      <span className="text-muted-foreground">{it.supplier} · </span>
+                      <span className="text-muted-foreground">{fmtDateTime(it.taken_at)}</span>
+                      <span className="mx-1 text-muted-foreground">·</span>
+                      <span className="text-muted-foreground">{it.supplier}</span>
+                      <span className="mx-1 text-muted-foreground">·</span>
                       <span className="font-medium">{it.meal}</span>
                     </div>
                     <div className="text-right shrink-0 text-muted-foreground">
-                      {it.count} × {brl(it.price)} ={" "}
-                      <span className="font-semibold text-foreground">{brl(it.subtotal)}</span>
+                      <span className="font-semibold text-foreground">{brl(it.price)}</span>
                     </div>
                   </div>
                 ))}
