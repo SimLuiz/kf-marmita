@@ -43,6 +43,7 @@ function Page() {
   });
   const [rows, setRows] = useState<DetailRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sigUrls, setSigUrls] = useState<Record<string, string>>({});
 
   const range = useMemo(() => {
     const start = new Date(cursor);
