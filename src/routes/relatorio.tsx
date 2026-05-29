@@ -301,7 +301,7 @@ ${rows
                     )}
                   </div>
                 </div>
-                <div className="text-right shrink-0">
+              <div className="text-right shrink-0">
                   <div className="text-lg font-bold text-primary">{brl(g.total)}</div>
                   <div className="text-[10px] text-muted-foreground uppercase">
                     {g.count} marmita{g.count !== 1 && "s"}
@@ -325,6 +325,17 @@ ${rows
                   </div>
                 ))}
               </div>
+              {sigUrls[g.row.employee_id] && (
+                <div className="pt-2 border-t">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Assinatura</div>
+                  <img
+                    src={sigUrls[g.row.employee_id]}
+                    alt={`Assinatura de ${g.row.name}`}
+                    className="w-full h-24 object-contain bg-white rounded-lg border border-border"
+                    loading="lazy"
+                  />
+                </div>
+              )}
             </div>
           ))
         )}
