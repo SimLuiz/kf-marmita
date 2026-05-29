@@ -25,6 +25,7 @@ interface DetailRow {
   price: number;
   count: number;
   subtotal: number;
+  photo_path: string | null;
 }
 
 const monthLabel = (d: Date) =>
