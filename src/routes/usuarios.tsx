@@ -15,6 +15,7 @@ import {
   deleteAppUser,
   resetAppUserPassword,
 } from "@/lib/admin-users.functions";
+import { PASSWORD_POLICY_HINT, validatePassword } from "@/lib/password-policy";
 
 export const Route = createFileRoute("/usuarios")({
   component: () => (
