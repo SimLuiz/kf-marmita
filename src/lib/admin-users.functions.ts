@@ -6,6 +6,15 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,32}$/;
 const ADMIN_DOMAIN = "marmita.local";
 
+const strongPassword = z
+  .string()
+  .min(12, "Senha deve ter no mínimo 12 caracteres")
+  .max(72)
+  .regex(/[A-Z]/, "Senha deve conter letra maiúscula")
+  .regex(/[a-z]/, "Senha deve conter letra minúscula")
+  .regex(/[0-9]/, "Senha deve conter número")
+  .regex(/[^A-Za-z0-9]/, "Senha deve conter símbolo");
+
 async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("user_roles")

@@ -1,26 +1,59 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { UtensilsCrossed } from "lucide-react";
+import { UtensilsCrossed, ShieldAlert } from "lucide-react";
+import {
+  clearAttempts,
+  formatRemaining,
+  getLockRemainingMs,
+  registerFailure,
+} from "@/lib/login-lockout";
 
 export function LoginScreen() {
   const { signIn } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lockMs, setLockMs] = useState(0);
+
+  useEffect(() => {
+    if (!username) {
+      setLockMs(0);
+      return;
+    }
+    const tick = () => setLockMs(getLockRemainingMs(username));
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [username]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const remaining = getLockRemainingMs(username);
+    if (remaining > 0) {
+      toast.error(`Usuário bloqueado. Tente novamente em ${formatRemaining(remaining)}.`);
+      return;
+    }
     setLoading(true);
     const { error } = await signIn(username, password);
     setLoading(false);
     if (error) {
-      toast.error("Usuário ou senha inválidos");
+      const r = registerFailure(username);
+      if (r.locked) {
+        setLockMs(r.remainingMs);
+        toast.error(`Muitas tentativas. Bloqueado por ${formatRemaining(r.remainingMs)}.`);
+      } else {
+        toast.error(`Usuário ou senha inválidos. ${r.attemptsLeft} tentativa(s) restante(s).`);
+      }
+    } else {
+      clearAttempts(username);
     }
   };
+
+  const locked = lockMs > 0;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -43,6 +76,12 @@ export function LoginScreen() {
           className="bg-card rounded-2xl p-6 space-y-4"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
+          {locked && (
+            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>Bloqueado por excesso de tentativas. Aguarde {formatRemaining(lockMs)}.</span>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="username">Usuário</Label>
             <Input
@@ -68,8 +107,8 @@ export function LoginScreen() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Entrando..." : "Entrar"}
+          <Button type="submit" className="w-full" disabled={loading || locked}>
+            {loading ? "Entrando..." : locked ? `Bloqueado (${formatRemaining(lockMs)})` : "Entrar"}
           </Button>
           <p className="text-xs text-muted-foreground text-center pt-1">
             Novos usuários só podem ser criados pelo administrador.
