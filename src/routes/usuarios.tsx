@@ -143,9 +143,10 @@ function Page() {
             type="password"
             value={pwd}
             onChange={(e) => setPwd(e.target.value)}
-            minLength={6}
+            minLength={12}
             required
           />
+          <p className="text-xs text-muted-foreground">{PASSWORD_POLICY_HINT}</p>
         </div>
         <Button type="submit" className="w-full" disabled={busy}>
           <UserPlus className="h-4 w-4 mr-1" /> Cadastrar usuário
