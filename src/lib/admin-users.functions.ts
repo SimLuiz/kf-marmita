@@ -6,6 +6,15 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,32}$/;
 const ADMIN_DOMAIN = "marmita.local";
 
+const strongPassword = z
+  .string()
+  .min(12, "Senha deve ter no mínimo 12 caracteres")
+  .max(72)
+  .regex(/[A-Z]/, "Senha deve conter letra maiúscula")
+  .regex(/[a-z]/, "Senha deve conter letra minúscula")
+  .regex(/[0-9]/, "Senha deve conter número")
+  .regex(/[^A-Za-z0-9]/, "Senha deve conter símbolo");
+
 async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("user_roles")
@@ -39,7 +48,7 @@ export const createAppUser = createServerFn({ method: "POST" })
     z
       .object({
         username: z.string().regex(USERNAME_RE, "Usuário inválido (3-32, letras/números/._-)"),
-        password: z.string().min(6).max(72),
+        password: strongPassword,
       })
       .parse(input),
   )
@@ -79,7 +88,7 @@ export const deleteAppUser = createServerFn({ method: "POST" })
 export const resetAppUserPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({ userId: z.string().uuid(), password: z.string().min(6).max(72) }).parse(input),
+    z.object({ userId: z.string().uuid(), password: strongPassword }).parse(input),
   )
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);

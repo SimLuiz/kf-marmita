@@ -15,6 +15,7 @@ import {
   deleteAppUser,
   resetAppUserPassword,
 } from "@/lib/admin-users.functions";
+import { PASSWORD_POLICY_HINT, validatePassword } from "@/lib/password-policy";
 
 export const Route = createFileRoute("/usuarios")({
   component: () => (
@@ -75,9 +76,9 @@ function Page() {
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uname.trim() || pwd.length < 6) {
-      return toast.error("Usuário e senha (mínimo 6 caracteres) obrigatórios");
-    }
+    if (!uname.trim()) return toast.error("Informe o usuário");
+    const check = validatePassword(pwd);
+    if (!check.ok) return toast.error(check.errors[0]);
     setBusy(true);
     try {
       await createFn({ data: { username: uname.trim(), password: pwd } });
@@ -94,7 +95,9 @@ function Page() {
 
   const doReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetFor || newPwd.length < 6) return;
+    if (!resetFor) return;
+    const check = validatePassword(newPwd);
+    if (!check.ok) return toast.error(check.errors[0]);
     try {
       await resetFn({ data: { userId: resetFor.id, password: newPwd } });
       toast.success("Senha alterada");
@@ -140,9 +143,10 @@ function Page() {
             type="password"
             value={pwd}
             onChange={(e) => setPwd(e.target.value)}
-            minLength={6}
+            minLength={12}
             required
           />
+          <p className="text-xs text-muted-foreground">{PASSWORD_POLICY_HINT}</p>
         </div>
         <Button type="submit" className="w-full" disabled={busy}>
           <UserPlus className="h-4 w-4 mr-1" /> Cadastrar usuário
@@ -224,13 +228,14 @@ function Page() {
             <h3 className="font-semibold">Nova senha para {resetFor.username}</h3>
             <Input
               type="password"
-              minLength={6}
+              minLength={12}
               required
               autoFocus
               value={newPwd}
               onChange={(e) => setNewPwd(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Nova senha"
             />
+            <p className="text-xs text-muted-foreground">{PASSWORD_POLICY_HINT}</p>
             <div className="flex gap-2 justify-end">
               <Button
                 type="button"
