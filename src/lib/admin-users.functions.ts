@@ -48,7 +48,7 @@ export const createAppUser = createServerFn({ method: "POST" })
     z
       .object({
         username: z.string().regex(USERNAME_RE, "Usuário inválido (3-32, letras/números/._-)"),
-        password: z.string().min(6).max(72),
+        password: strongPassword,
       })
       .parse(input),
   )
@@ -88,7 +88,7 @@ export const deleteAppUser = createServerFn({ method: "POST" })
 export const resetAppUserPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z.object({ userId: z.string().uuid(), password: z.string().min(6).max(72) }).parse(input),
+    z.object({ userId: z.string().uuid(), password: strongPassword }).parse(input),
   )
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);
