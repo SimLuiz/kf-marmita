@@ -76,9 +76,9 @@ function Page() {
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uname.trim() || pwd.length < 6) {
-      return toast.error("Usuário e senha (mínimo 6 caracteres) obrigatórios");
-    }
+    if (!uname.trim()) return toast.error("Informe o usuário");
+    const check = validatePassword(pwd);
+    if (!check.ok) return toast.error(check.errors[0]);
     setBusy(true);
     try {
       await createFn({ data: { username: uname.trim(), password: pwd } });
@@ -95,7 +95,9 @@ function Page() {
 
   const doReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetFor || newPwd.length < 6) return;
+    if (!resetFor) return;
+    const check = validatePassword(newPwd);
+    if (!check.ok) return toast.error(check.errors[0]);
     try {
       await resetFn({ data: { userId: resetFor.id, password: newPwd } });
       toast.success("Senha alterada");
