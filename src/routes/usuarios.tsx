@@ -228,13 +228,14 @@ function Page() {
             <h3 className="font-semibold">Nova senha para {resetFor.username}</h3>
             <Input
               type="password"
-              minLength={6}
+              minLength={12}
               required
               autoFocus
               value={newPwd}
               onChange={(e) => setNewPwd(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Nova senha"
             />
+            <p className="text-xs text-muted-foreground">{PASSWORD_POLICY_HINT}</p>
             <div className="flex gap-2 justify-end">
               <Button
                 type="button"
