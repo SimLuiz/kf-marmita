@@ -5,14 +5,13 @@ import { toast } from "sonner";
 const ADMIN_TIMEOUT_MS = 15 * 60 * 1000;
 const USER_TIMEOUT_MS = 30 * 60 * 1000;
 
-const EVENTS: (keyof WindowEventMap)[] = [
+const EVENTS = [
   "mousemove",
   "mousedown",
   "keydown",
   "touchstart",
   "scroll",
-  "visibilitychange",
-];
+] as const;
 
 export function useInactivityLogout() {
   const { session, isAdmin, signOut } = useAuth();
