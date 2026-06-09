@@ -136,7 +136,7 @@ function Page() {
         )}
         {filtered.map((l) => {
           const isOpen = !!expanded[l.id];
-          const hasData = l.old_data || l.new_data;
+          const hasData = Boolean(l.old_data || l.new_data);
           return (
             <div
               key={l.id}
