@@ -103,6 +103,10 @@ export const createAppUser = createServerFn({ method: "POST" })
       user_metadata: { username },
     });
     if (error) throw new Error(error.message);
+    await audit(context.userId, "USER_CREATED", "auth.users", created.user?.id ?? null, {
+      username,
+      email,
+    });
     return { id: created.user?.id, username };
   });
 
