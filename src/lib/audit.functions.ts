@@ -52,7 +52,7 @@ export const logAuditEvent = createServerFn({ method: "POST" })
         return null;
       }
     })();
-    const { error } = await supabaseAdmin.from("audit_logs").insert({
+    const { error } = await (supabaseAdmin.from("audit_logs") as any).insert({
       user_id: context.userId,
       username: prof?.username ?? null,
       action: data.action,
