@@ -59,10 +59,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: usernameToEmail(uname),
       password,
     });
+    if (!error) {
+      try {
+        const { logAuditEvent } = await import("@/lib/audit.functions");
+        await logAuditEvent({ data: { action: "LOGIN" } });
+      } catch {
+        /* non-blocking */
+      }
+    }
     return { error: error?.message ?? null };
   };
 
   const signOut = async () => {
+    try {
+      const { logAuditEvent } = await import("@/lib/audit.functions");
+      await logAuditEvent({ data: { action: "LOGOUT" } });
+    } catch {
+      /* non-blocking */
+    }
     await supabase.auth.signOut();
   };
 

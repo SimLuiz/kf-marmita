@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -24,6 +25,44 @@ async function assertAdmin(supabase: any, userId: string) {
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Acesso negado: somente admin");
+}
+
+async function audit(
+  actorId: string,
+  action: string,
+  table_name: string,
+  record_id: string | null,
+  new_data: Record<string, unknown> | null,
+  old_data: Record<string, unknown> | null = null,
+) {
+  const { data: prof } = await supabaseAdmin
+    .from("profiles")
+    .select("username")
+    .eq("id", actorId)
+    .maybeSingle();
+  let ip: string | null = null;
+  let ua: string | null = null;
+  try {
+    ip =
+      getRequestIP({ xForwardedFor: true }) ||
+      getRequestHeader("cf-connecting-ip") ||
+      getRequestHeader("x-real-ip") ||
+      null;
+    ua = getRequestHeader("user-agent") ?? null;
+  } catch {
+    /* noop */
+  }
+  await (supabaseAdmin.from("audit_logs") as any).insert({
+    user_id: actorId,
+    username: prof?.username ?? null,
+    action,
+    table_name,
+    record_id,
+    old_data,
+    new_data,
+    ip_address: ip,
+    user_agent: ua,
+  });
 }
 
 export const listAppUsers = createServerFn({ method: "GET" })
@@ -64,6 +103,10 @@ export const createAppUser = createServerFn({ method: "POST" })
       user_metadata: { username },
     });
     if (error) throw new Error(error.message);
+    await audit(context.userId, "USER_CREATED", "auth.users", created.user?.id ?? null, {
+      username,
+      email,
+    });
     return { id: created.user?.id, username };
   });
 
@@ -82,6 +125,14 @@ export const deleteAppUser = createServerFn({ method: "POST" })
     if (prof?.username === "admin") throw new Error("Não é possível excluir o admin do sistema");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
+    await audit(
+      context.userId,
+      "USER_DELETED",
+      "auth.users",
+      data.userId,
+      null,
+      { username: prof?.username ?? null },
+    );
     return { ok: true };
   });
 
@@ -96,5 +147,6 @@ export const resetAppUserPassword = createServerFn({ method: "POST" })
       password: data.password,
     });
     if (error) throw new Error(error.message);
+    await audit(context.userId, "ADMIN_PASSWORD_RESET", "auth.users", data.userId, null);
     return { ok: true };
   });
