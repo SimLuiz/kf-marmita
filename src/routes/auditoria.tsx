@@ -189,7 +189,7 @@ function Page() {
                       Antes
                     </p>
                     <pre className="text-[11px] bg-muted/60 rounded p-2 overflow-auto max-h-64">
-                      {l.old_data ? JSON.stringify(l.old_data, null, 2) : "—"}
+                      {l.old_data ? (JSON.stringify(l.old_data, null, 2) as string) : "—"}
                     </pre>
                   </div>
                   <div>
