@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, Pen, FileText, LogOut, Truck, ShieldCheck } from "lucide-react";
+import { Home, Users, Pen, FileText, LogOut, Truck, ShieldCheck, ScrollText } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
@@ -11,14 +11,22 @@ const baseItems = [
   { to: "/relatorio", label: "Relatório", icon: FileText },
 ] as const;
 
-const adminItem = { to: "/usuarios", label: "Usuários", icon: ShieldCheck } as const;
+const adminItems = [
+  { to: "/usuarios", label: "Usuários", icon: ShieldCheck },
+  { to: "/auditoria", label: "Auditoria", icon: ScrollText },
+] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { signOut, username, isAdmin } = useAuth();
   const location = useLocation();
 
-  const items = isAdmin ? [...baseItems, adminItem] : baseItems;
-  const cols = items.length === 6 ? "grid-cols-6" : "grid-cols-5";
+  const items = isAdmin ? [...baseItems, ...adminItems] : baseItems;
+  const cols =
+    items.length === 7
+      ? "grid-cols-7"
+      : items.length === 6
+        ? "grid-cols-6"
+        : "grid-cols-5";
 
   return (
     <div className="min-h-screen flex flex-col pb-20">
