@@ -125,6 +125,14 @@ export const deleteAppUser = createServerFn({ method: "POST" })
     if (prof?.username === "admin") throw new Error("Não é possível excluir o admin do sistema");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
+    await audit(
+      context.userId,
+      "USER_DELETED",
+      "auth.users",
+      data.userId,
+      null,
+      { username: prof?.username ?? null },
+    );
     return { ok: true };
   });
 
