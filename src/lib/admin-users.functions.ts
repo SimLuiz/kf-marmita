@@ -52,7 +52,7 @@ async function audit(
   } catch {
     /* noop */
   }
-  await supabaseAdmin.from("audit_logs").insert({
+  await (supabaseAdmin.from("audit_logs") as any).insert({
     user_id: actorId,
     username: prof?.username ?? null,
     action,
