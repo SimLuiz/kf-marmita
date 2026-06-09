@@ -147,5 +147,6 @@ export const resetAppUserPassword = createServerFn({ method: "POST" })
       password: data.password,
     });
     if (error) throw new Error(error.message);
+    await audit(context.userId, "ADMIN_PASSWORD_RESET", "auth.users", data.userId, null);
     return { ok: true };
   });
