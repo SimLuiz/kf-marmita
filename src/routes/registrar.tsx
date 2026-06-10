@@ -161,7 +161,7 @@ function Page() {
     if (!user) return;
     (async () => {
       const [emps, sups, mts] = await Promise.all([
-        supabase.from("employees").select("id,name,cpf,company").order("name"),
+        (supabase as any).from("employees_view").select("id,name,cpf,company").order("name"),
         supabase.from("suppliers").select("id,name").order("name"),
         supabase.from("meal_types").select("id,supplier_id,name,price").order("name"),
       ]);
