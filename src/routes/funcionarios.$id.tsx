@@ -75,8 +75,8 @@ function Page() {
   }, [cursor]);
 
   const loadEmployee = async () => {
-    const { data, error } = await supabase
-      .from("employees")
+    const { data, error } = await (supabase as any)
+      .from("employees_view")
       .select("id,name,cpf,company")
       .eq("id", id)
       .maybeSingle();
