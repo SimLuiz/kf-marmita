@@ -60,6 +60,7 @@ export type Database = {
         Row: {
           company: string | null
           cpf: string | null
+          cpf_encrypted: string | null
           created_at: string
           id: string
           name: string
@@ -68,6 +69,7 @@ export type Database = {
         Insert: {
           company?: string | null
           cpf?: string | null
+          cpf_encrypted?: string | null
           created_at?: string
           id?: string
           name: string
@@ -76,6 +78,7 @@ export type Database = {
         Update: {
           company?: string | null
           cpf?: string | null
+          cpf_encrypted?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -117,6 +120,13 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_view"
             referencedColumns: ["id"]
           },
           {
@@ -225,7 +235,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      employees_view: {
+        Row: {
+          company: string | null
+          cpf: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          owner_id: string | null
+        }
+        Insert: {
+          company?: string | null
+          cpf?: never
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          owner_id?: string | null
+        }
+        Update: {
+          company?: string | null
+          cpf?: never
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          owner_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
