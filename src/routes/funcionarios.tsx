@@ -64,8 +64,8 @@ function FuncionariosList() {
   const [pendingDelete, setPendingDelete] = useState<Employee | null>(null);
 
   const load = async () => {
-    const { data, error } = await supabase
-      .from("employees")
+    const { data, error } = await (supabase as any)
+      .from("employees_view")
       .select("*")
       .order("name");
     if (error) toast.error(error.message);
