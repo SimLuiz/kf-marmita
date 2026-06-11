@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsuariosRouteImport } from './routes/usuarios'
+import { Route as SegurancaRouteImport } from './routes/seguranca'
 import { Route as RelatorioRouteImport } from './routes/relatorio'
 import { Route as RegistrarRouteImport } from './routes/registrar'
 import { Route as FuncionariosRouteImport } from './routes/funcionarios'
@@ -21,6 +22,11 @@ import { Route as FuncionariosIdRouteImport } from './routes/funcionarios.$id'
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
   path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SegurancaRoute = SegurancaRouteImport.update({
+  id: '/seguranca',
+  path: '/seguranca',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RelatorioRoute = RelatorioRouteImport.update({
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/registrar': typeof RegistrarRoute
   '/relatorio': typeof RelatorioRoute
+  '/seguranca': typeof SegurancaRoute
   '/usuarios': typeof UsuariosRoute
   '/funcionarios/$id': typeof FuncionariosIdRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/registrar': typeof RegistrarRoute
   '/relatorio': typeof RelatorioRoute
+  '/seguranca': typeof SegurancaRoute
   '/usuarios': typeof UsuariosRoute
   '/funcionarios/$id': typeof FuncionariosIdRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/registrar': typeof RegistrarRoute
   '/relatorio': typeof RelatorioRoute
+  '/seguranca': typeof SegurancaRoute
   '/usuarios': typeof UsuariosRoute
   '/funcionarios/$id': typeof FuncionariosIdRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/funcionarios'
     | '/registrar'
     | '/relatorio'
+    | '/seguranca'
     | '/usuarios'
     | '/funcionarios/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/funcionarios'
     | '/registrar'
     | '/relatorio'
+    | '/seguranca'
     | '/usuarios'
     | '/funcionarios/$id'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/funcionarios'
     | '/registrar'
     | '/relatorio'
+    | '/seguranca'
     | '/usuarios'
     | '/funcionarios/$id'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   FuncionariosRoute: typeof FuncionariosRouteWithChildren
   RegistrarRoute: typeof RegistrarRoute
   RelatorioRoute: typeof RelatorioRoute
+  SegurancaRoute: typeof SegurancaRoute
   UsuariosRoute: typeof UsuariosRoute
 }
 
@@ -140,6 +153,13 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seguranca': {
+      id: '/seguranca'
+      path: '/seguranca'
+      fullPath: '/seguranca'
+      preLoaderRoute: typeof SegurancaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/relatorio': {
@@ -213,6 +233,7 @@ const rootRouteChildren: RootRouteChildren = {
   FuncionariosRoute: FuncionariosRouteWithChildren,
   RegistrarRoute: RegistrarRoute,
   RelatorioRoute: RelatorioRoute,
+  SegurancaRoute: SegurancaRoute,
   UsuariosRoute: UsuariosRoute,
 }
 export const routeTree = rootRouteImport
