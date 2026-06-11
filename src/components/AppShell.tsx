@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, Pen, FileText, LogOut, Truck, ShieldCheck, ScrollText } from "lucide-react";
+import { Home, Users, Pen, FileText, LogOut, Truck, ShieldCheck, ScrollText, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
@@ -8,12 +8,13 @@ const baseItems = [
   { to: "/funcionarios", label: "Funcion.", icon: Users },
   { to: "/fornecedores", label: "Fornec.", icon: Truck },
   { to: "/registrar", label: "Registrar", icon: Pen },
-  { to: "/relatorio", label: "Relatório", icon: FileText },
+  { to: "/relatorio", label: "Relat.", icon: FileText },
 ] as const;
 
 const adminItems = [
   { to: "/usuarios", label: "Usuários", icon: ShieldCheck },
   { to: "/auditoria", label: "Auditoria", icon: ScrollText },
+  { to: "/seguranca", label: "Segur.", icon: ShieldAlert },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -22,11 +23,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const items = isAdmin ? [...baseItems, ...adminItems] : baseItems;
   const cols =
-    items.length === 7
-      ? "grid-cols-7"
-      : items.length === 6
-        ? "grid-cols-6"
-        : "grid-cols-5";
+    items.length === 8
+      ? "grid-cols-8"
+      : items.length === 7
+        ? "grid-cols-7"
+        : items.length === 6
+          ? "grid-cols-6"
+          : "grid-cols-5";
 
   return (
     <div className="min-h-screen flex flex-col pb-20">
