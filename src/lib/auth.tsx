@@ -66,6 +66,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         /* non-blocking */
       }
+    } else {
+      try {
+        const { logFailedLogin } = await import("@/lib/audit.functions");
+        await logFailedLogin({ data: { username: uname } });
+      } catch {
+        /* non-blocking */
+      }
     }
     return { error: error?.message ?? null };
   };
