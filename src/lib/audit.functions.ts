@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const ACTIONS = [
   "LOGIN",
+  "LOGIN_FAILED",
   "LOGOUT",
   "PASSWORD_RESET",
   "USER_CREATED",
@@ -20,6 +21,14 @@ function getIp() {
       getRequestHeader("x-real-ip") ||
       null
     );
+  } catch {
+    return null;
+  }
+}
+
+function getUa() {
+  try {
+    return getRequestHeader("user-agent") ?? null;
   } catch {
     return null;
   }
@@ -45,13 +54,6 @@ export const logAuditEvent = createServerFn({ method: "POST" })
       .select("username")
       .eq("id", context.userId)
       .maybeSingle();
-    const ua = (() => {
-      try {
-        return getRequestHeader("user-agent") ?? null;
-      } catch {
-        return null;
-      }
-    })();
     const { error } = await (supabaseAdmin.from("audit_logs") as any).insert({
       user_id: context.userId,
       username: prof?.username ?? null,
@@ -61,9 +63,34 @@ export const logAuditEvent = createServerFn({ method: "POST" })
       old_data: data.old_data ?? null,
       new_data: data.new_data ?? null,
       ip_address: getIp(),
-      user_agent: ua,
+      user_agent: getUa(),
     });
     if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Public: registra tentativa falha de login (sem sessão). Apenas username + IP/UA.
+export const logFailedLogin = createServerFn({ method: "POST" })
+  .inputValidator((input) =>
+    z
+      .object({
+        username: z.string().min(1).max(64).regex(/^[a-zA-Z0-9_.@-]+$/),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await (supabaseAdmin.from("audit_logs") as any).insert({
+      user_id: null,
+      username: data.username.toLowerCase(),
+      action: "LOGIN_FAILED",
+      table_name: null,
+      record_id: null,
+      old_data: null,
+      new_data: null,
+      ip_address: getIp(),
+      user_agent: getUa(),
+    });
     return { ok: true };
   });
 
@@ -71,7 +98,6 @@ export const listAuditLogs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // gate to admin
     const { data: roleRow } = await supabaseAdmin
       .from("user_roles")
       .select("role")
