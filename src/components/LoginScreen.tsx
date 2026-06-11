@@ -11,6 +11,8 @@ import {
   getLockRemainingMs,
   registerFailure,
 } from "@/lib/login-lockout";
+import { toUserMessage } from "@/lib/safe-error";
+
 
 export function LoginScreen() {
   const { signIn } = useAuth();

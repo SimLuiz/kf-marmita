@@ -78,7 +78,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       /* non-blocking */
     }
     await supabase.auth.signOut();
+    // Limpeza defensiva: remove qualquer resíduo de token/cache sensível
+    try {
+      if (typeof window !== "undefined") {
+        const wipe = (s: Storage) => {
+          const keys: string[] = [];
+          for (let i = 0; i < s.length; i++) {
+            const k = s.key(i);
+            if (!k) continue;
+            if (
+              k.startsWith("sb-") ||
+              k.includes("supabase") ||
+              k.startsWith("auth.") ||
+              k.startsWith("login-attempts:")
+            ) {
+              keys.push(k);
+            }
+          }
+          keys.forEach((k) => s.removeItem(k));
+        };
+        wipe(window.localStorage);
+        wipe(window.sessionStorage);
+      }
+    } catch {
+      /* noop */
+    }
   };
+
 
   const verifyAdminPassword = async (password: string) => {
     // Verify on a throwaway client so the current session is not disturbed
