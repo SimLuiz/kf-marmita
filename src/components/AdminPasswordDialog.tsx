@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { ShieldAlert } from "lucide-react";
+import { toUserMessage } from "@/lib/safe-error";
 
 interface Props {
   open: boolean;
@@ -47,7 +48,7 @@ export function AdminPasswordDialog({
       onOpenChange(false);
       setPassword("");
     } catch (err: any) {
-      toast.error(err?.message ?? "Erro ao excluir");
+      toast.error(toUserMessage(err, "Erro ao excluir"));
     } finally {
       setLoading(false);
     }

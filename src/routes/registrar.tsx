@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Check, Eraser, RotateCcw, Search, Truck, Utensils, X } from "lucide-react";
+import { toUserMessage } from "@/lib/safe-error";
 
 interface Employee {
   id: string;
@@ -206,7 +207,7 @@ function Page() {
       setSelectedType(null);
       navigate({ to: "/" });
     } catch (e: any) {
-      toast.error(e.message ?? "Erro ao salvar");
+      toast.error(toUserMessage(e, "Erro ao salvar"));
     } finally {
       setSaving(false);
     }

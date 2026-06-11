@@ -11,6 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { toUserMessage } from "@/lib/safe-error";
 
 interface Employee {
   id: string;
@@ -65,7 +66,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
       })
       .eq("id", employee.id);
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(toUserMessage(error));
     toast.success("Cadastro atualizado");
     onSaved();
     onOpenChange(false);

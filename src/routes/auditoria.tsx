@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ChevronDown, ChevronRight, RefreshCw, ScrollText } from "lucide-react";
 import { listAuditLogs } from "@/lib/audit.functions";
+import { toUserMessage } from "@/lib/safe-error";
 
 export const Route = createFileRoute("/auditoria")({
   component: () => (
@@ -82,7 +83,7 @@ function Page() {
       const data = (await listFn()) as LogRow[];
       setLogs(data);
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao carregar");
+      toast.error(toUserMessage(e, "Falha ao carregar"));
     } finally {
       setBusy(false);
     }
