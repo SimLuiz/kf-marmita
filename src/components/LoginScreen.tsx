@@ -44,15 +44,18 @@ export function LoginScreen() {
     setLoading(false);
     if (error) {
       const r = registerFailure(username);
+      // Nunca expor mensagem técnica do provedor — sempre genérico
+      const safe = toUserMessage(error, "Usuário ou senha inválidos");
       if (r.locked) {
         setLockMs(r.remainingMs);
         toast.error(`Muitas tentativas. Bloqueado por ${formatRemaining(r.remainingMs)}.`);
       } else {
-        toast.error(`Usuário ou senha inválidos. ${r.attemptsLeft} tentativa(s) restante(s).`);
+        toast.error(`${safe}. ${r.attemptsLeft} tentativa(s) restante(s).`);
       }
     } else {
       clearAttempts(username);
     }
+
   };
 
   const locked = lockMs > 0;
