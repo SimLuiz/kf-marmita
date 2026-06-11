@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Plus, Trash2, Truck, Utensils, Pencil, Check, X } from "lucide-react";
+import { toUserMessage } from "@/lib/safe-error";
 
 export const Route = createFileRoute("/fornecedores")({
   component: () => (
@@ -62,7 +63,7 @@ function Page() {
     const { error } = await supabase
       .from("suppliers")
       .insert({ name: newSupplier.trim(), owner_id: user.id });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(toUserMessage(error));
     setNewSupplier("");
     toast.success("Fornecedor cadastrado");
     load();
@@ -76,7 +77,7 @@ function Page() {
       .from("suppliers")
       .update({ name: editingSup.name.trim() })
       .eq("id", editingSup.id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(toUserMessage(error));
     setEditingSup(null);
     toast.success("Fornecedor atualizado");
     load();
@@ -92,7 +93,7 @@ function Page() {
       name: f.name.trim(),
       price,
     });
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(toUserMessage(error));
     setTypeForms({ ...typeForms, [supplierId]: { name: "", price: "" } });
     toast.success("Tipo de marmita cadastrado");
     load();
@@ -107,7 +108,7 @@ function Page() {
       .from("meal_types")
       .update({ name: editingType.name.trim(), price })
       .eq("id", editingType.id);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(toUserMessage(error));
     setEditingType(null);
     toast.success("Atualizado");
     load();

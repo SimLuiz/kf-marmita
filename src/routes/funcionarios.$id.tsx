@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { toUserMessage } from "@/lib/safe-error";
 import {
   ArrowLeft,
   Building2,
@@ -80,7 +81,7 @@ function Page() {
       .select("id,name,cpf,company")
       .eq("id", id)
       .maybeSingle();
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(toUserMessage(error));
     if (!data) {
       toast.error("Funcionário não encontrado");
       navigate({ to: "/funcionarios" });
@@ -100,7 +101,7 @@ function Page() {
       .lt("taken_at", range.end.toISOString())
       .order("taken_at", { ascending: false });
     if (error) {
-      toast.error(error.message);
+      toast.error(toUserMessage(error));
       setLoading(false);
       return;
     }

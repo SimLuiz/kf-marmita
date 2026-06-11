@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { toUserMessage } from "@/lib/safe-error";
 import {
   Trash2,
   UserPlus,
@@ -68,7 +69,7 @@ function FuncionariosList() {
       .from("employees_view")
       .select("*")
       .order("name");
-    if (error) toast.error(error.message);
+    if (error) toast.error(toUserMessage(error));
     else setList((data as Employee[]) ?? []);
   };
 
@@ -91,7 +92,7 @@ function FuncionariosList() {
       owner_id: user.id,
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error(toUserMessage(error));
     setName("");
     setCpf("");
     setCompany("");

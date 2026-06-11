@@ -16,6 +16,7 @@ import {
   resetAppUserPassword,
 } from "@/lib/admin-users.functions";
 import { PASSWORD_POLICY_HINT, validatePassword } from "@/lib/password-policy";
+import { toUserMessage } from "@/lib/safe-error";
 
 export const Route = createFileRoute("/usuarios")({
   component: () => (
@@ -87,7 +88,7 @@ function Page() {
       setPwd("");
       load();
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao criar usuário");
+      toast.error(toUserMessage(e, "Erro ao criar usuário"));
     } finally {
       setBusy(false);
     }
@@ -104,7 +105,7 @@ function Page() {
       setResetFor(null);
       setNewPwd("");
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro");
+      toast.error(toUserMessage(e, "Erro"));
     }
   };
 
