@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export interface SecurityAlert {
   level: "warning" | "critical";
@@ -32,14 +33,17 @@ const CRITICAL_ACTIONS = new Set([
   "PASSWORD_RESET",
 ]);
 
-export const getSecurityMetrics = createServerFn({ method: "GET" }).handler(
-  async (): Promise<SecurityMetrics> => {
-    const { requireServerSession, assertAdmin } = await import(
-      "@/integrations/supabase/session.server"
-    );
-    const s = await requireServerSession();
-    await assertAdmin(s);
+export const getSecurityMetrics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<SecurityMetrics> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: roleRow } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!roleRow) throw new Error("Acesso negado: somente admin");
 
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const since1h = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -156,5 +160,4 @@ export const getSecurityMetrics = createServerFn({ method: "GET" }).handler(
       alerts,
       recentCritical,
     };
-  },
-);
+  });
