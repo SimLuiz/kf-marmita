@@ -1,8 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,32}$/;
 const ADMIN_DOMAIN = "marmita.local";
@@ -16,15 +14,13 @@ const strongPassword = z
   .regex(/[0-9]/, "Senha deve conter número")
   .regex(/[^A-Za-z0-9]/, "Senha deve conter símbolo");
 
-async function assertAdmin(supabase: any, userId: string) {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Acesso negado: somente admin");
+async function ensureAdmin() {
+  const { requireServerSession, assertAdmin } = await import(
+    "@/integrations/supabase/session.server"
+  );
+  const s = await requireServerSession();
+  await assertAdmin(s);
+  return s;
 }
 
 async function audit(
@@ -35,6 +31,7 @@ async function audit(
   new_data: Record<string, unknown> | null,
   old_data: Record<string, unknown> | null = null,
 ) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: prof } = await supabaseAdmin
     .from("profiles")
     .select("username")
@@ -65,24 +62,22 @@ async function audit(
   });
 }
 
-export const listAppUsers = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { data: profiles, error } = await supabaseAdmin
-      .from("profiles")
-      .select("id, username, created_at")
-      .order("created_at", { ascending: false });
-    if (error) throw new Error(error.message);
-    const { data: roles } = await supabaseAdmin.from("user_roles").select("user_id, role");
-    return (profiles ?? []).map((p) => ({
-      ...p,
-      roles: (roles ?? []).filter((r) => r.user_id === p.id).map((r) => r.role),
-    }));
-  });
+export const listAppUsers = createServerFn({ method: "GET" }).handler(async () => {
+  await ensureAdmin();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: profiles, error } = await supabaseAdmin
+    .from("profiles")
+    .select("id, username, created_at")
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  const { data: roles } = await supabaseAdmin.from("user_roles").select("user_id, role");
+  return (profiles ?? []).map((p) => ({
+    ...p,
+    roles: (roles ?? []).filter((r) => r.user_id === p.id).map((r) => r.role),
+  }));
+});
 
 export const createAppUser = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z
       .object({
@@ -91,11 +86,12 @@ export const createAppUser = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
+  .handler(async ({ data }) => {
+    const s = await ensureAdmin();
     const username = data.username.toLowerCase();
     if (username === "admin") throw new Error("Nome reservado");
     const email = `${username}@${ADMIN_DOMAIN}`;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: data.password,
@@ -103,7 +99,7 @@ export const createAppUser = createServerFn({ method: "POST" })
       user_metadata: { username },
     });
     if (error) throw new Error(error.message);
-    await audit(context.userId, "USER_CREATED", "auth.users", created.user?.id ?? null, {
+    await audit(s.userId, "USER_CREATED", "auth.users", created.user?.id ?? null, {
       username,
       email,
     });
@@ -111,12 +107,11 @@ export const createAppUser = createServerFn({ method: "POST" })
   });
 
 export const deleteAppUser = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ userId: z.string().uuid() }).parse(input))
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    if (data.userId === context.userId) throw new Error("Você não pode excluir a si mesmo");
-    // Block deleting the seeded admin
+  .handler(async ({ data }) => {
+    const s = await ensureAdmin();
+    if (data.userId === s.userId) throw new Error("Você não pode excluir a si mesmo");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: prof } = await supabaseAdmin
       .from("profiles")
       .select("username")
@@ -125,28 +120,23 @@ export const deleteAppUser = createServerFn({ method: "POST" })
     if (prof?.username === "admin") throw new Error("Não é possível excluir o admin do sistema");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
-    await audit(
-      context.userId,
-      "USER_DELETED",
-      "auth.users",
-      data.userId,
-      null,
-      { username: prof?.username ?? null },
-    );
+    await audit(s.userId, "USER_DELETED", "auth.users", data.userId, null, {
+      username: prof?.username ?? null,
+    });
     return { ok: true };
   });
 
 export const resetAppUserPassword = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z.object({ userId: z.string().uuid(), password: strongPassword }).parse(input),
   )
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
+  .handler(async ({ data }) => {
+    const s = await ensureAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
       password: data.password,
     });
     if (error) throw new Error(error.message);
-    await audit(context.userId, "ADMIN_PASSWORD_RESET", "auth.users", data.userId, null);
+    await audit(s.userId, "ADMIN_PASSWORD_RESET", "auth.users", data.userId, null);
     return { ok: true };
   });

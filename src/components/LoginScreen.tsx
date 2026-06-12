@@ -12,7 +12,7 @@ import {
   registerFailure,
 } from "@/lib/login-lockout";
 import { toUserMessage } from "@/lib/safe-error";
-
+import { checkLoginAllowed } from "@/lib/session.functions";
 
 export function LoginScreen() {
   const { signIn } = useAuth();
@@ -34,17 +34,36 @@ export function LoginScreen() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const remaining = getLockRemainingMs(username);
-    if (remaining > 0) {
-      toast.error(`Usuário bloqueado. Tente novamente em ${formatRemaining(remaining)}.`);
+
+    // 1) Cache local de UX
+    const local = getLockRemainingMs(username);
+    if (local > 0) {
+      toast.error(`Usuário bloqueado. Tente novamente em ${formatRemaining(local)}.`);
       return;
     }
+
     setLoading(true);
+
+    // 2) Lockout no SERVIDOR (fonte da verdade — imune a limpar storage / trocar navegador)
+    try {
+      const lock = await checkLoginAllowed({ data: { username: username.trim() } });
+      if (lock.locked) {
+        const ms = Math.max(1, lock.retry_after_seconds) * 1000;
+        setLockMs(ms);
+        setLoading(false);
+        toast.error(
+          `Bloqueado pelo servidor (${lock.reason === "ip" ? "IP" : "usuário"}). Tente em ${formatRemaining(ms)}.`,
+        );
+        return;
+      }
+    } catch {
+      /* lockout indisponível — segue */
+    }
+
     const { error } = await signIn(username, password);
     setLoading(false);
     if (error) {
       const r = registerFailure(username);
-      // Nunca expor mensagem técnica do provedor — sempre genérico
       const safe = toUserMessage(error, "Usuário ou senha inválidos");
       if (r.locked) {
         setLockMs(r.remainingMs);
@@ -55,7 +74,6 @@ export function LoginScreen() {
     } else {
       clearAttempts(username);
     }
-
   };
 
   const locked = lockMs > 0;

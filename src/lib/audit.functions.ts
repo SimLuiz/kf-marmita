@@ -1,7 +1,7 @@
+// Audit log helpers — agora baseados em cookies HttpOnly (requireServerSession).
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const ACTIONS = [
   "LOGIN",
@@ -35,7 +35,6 @@ function getUa() {
 }
 
 export const logAuditEvent = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z
       .object({
@@ -47,15 +46,17 @@ export const logAuditEvent = createServerFn({ method: "POST" })
       })
       .parse(input),
   )
-  .handler(async ({ context, data }) => {
+  .handler(async ({ data }) => {
+    const { requireServerSession } = await import("@/integrations/supabase/session.server");
+    const s = await requireServerSession();
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: prof } = await supabaseAdmin
       .from("profiles")
       .select("username")
-      .eq("id", context.userId)
+      .eq("id", s.userId)
       .maybeSingle();
     const { error } = await (supabaseAdmin.from("audit_logs") as any).insert({
-      user_id: context.userId,
+      user_id: s.userId,
       username: prof?.username ?? null,
       action: data.action,
       table_name: data.table_name ?? null,
@@ -69,47 +70,18 @@ export const logAuditEvent = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Public: registra tentativa falha de login (sem sessão). Apenas username + IP/UA.
-export const logFailedLogin = createServerFn({ method: "POST" })
-  .inputValidator((input) =>
-    z
-      .object({
-        username: z.string().min(1).max(64).regex(/^[a-zA-Z0-9_.@-]+$/),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await (supabaseAdmin.from("audit_logs") as any).insert({
-      user_id: null,
-      username: data.username.toLowerCase(),
-      action: "LOGIN_FAILED",
-      table_name: null,
-      record_id: null,
-      old_data: null,
-      new_data: null,
-      ip_address: getIp(),
-      user_agent: getUa(),
-    });
-    return { ok: true };
-  });
-
-export const listAuditLogs = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: roleRow } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!roleRow) throw new Error("Acesso negado: somente admin");
-    const { data, error } = await supabaseAdmin
-      .from("audit_logs")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(500);
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  });
+export const listAuditLogs = createServerFn({ method: "GET" }).handler(async () => {
+  const { requireServerSession, assertAdmin } = await import(
+    "@/integrations/supabase/session.server"
+  );
+  const s = await requireServerSession();
+  await assertAdmin(s);
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("audit_logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) throw new Error(error.message);
+  return data ?? [];
+});
