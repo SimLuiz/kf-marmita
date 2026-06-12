@@ -198,6 +198,7 @@ function Page() {
         employee_id: selected.id,
         meal_type_id: selectedType.id,
         photo_path: path,
+        unit_price: selectedType.price,
       });
       if (insErr) throw insErr;
 
