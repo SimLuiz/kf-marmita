@@ -268,7 +268,7 @@ function Page() {
                 {days.map(([day, items]) => {
                   const dayDate = new Date(day + "T00:00:00");
                   const dayTotal = items.reduce(
-                    (s, r) => s + (Number(r.meal_types?.price) || 0),
+                    (s, r) => s + (Number(r.unit_price ?? r.meal_types?.price) || 0),
                     0
                   );
                   return (
