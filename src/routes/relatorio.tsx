@@ -71,7 +71,7 @@ function Page() {
         supabase.from("meal_types").select("id,supplier_id,name,price"),
         supabase
           .from("meal_records")
-          .select("id,employee_id,meal_type_id,photo_path,taken_at")
+          .select("id,employee_id,meal_type_id,photo_path,taken_at,unit_price")
           .gte("taken_at", range.start.toISOString())
           .lt("taken_at", range.end.toISOString())
           .order("taken_at", { ascending: false }),
@@ -97,7 +97,7 @@ function Page() {
           company: emp.company ?? null,
           supplier: sup?.name ?? "—",
           meal: mt?.name ?? "(não informada)",
-          price: mt ? Number(mt.price) : 0,
+          price: r.unit_price != null ? Number(r.unit_price) : mt ? Number(mt.price) : 0,
           taken_at: r.taken_at,
           photo_path: r.photo_path ?? null,
         });

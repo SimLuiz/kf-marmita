@@ -95,6 +95,7 @@ export type Database = {
           owner_id: string
           photo_path: string
           taken_at: string
+          unit_price: number | null
         }
         Insert: {
           created_at?: string
@@ -104,6 +105,7 @@ export type Database = {
           owner_id: string
           photo_path: string
           taken_at?: string
+          unit_price?: number | null
         }
         Update: {
           created_at?: string
@@ -113,6 +115,7 @@ export type Database = {
           owner_id?: string
           photo_path?: string
           taken_at?: string
+          unit_price?: number | null
         }
         Relationships: [
           {

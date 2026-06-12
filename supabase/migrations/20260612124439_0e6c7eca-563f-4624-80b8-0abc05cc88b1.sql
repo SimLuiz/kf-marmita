@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.snapshot_meal_price() FROM PUBLIC, anon, authenticated;

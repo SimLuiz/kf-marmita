@@ -30,6 +30,7 @@ interface Record {
   taken_at: string;
   photo_path: string;
   meal_type_id: string | null;
+  unit_price: number | null;
   meal_types: {
     name: string;
     price: number;
@@ -95,7 +96,7 @@ function Page() {
     setLoading(true);
     const { data, error } = await supabase
       .from("meal_records")
-      .select("id,taken_at,photo_path,meal_type_id,meal_types(name,price,suppliers(name))")
+      .select("id,taken_at,photo_path,meal_type_id,unit_price,meal_types(name,price,suppliers(name))")
       .eq("employee_id", id)
       .gte("taken_at", range.start.toISOString())
       .lt("taken_at", range.end.toISOString())
@@ -212,7 +213,9 @@ function Page() {
       </div>
 
       {(() => {
-        const total = records.reduce((s, r) => s + (Number(r.meal_types?.price) || 0), 0);
+        const priceOf = (r: Record) =>
+          Number(r.unit_price ?? r.meal_types?.price ?? 0) || 0;
+        const total = records.reduce((s, r) => s + priceOf(r), 0);
         const fmt = (v: number) =>
           v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         return (
@@ -265,7 +268,7 @@ function Page() {
                 {days.map(([day, items]) => {
                   const dayDate = new Date(day + "T00:00:00");
                   const dayTotal = items.reduce(
-                    (s, r) => s + (Number(r.meal_types?.price) || 0),
+                    (s, r) => s + (Number(r.unit_price ?? r.meal_types?.price) || 0),
                     0
                   );
                   return (
@@ -287,7 +290,7 @@ function Page() {
                       </div>
                       {items.map((rec) => {
                         const date = new Date(rec.taken_at);
-                        const price = Number(rec.meal_types?.price) || 0;
+                        const price = Number(rec.unit_price ?? rec.meal_types?.price) || 0;
                         return (
                           <div
                             key={rec.id}
