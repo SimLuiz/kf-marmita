@@ -69,28 +69,37 @@ export const logAuditEvent = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Public: registra tentativa falha de login (sem sessão). Apenas username + IP/UA.
+// Public: registra falha de login + grava em login_attempts (lockout server-side)
 export const logFailedLogin = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z
-      .object({
-        username: z.string().min(1).max(64).regex(/^[a-zA-Z0-9_.@-]+$/),
-      })
+      .object({ username: z.string().min(1).max(64).regex(/^[a-zA-Z0-9_.@-]+$/) })
       .parse(input),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await (supabaseAdmin.from("audit_logs") as any).insert({
-      user_id: null,
-      username: data.username.toLowerCase(),
-      action: "LOGIN_FAILED",
-      table_name: null,
-      record_id: null,
-      old_data: null,
-      new_data: null,
-      ip_address: getIp(),
-      user_agent: getUa(),
-    });
+    const ip = getIp();
+    const ua = getUa();
+    const uname = data.username.toLowerCase();
+    await Promise.all([
+      (supabaseAdmin.from("audit_logs") as any).insert({
+        user_id: null,
+        username: uname,
+        action: "LOGIN_FAILED",
+        table_name: null,
+        record_id: null,
+        old_data: null,
+        new_data: null,
+        ip_address: ip,
+        user_agent: ua,
+      }),
+      (supabaseAdmin.from("login_attempts") as any).insert({
+        username: uname,
+        ip,
+        user_agent: ua,
+        success: false,
+      }),
+    ]);
     return { ok: true };
   });
 

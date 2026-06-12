@@ -59,15 +59,15 @@ export const getSecurityMetrics = createServerFn({ method: "GET" })
     const all = rows24h ?? [];
     const logins24h = all.filter((r) => r.action === "LOGIN").length;
     const loginsFailed24h = all.filter((r) => r.action === "LOGIN_FAILED").length;
-    const deletions24h = all.filter((r) => r.action === "DELETE" || r.action === "USER_DELETED").length;
+    const deletions24h = all.filter(
+      (r) => r.action === "DELETE" || r.action === "USER_DELETED",
+    ).length;
     const criticalActions24h = all.filter((r) => CRITICAL_ACTIONS.has(r.action)).length;
 
-    // Active sessions = distinct user_ids with activity nos últimos 5 min
     const activeSessions = new Set(
       all.filter((r) => r.user_id && r.created_at >= since5m).map((r) => r.user_id),
     ).size;
 
-    // Top IPs
     const ipCounts = new Map<string, number>();
     for (const r of all) {
       if (!r.ip_address) continue;
@@ -78,10 +78,8 @@ export const getSecurityMetrics = createServerFn({ method: "GET" })
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    // Alertas
     const alerts: SecurityAlert[] = [];
 
-    // 1) Muitos logins falhos na última hora (por username)
     const failedByUser = new Map<string, number>();
     for (const r of all) {
       if (r.action !== "LOGIN_FAILED" || r.created_at < since1h) continue;
@@ -98,7 +96,6 @@ export const getSecurityMetrics = createServerFn({ method: "GET" })
       }
     }
 
-    // 2) Muitas exclusões na última hora
     const delsLastHour = all.filter(
       (r) => (r.action === "DELETE" || r.action === "USER_DELETED") && r.created_at >= since1h,
     ).length;
@@ -110,7 +107,6 @@ export const getSecurityMetrics = createServerFn({ method: "GET" })
       });
     }
 
-    // 3) Acessos incomuns: mesmo usuário em >2 IPs distintos em 24h
     const ipsByUser = new Map<string, Set<string>>();
     for (const r of all) {
       if (r.action !== "LOGIN" || !r.username || !r.ip_address) continue;
@@ -127,7 +123,6 @@ export const getSecurityMetrics = createServerFn({ method: "GET" })
       }
     }
 
-    // 4) Muitos logins na última hora pelo mesmo usuário
     const loginsByUserLastHour = new Map<string, number>();
     for (const r of all) {
       if (r.action !== "LOGIN" || !r.username || r.created_at < since1h) continue;

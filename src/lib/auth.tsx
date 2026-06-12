@@ -44,7 +44,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
-      // Defer to avoid deadlock
       setTimeout(() => loadRoleAndProfile(s), 0);
     });
     supabase.auth.getSession().then(({ data }) => {
@@ -64,14 +63,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { logAuditEvent } = await import("@/lib/audit.functions");
         await logAuditEvent({ data: { action: "LOGIN" } });
       } catch {
-        /* non-blocking */
+        /* noop */
+      }
+      // Registra sucesso no lockout server (zera contagem implícita / histórico)
+      try {
+        const { recordLoginSuccess } = await import("@/lib/session.functions");
+        await recordLoginSuccess({ data: { username: uname.trim() } });
+      } catch {
+        /* noop */
       }
     } else {
+      // Falha: registra no lockout server + audit
       try {
         const { logFailedLogin } = await import("@/lib/audit.functions");
         await logFailedLogin({ data: { username: uname } });
       } catch {
-        /* non-blocking */
+        /* noop */
       }
     }
     return { error: error?.message ?? null };
@@ -82,10 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { logAuditEvent } = await import("@/lib/audit.functions");
       await logAuditEvent({ data: { action: "LOGOUT" } });
     } catch {
-      /* non-blocking */
+      /* noop */
     }
     await supabase.auth.signOut();
-    // Limpeza defensiva: remove qualquer resíduo de token/cache sensível
     try {
       if (typeof window !== "undefined") {
         const wipe = (s: Storage) => {
@@ -112,9 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-
   const verifyAdminPassword = async (password: string) => {
-    // Verify on a throwaway client so the current session is not disturbed
     const { createClient } = await import("@supabase/supabase-js");
     const url = import.meta.env.VITE_SUPABASE_URL as string;
     const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;

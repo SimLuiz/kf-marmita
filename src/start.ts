@@ -5,12 +5,9 @@ import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 const SUPABASE_HOST = "https://fumbcjoeylgizrzagnff.supabase.co";
 const SUPABASE_WS = "wss://fumbcjoeylgizrzagnff.supabase.co";
 
-// Content-Security-Policy + headers complementares (XSS / clickjacking / sniffing)
 const CSP = [
   "default-src 'self'",
-  // 'unsafe-inline' necessário para o estado de hidratação inline do TanStack Start
   `script-src 'self' 'unsafe-inline'`,
-  // Tailwind/shadcn usam estilos inline e <style> dinâmicos
   `style-src 'self' 'unsafe-inline'`,
   `img-src 'self' data: blob: https:`,
   `font-src 'self' data:`,
@@ -33,7 +30,7 @@ const securityHeaders = createMiddleware({ type: "request" }).server(async ({ ne
     );
     setResponseHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   } catch {
-    /* fora do contexto de request — ignora */
+    /* noop */
   }
   return next();
 });

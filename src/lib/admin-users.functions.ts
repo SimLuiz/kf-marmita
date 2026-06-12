@@ -116,7 +116,6 @@ export const deleteAppUser = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);
     if (data.userId === context.userId) throw new Error("Você não pode excluir a si mesmo");
-    // Block deleting the seeded admin
     const { data: prof } = await supabaseAdmin
       .from("profiles")
       .select("username")
@@ -125,14 +124,9 @@ export const deleteAppUser = createServerFn({ method: "POST" })
     if (prof?.username === "admin") throw new Error("Não é possível excluir o admin do sistema");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
-    await audit(
-      context.userId,
-      "USER_DELETED",
-      "auth.users",
-      data.userId,
-      null,
-      { username: prof?.username ?? null },
-    );
+    await audit(context.userId, "USER_DELETED", "auth.users", data.userId, null, {
+      username: prof?.username ?? null,
+    });
     return { ok: true };
   });
 

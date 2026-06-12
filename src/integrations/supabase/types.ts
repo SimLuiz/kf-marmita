@@ -86,6 +86,33 @@ export type Database = {
         }
         Relationships: []
       }
+      login_attempts: {
+        Row: {
+          attempted_at: string
+          id: string
+          ip: string | null
+          success: boolean
+          user_agent: string | null
+          username: string
+        }
+        Insert: {
+          attempted_at?: string
+          id?: string
+          ip?: string | null
+          success?: boolean
+          user_agent?: string | null
+          username: string
+        }
+        Update: {
+          attempted_at?: string
+          id?: string
+          ip?: string | null
+          success?: boolean
+          user_agent?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
       meal_records: {
         Row: {
           created_at: string
@@ -267,6 +294,14 @@ export type Database = {
       }
     }
     Functions: {
+      check_login_lockout: {
+        Args: { _ip: string; _username: string }
+        Returns: {
+          locked: boolean
+          reason: string
+          retry_after_seconds: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
