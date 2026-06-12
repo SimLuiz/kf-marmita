@@ -96,7 +96,7 @@ function Page() {
     setLoading(true);
     const { data, error } = await supabase
       .from("meal_records")
-      .select("id,taken_at,photo_path,meal_type_id,meal_types(name,price,suppliers(name))")
+      .select("id,taken_at,photo_path,meal_type_id,unit_price,meal_types(name,price,suppliers(name))")
       .eq("employee_id", id)
       .gte("taken_at", range.start.toISOString())
       .lt("taken_at", range.end.toISOString())
