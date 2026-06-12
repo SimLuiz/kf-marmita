@@ -213,7 +213,9 @@ function Page() {
       </div>
 
       {(() => {
-        const total = records.reduce((s, r) => s + (Number(r.meal_types?.price) || 0), 0);
+        const priceOf = (r: Record) =>
+          Number(r.unit_price ?? r.meal_types?.price ?? 0) || 0;
+        const total = records.reduce((s, r) => s + priceOf(r), 0);
         const fmt = (v: number) =>
           v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         return (
