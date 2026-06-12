@@ -30,6 +30,7 @@ interface Record {
   taken_at: string;
   photo_path: string;
   meal_type_id: string | null;
+  unit_price: number | null;
   meal_types: {
     name: string;
     price: number;
