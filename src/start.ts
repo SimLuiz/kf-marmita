@@ -1,20 +1,19 @@
 import { createStart, createMiddleware } from "@tanstack/react-start";
 import { setResponseHeader } from "@tanstack/react-start/server";
-import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
 const SUPABASE_HOST = "https://fumbcjoeylgizrzagnff.supabase.co";
-const SUPABASE_WS = "wss://fumbcjoeylgizrzagnff.supabase.co";
 
-// Content-Security-Policy + headers complementares (XSS / clickjacking / sniffing)
+// Content-Security-Policy + headers complementares (XSS / clickjacking / sniffing).
+// IMPORTANTE: depois da migração HttpOnly, o browser não fala mais com o Supabase direto
+// para auth/data. Mantemos connect-src ao Supabase apenas para downloads de signed URLs
+// de storage (assinaturas) que rodam direto do browser.
 const CSP = [
   "default-src 'self'",
-  // 'unsafe-inline' necessário para o estado de hidratação inline do TanStack Start
   `script-src 'self' 'unsafe-inline'`,
-  // Tailwind/shadcn usam estilos inline e <style> dinâmicos
   `style-src 'self' 'unsafe-inline'`,
   `img-src 'self' data: blob: https:`,
   `font-src 'self' data:`,
-  `connect-src 'self' ${SUPABASE_HOST} ${SUPABASE_WS}`,
+  `connect-src 'self' ${SUPABASE_HOST}`,
   `frame-ancestors 'self' https://*.lovable.app https://lovable.dev`,
   `base-uri 'self'`,
   `form-action 'self'`,
@@ -40,5 +39,6 @@ const securityHeaders = createMiddleware({ type: "request" }).server(async ({ ne
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [securityHeaders],
-  functionMiddleware: [attachSupabaseAuth],
+  // Sem attachSupabaseAuth: o browser não tem token; cookies HttpOnly carregam a sessão.
+  functionMiddleware: [],
 }));
