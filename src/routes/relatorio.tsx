@@ -71,7 +71,7 @@ function Page() {
         supabase.from("meal_types").select("id,supplier_id,name,price"),
         supabase
           .from("meal_records")
-          .select("id,employee_id,meal_type_id,photo_path,taken_at")
+          .select("id,employee_id,meal_type_id,photo_path,taken_at,unit_price")
           .gte("taken_at", range.start.toISOString())
           .lt("taken_at", range.end.toISOString())
           .order("taken_at", { ascending: false }),
