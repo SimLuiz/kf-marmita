@@ -290,7 +290,7 @@ function Page() {
                       </div>
                       {items.map((rec) => {
                         const date = new Date(rec.taken_at);
-                        const price = Number(rec.meal_types?.price) || 0;
+                        const price = Number(rec.unit_price ?? rec.meal_types?.price) || 0;
                         return (
                           <div
                             key={rec.id}
