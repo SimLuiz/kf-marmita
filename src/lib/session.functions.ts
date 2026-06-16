@@ -3,7 +3,9 @@
 // estão escritas mas inativas — serão religadas quando todas as rotas migrarem.
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+
 
 const USERNAME_RE = /^[a-zA-Z0-9_.-]{1,64}$/;
 
@@ -64,3 +66,26 @@ export const recordLoginSuccess = createServerFn({ method: "POST" })
     });
     return { ok: true };
   });
+
+// Ping de inatividade no servidor — fonte da verdade.
+// Cliente chama periodicamente. Se expired=true, faz signOut.
+export const pingSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ max_minutes: z.number().int().min(1).max(720) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await (context.supabase as any).rpc(
+      "touch_and_check_idle",
+      { _max_minutes: data.max_minutes },
+    );
+    if (error) {
+      return { expired: false, idle_seconds: 0 };
+    }
+    const r = (rows?.[0] ?? {}) as { expired?: boolean; idle_seconds?: number };
+    return {
+      expired: !!r.expired,
+      idle_seconds: Number(r.idle_seconds ?? 0),
+    };
+  });
+

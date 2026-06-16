@@ -207,16 +207,19 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_activity_at: string
           username: string
         }
         Insert: {
           created_at?: string
           id: string
+          last_activity_at?: string
           username: string
         }
         Update: {
           created_at?: string
           id?: string
+          last_activity_at?: string
           username?: string
         }
         Relationships: []
@@ -308,6 +311,13 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      touch_and_check_idle: {
+        Args: { _max_minutes: number }
+        Returns: {
+          expired: boolean
+          idle_seconds: number
+        }[]
       }
     }
     Enums: {
