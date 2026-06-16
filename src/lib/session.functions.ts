@@ -63,18 +63,16 @@ export const recordLoginSuccess = createServerFn({ method: "POST" })
       ip: getIp(),
       user_agent: getUa(),
       success: true,
+    });
+    return { ok: true };
   });
 
 // Ping de inatividade no servidor — fonte da verdade.
 // Cliente chama periodicamente. Se expired=true, faz signOut.
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
 export const pingSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
-    z
-      .object({ max_minutes: z.number().int().min(1).max(720) })
-      .parse(input),
+    z.object({ max_minutes: z.number().int().min(1).max(720) }).parse(input),
   )
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await (context.supabase as any).rpc(
@@ -91,5 +89,3 @@ export const pingSession = createServerFn({ method: "POST" })
     };
   });
 
-    return { ok: true };
-  });
