@@ -3,7 +3,9 @@
 // estão escritas mas inativas — serão religadas quando todas as rotas migrarem.
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+
 
 const USERNAME_RE = /^[a-zA-Z0-9_.-]{1,64}$/;
 
