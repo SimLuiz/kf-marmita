@@ -47,11 +47,16 @@ function Page() {
   const load = async () => {
     const [{ data: sups }, { data: mts }] = await Promise.all([
       supabase.from("suppliers").select("id,name").order("name"),
-      supabase.from("meal_types").select("id,supplier_id,name,price").order("name"),
+      supabase
+        .from("meal_types")
+        .select("id,supplier_id,name,price")
+        .is("archived_at", null)
+        .order("name"),
     ]);
     setSuppliers((sups as Supplier[]) ?? []);
     setTypes(((mts as any[]) ?? []).map((t) => ({ ...t, price: Number(t.price) })));
   };
+
 
   useEffect(() => {
     if (user) load();
