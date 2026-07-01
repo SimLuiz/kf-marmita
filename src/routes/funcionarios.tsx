@@ -68,10 +68,12 @@ function FuncionariosList() {
     const { data, error } = await (supabase as any)
       .from("employees_view")
       .select("*")
+      .is("archived_at", null)
       .order("name");
     if (error) toast.error(toUserMessage(error));
     else setList((data as Employee[]) ?? []);
   };
+
 
   useEffect(() => {
     if (user) load();
