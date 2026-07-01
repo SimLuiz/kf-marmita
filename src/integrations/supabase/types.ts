@@ -58,6 +58,7 @@ export type Database = {
       }
       employees: {
         Row: {
+          archived_at: string | null
           company: string | null
           cpf: string | null
           cpf_encrypted: string | null
@@ -67,6 +68,7 @@ export type Database = {
           owner_id: string
         }
         Insert: {
+          archived_at?: string | null
           company?: string | null
           cpf?: string | null
           cpf_encrypted?: string | null
@@ -76,6 +78,7 @@ export type Database = {
           owner_id: string
         }
         Update: {
+          archived_at?: string | null
           company?: string | null
           cpf?: string | null
           cpf_encrypted?: string | null
@@ -170,6 +173,7 @@ export type Database = {
       }
       meal_types: {
         Row: {
+          archived_at: string | null
           created_at: string
           id: string
           name: string
@@ -178,6 +182,7 @@ export type Database = {
           supplier_id: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           id?: string
           name: string
@@ -186,6 +191,7 @@ export type Database = {
           supplier_id: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -270,6 +276,7 @@ export type Database = {
     Views: {
       employees_view: {
         Row: {
+          archived_at: string | null
           company: string | null
           cpf: string | null
           created_at: string | null
@@ -278,6 +285,7 @@ export type Database = {
           owner_id: string | null
         }
         Insert: {
+          archived_at?: string | null
           company?: string | null
           cpf?: never
           created_at?: string | null
@@ -286,6 +294,7 @@ export type Database = {
           owner_id?: string | null
         }
         Update: {
+          archived_at?: string | null
           company?: string | null
           cpf?: never
           created_at?: string | null
