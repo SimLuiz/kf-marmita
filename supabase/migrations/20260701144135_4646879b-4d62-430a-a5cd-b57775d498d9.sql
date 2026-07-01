@@ -1,0 +1,1 @@
+ALTER VIEW public.employees_view SET (security_invoker = true);
