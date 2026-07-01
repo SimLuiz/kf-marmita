@@ -3,8 +3,8 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { pingSession } from "@/lib/session.functions";
 
-const ADMIN_TIMEOUT_MIN = 15;
-const USER_TIMEOUT_MIN = 30;
+const ADMIN_TIMEOUT_MIN = 20;
+const USER_TIMEOUT_MIN = 60;
 const PING_INTERVAL_MS = 2 * 60 * 1000; // 2 min
 
 const EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"] as const;
