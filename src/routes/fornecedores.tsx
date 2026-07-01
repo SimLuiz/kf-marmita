@@ -316,17 +316,21 @@ function Page() {
       <AdminPasswordDialog
         open={!!pendingType}
         onOpenChange={(o: boolean) => !o && setPendingType(null)}
-        title="Excluir marmita"
-        description={`Digite a senha do admin para excluir "${pendingType?.name ?? ""}".`}
+        title="Arquivar marmita"
+        description={`Digite a senha do admin para arquivar "${pendingType?.name ?? ""}". Os registros históricos serão preservados no relatório.`}
         onConfirmed={async () => {
           if (!pendingType) return;
-          const { error } = await supabase.from("meal_types").delete().eq("id", pendingType.id);
+          const { error } = await supabase
+            .from("meal_types")
+            .update({ archived_at: new Date().toISOString() })
+            .eq("id", pendingType.id);
           if (error) throw new Error(error.message);
-          toast.success("Removido");
+          toast.success("Marmita arquivada");
           setPendingType(null);
           load();
         }}
       />
+
     </div>
   );
 }
