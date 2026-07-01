@@ -47,11 +47,16 @@ function Page() {
   const load = async () => {
     const [{ data: sups }, { data: mts }] = await Promise.all([
       supabase.from("suppliers").select("id,name").order("name"),
-      supabase.from("meal_types").select("id,supplier_id,name,price").order("name"),
+      supabase
+        .from("meal_types")
+        .select("id,supplier_id,name,price")
+        .is("archived_at", null)
+        .order("name"),
     ]);
     setSuppliers((sups as Supplier[]) ?? []);
     setTypes(((mts as any[]) ?? []).map((t) => ({ ...t, price: Number(t.price) })));
   };
+
 
   useEffect(() => {
     if (user) load();
@@ -311,17 +316,21 @@ function Page() {
       <AdminPasswordDialog
         open={!!pendingType}
         onOpenChange={(o: boolean) => !o && setPendingType(null)}
-        title="Excluir marmita"
-        description={`Digite a senha do admin para excluir "${pendingType?.name ?? ""}".`}
+        title="Arquivar marmita"
+        description={`Digite a senha do admin para arquivar "${pendingType?.name ?? ""}". Os registros históricos serão preservados no relatório.`}
         onConfirmed={async () => {
           if (!pendingType) return;
-          const { error } = await supabase.from("meal_types").delete().eq("id", pendingType.id);
+          const { error } = await supabase
+            .from("meal_types")
+            .update({ archived_at: new Date().toISOString() })
+            .eq("id", pendingType.id);
           if (error) throw new Error(error.message);
-          toast.success("Removido");
+          toast.success("Marmita arquivada");
           setPendingType(null);
           load();
         }}
       />
+
     </div>
   );
 }

@@ -27,7 +27,7 @@ function Dashboard() {
       startDay.setHours(0, 0, 0, 0);
 
       const [{ count: emp }, { count: today }, { count: month }] = await Promise.all([
-        supabase.from("employees").select("*", { count: "exact", head: true }),
+        supabase.from("employees").select("*", { count: "exact", head: true }).is("archived_at", null),
         supabase
           .from("meal_records")
           .select("*", { count: "exact", head: true })

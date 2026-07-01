@@ -68,10 +68,12 @@ function FuncionariosList() {
     const { data, error } = await (supabase as any)
       .from("employees_view")
       .select("*")
+      .is("archived_at", null)
       .order("name");
     if (error) toast.error(toUserMessage(error));
     else setList((data as Employee[]) ?? []);
   };
+
 
   useEffect(() => {
     if (user) load();
@@ -238,20 +240,21 @@ function FuncionariosList() {
       <AdminPasswordDialog
         open={!!pendingDelete}
         onOpenChange={(o) => !o && setPendingDelete(null)}
-        title="Excluir funcionário"
-        description={`Digite a senha do admin para excluir "${pendingDelete?.name ?? ""}" e todos os seus registros.`}
+        title="Arquivar funcionário"
+        description={`Digite a senha do admin para arquivar "${pendingDelete?.name ?? ""}". Os registros de marmitas dele serão preservados no histórico.`}
         onConfirmed={async () => {
           if (!pendingDelete) return;
           const { error } = await supabase
             .from("employees")
-            .delete()
+            .update({ archived_at: new Date().toISOString() })
             .eq("id", pendingDelete.id);
           if (error) throw new Error(error.message);
-          toast.success("Funcionário removido");
+          toast.success("Funcionário arquivado");
           setPendingDelete(null);
           load();
         }}
       />
+
     </div>
   );
 }

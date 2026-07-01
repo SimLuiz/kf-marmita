@@ -162,10 +162,19 @@ function Page() {
     if (!user) return;
     (async () => {
       const [emps, sups, mts] = await Promise.all([
-        (supabase as any).from("employees_view").select("id,name,cpf,company").order("name"),
+        (supabase as any)
+          .from("employees_view")
+          .select("id,name,cpf,company")
+          .is("archived_at", null)
+          .order("name"),
         supabase.from("suppliers").select("id,name").order("name"),
-        supabase.from("meal_types").select("id,supplier_id,name,price").order("name"),
+        supabase
+          .from("meal_types")
+          .select("id,supplier_id,name,price")
+          .is("archived_at", null)
+          .order("name"),
       ]);
+
       setEmployees((emps.data as Employee[]) ?? []);
       setSuppliers((sups.data as Supplier[]) ?? []);
       setMealTypes(((mts.data as any[]) ?? []).map((t) => ({ ...t, price: Number(t.price) })));
