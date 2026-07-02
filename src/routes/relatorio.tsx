@@ -182,7 +182,7 @@ function Page() {
         })
       );
 
-      const ROW_H = 60;
+      const ROW_H = 130;
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
         const row = ws.addRow({
