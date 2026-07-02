@@ -147,23 +147,89 @@ function Page() {
     return Array.from(m.values());
   }, [rows]);
 
-  const exportCSV = () => {
-    const q = (v: string | null | undefined) => `"${(v ?? "").replace(/"/g, '""')}"`;
-    const n = (v: number) => v.toFixed(2).replace(".", ",");
-    const header =
-      "Funcionário;CPF;Empresa;Fornecedor;Marmita;Data/hora;Valor\n";
-    const body = rows
-      .map(
-        (r) =>
-          `${q(r.name)};${q(r.cpf)};${q(r.company)};${q(r.supplier)};${q(r.meal)};${q(fmtDateTime(r.taken_at))};${n(r.price)}`
-      )
-      .join("\n");
-    const csv =
-      "\uFEFF" +
-      header +
-      body +
-      `\n;;;;;;\nTOTAL;;;;;${totalCount};${n(totalValue)}\n`;
-    download(csv, `relatorio-${monthName.replace(/\s/g, "-")}.csv`, "text/csv;charset=utf-8");
+  const exportCSV = async () => {
+    try {
+      const ExcelJS = (await import("exceljs")).default;
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet(monthName);
+
+      ws.columns = [
+        { header: "Funcionário", key: "name", width: 28 },
+        { header: "CPF", key: "cpf", width: 16 },
+        { header: "Empresa", key: "company", width: 20 },
+        { header: "Fornecedor", key: "supplier", width: 20 },
+        { header: "Marmita", key: "meal", width: 20 },
+        { header: "Data/hora", key: "taken_at", width: 16 },
+        { header: "Valor", key: "price", width: 12 },
+        { header: "Assinatura", key: "sig", width: 24 },
+      ];
+      ws.getRow(1).font = { bold: true };
+      ws.getRow(1).alignment = { vertical: "middle", horizontal: "left" };
+
+      // Preload signed URLs and image bytes for every row that has a photo_path
+      const uniquePaths = Array.from(new Set(rows.map((r) => r.photo_path).filter(Boolean) as string[]));
+      const pathToBuf = new Map<string, { buf: ArrayBuffer; ext: "png" | "jpeg" }>();
+      await Promise.all(
+        uniquePaths.map(async (p) => {
+          const { data } = await supabase.storage.from("meal-photos").createSignedUrl(p, 60 * 60);
+          if (!data?.signedUrl) return;
+          try {
+            const res = await fetch(data.signedUrl);
+            const buf = await res.arrayBuffer();
+            const ext: "png" | "jpeg" = p.toLowerCase().endsWith(".jpg") || p.toLowerCase().endsWith(".jpeg") ? "jpeg" : "png";
+            pathToBuf.set(p, { buf, ext });
+          } catch {}
+        })
+      );
+
+      const ROW_H = 60;
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const row = ws.addRow({
+          name: r.name,
+          cpf: r.cpf ?? "",
+          company: r.company ?? "",
+          supplier: r.supplier,
+          meal: r.meal,
+          taken_at: fmtDateTime(r.taken_at),
+          price: r.price,
+          sig: "",
+        });
+        row.height = ROW_H;
+        row.getCell("price").numFmt = '"R$" #,##0.00';
+        row.alignment = { vertical: "middle" };
+
+        if (r.photo_path && pathToBuf.has(r.photo_path)) {
+          const { buf, ext } = pathToBuf.get(r.photo_path)!;
+          const imgId = wb.addImage({ buffer: buf as any, extension: ext });
+          const excelRow = row.number - 1; // 0-based for anchor
+          ws.addImage(imgId, {
+            tl: { col: 7.05, row: excelRow + 0.05 },
+            br: { col: 7.95, row: excelRow + 0.95 },
+            editAs: "oneCell",
+          });
+        }
+      }
+
+      const totalRow = ws.addRow({
+        name: `TOTAL (${totalCount})`,
+        price: totalValue,
+      });
+      totalRow.font = { bold: true };
+      totalRow.getCell("price").numFmt = '"R$" #,##0.00';
+
+      const out = await wb.xlsx.writeBuffer();
+      const blob = new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `relatorio-${monthName.replace(/\s/g, "-")}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      toast.error("Falha ao gerar Excel");
+      console.error(e);
+    }
   };
 
   const exportPDF = () => {
