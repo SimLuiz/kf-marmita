@@ -181,7 +181,8 @@ function Page() {
         { header: "Fornecedor", key: "supplier", width: 20 },
         { header: "Marmita", key: "meal", width: 20 },
         { header: "Data/hora", key: "taken_at", width: 16 },
-        { header: "Valor", key: "price", width: 12 },
+        { header: "Funcionário paga", key: "price", width: 16 },
+        { header: "Empresa paga", key: "company_price", width: 16 },
         { header: "Assinatura", key: "sig", width: 55 },
       ];
       ws.getRow(1).font = { bold: true };
@@ -204,6 +205,7 @@ function Page() {
       );
 
       const ROW_H = 130;
+      const SIG_COL_INDEX = 8; // 0-based index for Assinatura (9th column)
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
         const row = ws.addRow({
@@ -214,10 +216,12 @@ function Page() {
           meal: r.meal,
           taken_at: fmtDateTime(r.taken_at),
           price: r.price,
+          company_price: r.company_price,
           sig: "",
         });
         row.height = ROW_H;
         row.getCell("price").numFmt = '"R$" #,##0.00';
+        row.getCell("company_price").numFmt = '"R$" #,##0.00';
         row.alignment = { vertical: "middle" };
 
         if (r.photo_path && pathToBuf.has(r.photo_path)) {
@@ -225,8 +229,8 @@ function Page() {
           const imgId = wb.addImage({ buffer: buf as any, extension: ext });
           const excelRow = row.number - 1; // 0-based for anchor
           ws.addImage(imgId, {
-            tl: { col: 7.05, row: excelRow + 0.05 } as any,
-            br: { col: 7.95, row: excelRow + 0.95 } as any,
+            tl: { col: SIG_COL_INDEX + 0.05, row: excelRow + 0.05 } as any,
+            br: { col: SIG_COL_INDEX + 0.95, row: excelRow + 0.95 } as any,
             editAs: "oneCell",
           });
         }
@@ -235,9 +239,11 @@ function Page() {
       const totalRow = ws.addRow({
         name: `TOTAL (${totalCount})`,
         price: totalValue,
+        company_price: totalCompany,
       });
       totalRow.font = { bold: true };
       totalRow.getCell("price").numFmt = '"R$" #,##0.00';
+      totalRow.getCell("company_price").numFmt = '"R$" #,##0.00';
 
       const out = await wb.xlsx.writeBuffer();
       const blob = new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
