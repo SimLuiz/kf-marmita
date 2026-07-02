@@ -28,6 +28,7 @@ interface MealType {
   supplier_id: string;
   name: string;
   price: number;
+  company_price: number;
 }
 
 const brl = (n: number) =>
@@ -39,22 +40,32 @@ function Page() {
   const [types, setTypes] = useState<MealType[]>([]);
   const [newSupplier, setNewSupplier] = useState("");
   const [editingSup, setEditingSup] = useState<{ id: string; name: string } | null>(null);
-  const [typeForms, setTypeForms] = useState<Record<string, { name: string; price: string }>>({});
-  const [editingType, setEditingType] = useState<{ id: string; name: string; price: string } | null>(null);
+  const [typeForms, setTypeForms] = useState<
+    Record<string, { name: string; price: string; company_price: string }>
+  >({});
+  const [editingType, setEditingType] = useState<
+    { id: string; name: string; price: string; company_price: string } | null
+  >(null);
   const [pendingSup, setPendingSup] = useState<Supplier | null>(null);
   const [pendingType, setPendingType] = useState<MealType | null>(null);
 
   const load = async () => {
     const [{ data: sups }, { data: mts }] = await Promise.all([
       supabase.from("suppliers").select("id,name").order("name"),
-      supabase
+      (supabase as any)
         .from("meal_types")
-        .select("id,supplier_id,name,price")
+        .select("id,supplier_id,name,price,company_price")
         .is("archived_at", null)
         .order("name"),
     ]);
     setSuppliers((sups as Supplier[]) ?? []);
-    setTypes(((mts as any[]) ?? []).map((t) => ({ ...t, price: Number(t.price) })));
+    setTypes(
+      ((mts as any[]) ?? []).map((t) => ({
+        ...t,
+        price: Number(t.price),
+        company_price: Number(t.company_price ?? 0),
+      }))
+    );
   };
 
 
@@ -91,15 +102,17 @@ function Page() {
   const addType = async (supplierId: string) => {
     const f = typeForms[supplierId];
     if (!f?.name.trim() || !user) return;
-    const price = parseFloat(f.price.replace(",", ".")) || 0;
-    const { error } = await supabase.from("meal_types").insert({
+    const price = parseFloat((f.price || "0").replace(",", ".")) || 0;
+    const company_price = parseFloat((f.company_price || "0").replace(",", ".")) || 0;
+    const { error } = await (supabase as any).from("meal_types").insert({
       owner_id: user.id,
       supplier_id: supplierId,
       name: f.name.trim(),
       price,
+      company_price,
     });
     if (error) return toast.error(toUserMessage(error));
-    setTypeForms({ ...typeForms, [supplierId]: { name: "", price: "" } });
+    setTypeForms({ ...typeForms, [supplierId]: { name: "", price: "", company_price: "" } });
     toast.success("Tipo de marmita cadastrado");
     load();
   };
@@ -108,10 +121,11 @@ function Page() {
 
   const saveType = async () => {
     if (!editingType || !editingType.name.trim()) return;
-    const price = parseFloat(editingType.price.replace(",", ".")) || 0;
-    const { error } = await supabase
+    const price = parseFloat((editingType.price || "0").replace(",", ".")) || 0;
+    const company_price = parseFloat((editingType.company_price || "0").replace(",", ".")) || 0;
+    const { error } = await (supabase as any)
       .from("meal_types")
-      .update({ name: editingType.name.trim(), price })
+      .update({ name: editingType.name.trim(), price, company_price })
       .eq("id", editingType.id);
     if (error) return toast.error(toUserMessage(error));
     setEditingType(null);
@@ -158,7 +172,7 @@ function Page() {
         <div className="space-y-4">
           {suppliers.map((s) => {
             const sTypes = types.filter((t) => t.supplier_id === s.id);
-            const f = typeForms[s.id] ?? { name: "", price: "" };
+            const f = typeForms[s.id] ?? { name: "", price: "", company_price: "" };
             return (
               <div
                 key={s.id}
@@ -210,28 +224,50 @@ function Page() {
                   )}
                   {sTypes.map((t) =>
                     editingType?.id === t.id ? (
-                      <div key={t.id} className="flex items-center gap-2">
+                      <div key={t.id} className="space-y-2 bg-accent/40 rounded-lg p-2">
                         <Input
                           value={editingType.name}
                           onChange={(e) =>
                             setEditingType({ ...editingType, name: e.target.value })
                           }
-                          className="flex-1"
+                          placeholder="Nome da marmita"
                         />
-                        <Input
-                          value={editingType.price}
-                          onChange={(e) =>
-                            setEditingType({ ...editingType, price: e.target.value })
-                          }
-                          inputMode="decimal"
-                          className="w-24"
-                        />
-                        <Button size="icon" variant="ghost" onClick={saveType}>
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" onClick={() => setEditingType(null)}>
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] uppercase text-muted-foreground">
+                              Funcionário paga
+                            </Label>
+                            <Input
+                              value={editingType.price}
+                              onChange={(e) =>
+                                setEditingType({ ...editingType, price: e.target.value })
+                              }
+                              inputMode="decimal"
+                              placeholder="0,00"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] uppercase text-muted-foreground">
+                              Empresa paga
+                            </Label>
+                            <Input
+                              value={editingType.company_price}
+                              onChange={(e) =>
+                                setEditingType({ ...editingType, company_price: e.target.value })
+                              }
+                              inputMode="decimal"
+                              placeholder="0,00"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => setEditingType(null)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" onClick={saveType}>
+                            <Check className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       <div
@@ -240,9 +276,14 @@ function Page() {
                       >
                         <Utensils className="h-4 w-4 text-muted-foreground shrink-0" />
                         <span className="flex-1 truncate text-sm">{t.name}</span>
-                        <span className="text-sm font-semibold text-primary">
-                          {brl(t.price)}
-                        </span>
+                        <div className="text-right leading-tight">
+                          <div className="text-sm font-semibold text-primary">
+                            {brl(t.price)}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            Empresa: {brl(t.company_price)}
+                          </div>
+                        </div>
                         {isAdmin && (
                           <>
                             <Button
@@ -253,6 +294,7 @@ function Page() {
                                   id: t.id,
                                   name: t.name,
                                   price: String(t.price).replace(".", ","),
+                                  company_price: String(t.company_price).replace(".", ","),
                                 })
                               }
                             >
@@ -269,26 +311,57 @@ function Page() {
                 </div>
 
                 {isAdmin && (
-                  <div className="flex gap-2 pt-1">
+                  <div className="space-y-2 pt-1">
                     <Input
                       placeholder="Tipo (ex: Executiva)"
                       value={f.name}
                       onChange={(e) =>
-                        setTypeForms({ ...typeForms, [s.id]: { ...f, name: e.target.value } })
+                        setTypeForms({
+                          ...typeForms,
+                          [s.id]: { ...f, name: e.target.value },
+                        })
                       }
-                      className="flex-1"
                     />
-                    <Input
-                      placeholder="Valor"
-                      inputMode="decimal"
-                      value={f.price}
-                      onChange={(e) =>
-                        setTypeForms({ ...typeForms, [s.id]: { ...f, price: e.target.value } })
-                      }
-                      className="w-24"
-                    />
-                    <Button onClick={() => addType(s.id)} disabled={!f.name.trim()}>
-                      <Plus className="h-4 w-4" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] uppercase text-muted-foreground">
+                          Funcionário paga
+                        </Label>
+                        <Input
+                          placeholder="0,00"
+                          inputMode="decimal"
+                          value={f.price}
+                          onChange={(e) =>
+                            setTypeForms({
+                              ...typeForms,
+                              [s.id]: { ...f, price: e.target.value },
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] uppercase text-muted-foreground">
+                          Empresa paga
+                        </Label>
+                        <Input
+                          placeholder="0,00"
+                          inputMode="decimal"
+                          value={f.company_price}
+                          onChange={(e) =>
+                            setTypeForms({
+                              ...typeForms,
+                              [s.id]: { ...f, company_price: e.target.value },
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => addType(s.id)}
+                      disabled={!f.name.trim()}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-1" /> Adicionar marmita
                     </Button>
                   </div>
                 )}
