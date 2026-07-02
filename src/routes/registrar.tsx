@@ -169,16 +169,22 @@ function Page() {
           .is("archived_at", null)
           .order("name"),
         supabase.from("suppliers").select("id,name").order("name"),
-        supabase
+        (supabase as any)
           .from("meal_types")
-          .select("id,supplier_id,name,price")
+          .select("id,supplier_id,name,price,company_price")
           .is("archived_at", null)
           .order("name"),
       ]);
 
       setEmployees((emps.data as Employee[]) ?? []);
       setSuppliers((sups.data as Supplier[]) ?? []);
-      setMealTypes(((mts.data as any[]) ?? []).map((t) => ({ ...t, price: Number(t.price) })));
+      setMealTypes(
+        ((mts.data as any[]) ?? []).map((t) => ({
+          ...t,
+          price: Number(t.price),
+          company_price: Number(t.company_price ?? 0),
+        }))
+      );
     })();
   }, [user]);
 
