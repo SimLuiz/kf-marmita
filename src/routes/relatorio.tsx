@@ -24,6 +24,7 @@ interface DetailRow {
   supplier: string;
   meal: string;
   price: number;
+  company_price: number;
   taken_at: string;
   photo_path: string | null;
 }
