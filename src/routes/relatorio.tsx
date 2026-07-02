@@ -398,6 +398,9 @@ ${rows
                 <div className="text-right shrink-0">
                   <div className="text-lg font-bold text-primary">{brl(g.total)}</div>
                   <div className="text-[10px] text-muted-foreground uppercase">
+                    Empresa: {brl(g.totalCompany)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground uppercase">
                     {g.count} marmita{g.count !== 1 && "s"}
                   </div>
                 </div>
