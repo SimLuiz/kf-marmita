@@ -209,12 +209,13 @@ function Page() {
         .upload(path, sigBlob, { contentType: "image/png" });
       if (upErr) throw upErr;
 
-      const { error: insErr } = await supabase.from("meal_records").insert({
+      const { error: insErr } = await (supabase as any).from("meal_records").insert({
         owner_id: user.id,
         employee_id: selected.id,
         meal_type_id: selectedType.id,
         photo_path: path,
         unit_price: selectedType.price,
+        company_unit_price: selectedType.company_price,
       });
       if (insErr) throw insErr;
 
