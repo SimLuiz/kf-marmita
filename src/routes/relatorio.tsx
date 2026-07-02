@@ -161,7 +161,7 @@ function Page() {
         { header: "Marmita", key: "meal", width: 20 },
         { header: "Data/hora", key: "taken_at", width: 16 },
         { header: "Valor", key: "price", width: 12 },
-        { header: "Assinatura", key: "sig", width: 24 },
+        { header: "Assinatura", key: "sig", width: 55 },
       ];
       ws.getRow(1).font = { bold: true };
       ws.getRow(1).alignment = { vertical: "middle", horizontal: "left" };
