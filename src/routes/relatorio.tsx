@@ -204,8 +204,8 @@ function Page() {
           const imgId = wb.addImage({ buffer: buf as any, extension: ext });
           const excelRow = row.number - 1; // 0-based for anchor
           ws.addImage(imgId, {
-            tl: { col: 7.05, row: excelRow + 0.05 },
-            br: { col: 7.95, row: excelRow + 0.95 },
+            tl: { col: 7.05, row: excelRow + 0.05 } as any,
+            br: { col: 7.95, row: excelRow + 0.95 } as any,
             editAs: "oneCell",
           });
         }
