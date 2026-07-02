@@ -21,6 +21,7 @@ interface MealType {
   supplier_id: string;
   name: string;
   price: number;
+  company_price: number;
 }
 
 export const Route = createFileRoute("/registrar")({
