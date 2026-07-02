@@ -139,19 +139,30 @@ function Page() {
 
   const totalCount = rows.length;
   const totalValue = rows.reduce((s, r) => s + r.price, 0);
+  const totalCompany = rows.reduce((s, r) => s + r.company_price, 0);
   const monthName = monthLabel(cursor);
 
   // grouped per employee for on-screen display
   const byEmployee = useMemo(() => {
-    const m = new Map<string, { row: DetailRow; items: DetailRow[]; count: number; total: number }>();
+    const m = new Map<
+      string,
+      { row: DetailRow; items: DetailRow[]; count: number; total: number; totalCompany: number }
+    >();
     rows.forEach((r) => {
       const g = m.get(r.employee_id);
       if (g) {
         g.items.push(r);
         g.count += 1;
         g.total += r.price;
+        g.totalCompany += r.company_price;
       } else {
-        m.set(r.employee_id, { row: r, items: [r], count: 1, total: r.price });
+        m.set(r.employee_id, {
+          row: r,
+          items: [r],
+          count: 1,
+          total: r.price,
+          totalCompany: r.company_price,
+        });
       }
     });
     return Array.from(m.values());
