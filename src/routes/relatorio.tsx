@@ -24,6 +24,7 @@ interface DetailRow {
   supplier: string;
   meal: string;
   price: number;
+  company_price: number;
   taken_at: string;
   photo_path: string | null;
 }
@@ -68,10 +69,10 @@ function Page() {
       const [emps, sups, mts, recs] = await Promise.all([
         (supabase as any).from("employees_view").select("id,name,cpf,company"),
         supabase.from("suppliers").select("id,name"),
-        supabase.from("meal_types").select("id,supplier_id,name,price"),
-        supabase
+        (supabase as any).from("meal_types").select("id,supplier_id,name,price,company_price"),
+        (supabase as any)
           .from("meal_records")
-          .select("id,employee_id,meal_type_id,photo_path,taken_at,unit_price")
+          .select("id,employee_id,meal_type_id,photo_path,taken_at,unit_price,company_unit_price")
           .gte("taken_at", range.start.toISOString())
           .lt("taken_at", range.end.toISOString())
           .order("taken_at", { ascending: false }),
@@ -80,7 +81,10 @@ function Page() {
       const empMap = new Map<string, any>((emps.data ?? []).map((e: any) => [e.id, e]));
       const supMap = new Map<string, any>((sups.data ?? []).map((s: any) => [s.id, s]));
       const mtMap = new Map<string, any>(
-        (mts.data ?? []).map((t: any) => [t.id, { ...t, price: Number(t.price) }])
+        (mts.data ?? []).map((t: any) => [
+          t.id,
+          { ...t, price: Number(t.price), company_price: Number(t.company_price ?? 0) },
+        ])
       );
 
       const list: DetailRow[] = [];
@@ -98,6 +102,12 @@ function Page() {
           supplier: sup?.name ?? "—",
           meal: mt?.name ?? "(não informada)",
           price: r.unit_price != null ? Number(r.unit_price) : mt ? Number(mt.price) : 0,
+          company_price:
+            r.company_unit_price != null
+              ? Number(r.company_unit_price)
+              : mt
+                ? Number(mt.company_price)
+                : 0,
           taken_at: r.taken_at,
           photo_path: r.photo_path ?? null,
         });
@@ -129,19 +139,30 @@ function Page() {
 
   const totalCount = rows.length;
   const totalValue = rows.reduce((s, r) => s + r.price, 0);
+  const totalCompany = rows.reduce((s, r) => s + r.company_price, 0);
   const monthName = monthLabel(cursor);
 
   // grouped per employee for on-screen display
   const byEmployee = useMemo(() => {
-    const m = new Map<string, { row: DetailRow; items: DetailRow[]; count: number; total: number }>();
+    const m = new Map<
+      string,
+      { row: DetailRow; items: DetailRow[]; count: number; total: number; totalCompany: number }
+    >();
     rows.forEach((r) => {
       const g = m.get(r.employee_id);
       if (g) {
         g.items.push(r);
         g.count += 1;
         g.total += r.price;
+        g.totalCompany += r.company_price;
       } else {
-        m.set(r.employee_id, { row: r, items: [r], count: 1, total: r.price });
+        m.set(r.employee_id, {
+          row: r,
+          items: [r],
+          count: 1,
+          total: r.price,
+          totalCompany: r.company_price,
+        });
       }
     });
     return Array.from(m.values());
@@ -160,7 +181,8 @@ function Page() {
         { header: "Fornecedor", key: "supplier", width: 20 },
         { header: "Marmita", key: "meal", width: 20 },
         { header: "Data/hora", key: "taken_at", width: 16 },
-        { header: "Valor", key: "price", width: 12 },
+        { header: "Funcionário paga", key: "price", width: 16 },
+        { header: "Empresa paga", key: "company_price", width: 16 },
         { header: "Assinatura", key: "sig", width: 55 },
       ];
       ws.getRow(1).font = { bold: true };
@@ -183,6 +205,7 @@ function Page() {
       );
 
       const ROW_H = 130;
+      const SIG_COL_INDEX = 8; // 0-based index for Assinatura (9th column)
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
         const row = ws.addRow({
@@ -193,10 +216,12 @@ function Page() {
           meal: r.meal,
           taken_at: fmtDateTime(r.taken_at),
           price: r.price,
+          company_price: r.company_price,
           sig: "",
         });
         row.height = ROW_H;
         row.getCell("price").numFmt = '"R$" #,##0.00';
+        row.getCell("company_price").numFmt = '"R$" #,##0.00';
         row.alignment = { vertical: "middle" };
 
         if (r.photo_path && pathToBuf.has(r.photo_path)) {
@@ -204,8 +229,8 @@ function Page() {
           const imgId = wb.addImage({ buffer: buf as any, extension: ext });
           const excelRow = row.number - 1; // 0-based for anchor
           ws.addImage(imgId, {
-            tl: { col: 7.05, row: excelRow + 0.05 } as any,
-            br: { col: 7.95, row: excelRow + 0.95 } as any,
+            tl: { col: SIG_COL_INDEX + 0.05, row: excelRow + 0.05 } as any,
+            br: { col: SIG_COL_INDEX + 0.95, row: excelRow + 0.95 } as any,
             editAs: "oneCell",
           });
         }
@@ -214,9 +239,11 @@ function Page() {
       const totalRow = ws.addRow({
         name: `TOTAL (${totalCount})`,
         price: totalValue,
+        company_price: totalCompany,
       });
       totalRow.font = { bold: true };
       totalRow.getCell("price").numFmt = '"R$" #,##0.00';
+      totalRow.getCell("company_price").numFmt = '"R$" #,##0.00';
 
       const out = await wb.xlsx.writeBuffer();
       const blob = new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -249,16 +276,16 @@ td.num,th.num{text-align:right}
 <div class="sub">${monthName}</div>
 <table><thead><tr>
 <th>Funcionário</th><th>CPF</th><th>Empresa</th><th>Fornecedor</th><th>Marmita</th>
-<th>Data/hora</th><th class="num">Valor</th>
+<th>Data/hora</th><th class="num">Funcionário paga</th><th class="num">Empresa paga</th>
 </tr></thead>
 <tbody>
 ${rows
   .map(
     (r) =>
-      `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.cpf ?? "—")}</td><td>${escapeHtml(r.company ?? "—")}</td><td>${escapeHtml(r.supplier)}</td><td>${escapeHtml(r.meal)}</td><td>${escapeHtml(fmtDateTime(r.taken_at))}</td><td class="num">${brl(r.price)}</td></tr>`
+      `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.cpf ?? "—")}</td><td>${escapeHtml(r.company ?? "—")}</td><td>${escapeHtml(r.supplier)}</td><td>${escapeHtml(r.meal)}</td><td>${escapeHtml(fmtDateTime(r.taken_at))}</td><td class="num">${brl(r.price)}</td><td class="num">${brl(r.company_price)}</td></tr>`
   )
   .join("")}
-<tr class="total"><td colspan="6">TOTAL (${totalCount})</td><td class="num">${brl(totalValue)}</td></tr>
+<tr class="total"><td colspan="6">TOTAL (${totalCount})</td><td class="num">${brl(totalValue)}</td><td class="num">${brl(totalCompany)}</td></tr>
 </tbody></table>
 <button style="margin-top:24px;padding:10px 18px;font-size:14px" onclick="window.print()">Imprimir / Salvar PDF</button>
 <script>setTimeout(()=>window.print(),300)</script>
@@ -307,7 +334,7 @@ ${rows
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div
           className="bg-card rounded-2xl p-4 text-center"
           style={{ boxShadow: "var(--shadow-card)" }}
@@ -319,8 +346,15 @@ ${rows
           className="bg-card rounded-2xl p-4 text-center"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor total</div>
-          <div className="text-2xl font-bold text-primary">{brl(totalValue)}</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Funcionário paga</div>
+          <div className="text-xl font-bold text-primary">{brl(totalValue)}</div>
+        </div>
+        <div
+          className="bg-card rounded-2xl p-4 text-center"
+          style={{ boxShadow: "var(--shadow-card)" }}
+        >
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Empresa paga</div>
+          <div className="text-xl font-bold text-primary">{brl(totalCompany)}</div>
         </div>
       </div>
 
@@ -363,6 +397,9 @@ ${rows
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-lg font-bold text-primary">{brl(g.total)}</div>
+                  <div className="text-[10px] text-muted-foreground uppercase">
+                    Empresa: {brl(g.totalCompany)}
+                  </div>
                   <div className="text-[10px] text-muted-foreground uppercase">
                     {g.count} marmita{g.count !== 1 && "s"}
                   </div>

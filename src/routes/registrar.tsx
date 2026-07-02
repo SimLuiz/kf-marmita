@@ -21,6 +21,7 @@ interface MealType {
   supplier_id: string;
   name: string;
   price: number;
+  company_price: number;
 }
 
 export const Route = createFileRoute("/registrar")({
@@ -168,16 +169,22 @@ function Page() {
           .is("archived_at", null)
           .order("name"),
         supabase.from("suppliers").select("id,name").order("name"),
-        supabase
+        (supabase as any)
           .from("meal_types")
-          .select("id,supplier_id,name,price")
+          .select("id,supplier_id,name,price,company_price")
           .is("archived_at", null)
           .order("name"),
       ]);
 
       setEmployees((emps.data as Employee[]) ?? []);
       setSuppliers((sups.data as Supplier[]) ?? []);
-      setMealTypes(((mts.data as any[]) ?? []).map((t) => ({ ...t, price: Number(t.price) })));
+      setMealTypes(
+        ((mts.data as any[]) ?? []).map((t) => ({
+          ...t,
+          price: Number(t.price),
+          company_price: Number(t.company_price ?? 0),
+        }))
+      );
     })();
   }, [user]);
 
@@ -202,12 +209,13 @@ function Page() {
         .upload(path, sigBlob, { contentType: "image/png" });
       if (upErr) throw upErr;
 
-      const { error: insErr } = await supabase.from("meal_records").insert({
+      const { error: insErr } = await (supabase as any).from("meal_records").insert({
         owner_id: user.id,
         employee_id: selected.id,
         meal_type_id: selectedType.id,
         photo_path: path,
         unit_price: selectedType.price,
+        company_unit_price: selectedType.company_price,
       });
       if (insErr) throw insErr;
 

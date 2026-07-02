@@ -118,6 +118,7 @@ export type Database = {
       }
       meal_records: {
         Row: {
+          company_unit_price: number | null
           created_at: string
           employee_id: string
           id: string
@@ -128,6 +129,7 @@ export type Database = {
           unit_price: number | null
         }
         Insert: {
+          company_unit_price?: number | null
           created_at?: string
           employee_id: string
           id?: string
@@ -138,6 +140,7 @@ export type Database = {
           unit_price?: number | null
         }
         Update: {
+          company_unit_price?: number | null
           created_at?: string
           employee_id?: string
           id?: string
@@ -174,6 +177,7 @@ export type Database = {
       meal_types: {
         Row: {
           archived_at: string | null
+          company_price: number
           created_at: string
           id: string
           name: string
@@ -183,6 +187,7 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          company_price?: number
           created_at?: string
           id?: string
           name: string
@@ -192,6 +197,7 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          company_price?: number
           created_at?: string
           id?: string
           name?: string
