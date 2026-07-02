@@ -69,10 +69,10 @@ function Page() {
       const [emps, sups, mts, recs] = await Promise.all([
         (supabase as any).from("employees_view").select("id,name,cpf,company"),
         supabase.from("suppliers").select("id,name"),
-        supabase.from("meal_types").select("id,supplier_id,name,price"),
-        supabase
+        (supabase as any).from("meal_types").select("id,supplier_id,name,price,company_price"),
+        (supabase as any)
           .from("meal_records")
-          .select("id,employee_id,meal_type_id,photo_path,taken_at,unit_price")
+          .select("id,employee_id,meal_type_id,photo_path,taken_at,unit_price,company_unit_price")
           .gte("taken_at", range.start.toISOString())
           .lt("taken_at", range.end.toISOString())
           .order("taken_at", { ascending: false }),
@@ -81,7 +81,10 @@ function Page() {
       const empMap = new Map<string, any>((emps.data ?? []).map((e: any) => [e.id, e]));
       const supMap = new Map<string, any>((sups.data ?? []).map((s: any) => [s.id, s]));
       const mtMap = new Map<string, any>(
-        (mts.data ?? []).map((t: any) => [t.id, { ...t, price: Number(t.price) }])
+        (mts.data ?? []).map((t: any) => [
+          t.id,
+          { ...t, price: Number(t.price), company_price: Number(t.company_price ?? 0) },
+        ])
       );
 
       const list: DetailRow[] = [];
@@ -99,6 +102,12 @@ function Page() {
           supplier: sup?.name ?? "—",
           meal: mt?.name ?? "(não informada)",
           price: r.unit_price != null ? Number(r.unit_price) : mt ? Number(mt.price) : 0,
+          company_price:
+            r.company_unit_price != null
+              ? Number(r.company_unit_price)
+              : mt
+                ? Number(mt.company_price)
+                : 0,
           taken_at: r.taken_at,
           photo_path: r.photo_path ?? null,
         });
