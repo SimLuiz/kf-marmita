@@ -334,7 +334,7 @@ ${rows
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div
           className="bg-card rounded-2xl p-4 text-center"
           style={{ boxShadow: "var(--shadow-card)" }}
@@ -346,8 +346,15 @@ ${rows
           className="bg-card rounded-2xl p-4 text-center"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor total</div>
-          <div className="text-2xl font-bold text-primary">{brl(totalValue)}</div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Funcionário paga</div>
+          <div className="text-xl font-bold text-primary">{brl(totalValue)}</div>
+        </div>
+        <div
+          className="bg-card rounded-2xl p-4 text-center"
+          style={{ boxShadow: "var(--shadow-card)" }}
+        >
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Empresa paga</div>
+          <div className="text-xl font-bold text-primary">{brl(totalCompany)}</div>
         </div>
       </div>
 
