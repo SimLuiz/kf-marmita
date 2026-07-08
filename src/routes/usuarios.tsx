@@ -32,6 +32,8 @@ interface AppUser {
   username: string;
   created_at: string;
   roles: string[];
+  blocked: boolean;
+  banned_until: string | null;
 }
 
 function Page() {
