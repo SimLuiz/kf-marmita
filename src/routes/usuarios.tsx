@@ -43,12 +43,14 @@ function Page() {
   const createFn = useServerFn(createAppUser);
   const deleteFn = useServerFn(deleteAppUser);
   const resetFn = useServerFn(resetAppUserPassword);
+  const blockFn = useServerFn(setAppUserBlocked);
 
   const [users, setUsers] = useState<AppUser[]>([]);
   const [uname, setUname] = useState("");
   const [pwd, setPwd] = useState("");
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<AppUser | null>(null);
+  const [blockPending, setBlockPending] = useState<AppUser | null>(null);
   const [resetFor, setResetFor] = useState<AppUser | null>(null);
   const [newPwd, setNewPwd] = useState("");
 
