@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { UserPlus, Trash2, ShieldCheck, KeyRound, User as UserIcon } from "lucide-react";
+import { UserPlus, Trash2, ShieldCheck, KeyRound, User as UserIcon, Lock, LockOpen } from "lucide-react";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import {
   listAppUsers,
   createAppUser,
   deleteAppUser,
   resetAppUserPassword,
+  setAppUserBlocked,
 } from "@/lib/admin-users.functions";
 import { PASSWORD_POLICY_HINT, validatePassword } from "@/lib/password-policy";
 import { toUserMessage } from "@/lib/safe-error";
@@ -31,6 +32,8 @@ interface AppUser {
   username: string;
   created_at: string;
   roles: string[];
+  blocked: boolean;
+  banned_until: string | null;
 }
 
 function Page() {
@@ -40,12 +43,14 @@ function Page() {
   const createFn = useServerFn(createAppUser);
   const deleteFn = useServerFn(deleteAppUser);
   const resetFn = useServerFn(resetAppUserPassword);
+  const blockFn = useServerFn(setAppUserBlocked);
 
   const [users, setUsers] = useState<AppUser[]>([]);
   const [uname, setUname] = useState("");
   const [pwd, setPwd] = useState("");
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<AppUser | null>(null);
+  const [blockPending, setBlockPending] = useState<AppUser | null>(null);
   const [resetFor, setResetFor] = useState<AppUser | null>(null);
   const [newPwd, setNewPwd] = useState("");
 
@@ -165,7 +170,7 @@ function Page() {
           return (
             <div
               key={u.id}
-              className="bg-card rounded-xl p-4 flex items-center gap-3"
+              className={`bg-card rounded-xl p-4 flex items-center gap-3 ${u.blocked ? "opacity-70" : ""}`}
               style={{ boxShadow: "var(--shadow-card)" }}
             >
               <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center">
@@ -176,7 +181,14 @@ function Page() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{u.username}</div>
+                <div className="font-medium truncate flex items-center gap-2">
+                  {u.username}
+                  {u.blocked && (
+                    <span className="text-[10px] uppercase tracking-wide bg-destructive/15 text-destructive px-1.5 py-0.5 rounded">
+                      Bloqueado
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-muted-foreground">
                   {admin ? "Administrador" : "Usuário comum"}
                 </div>
@@ -190,14 +202,28 @@ function Page() {
                 <KeyRound className="h-4 w-4" />
               </Button>
               {!admin && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setPending(u)}
-                  aria-label="Excluir"
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setBlockPending(u)}
+                    aria-label={u.blocked ? "Desbloquear" : "Bloquear"}
+                  >
+                    {u.blocked ? (
+                      <LockOpen className="h-4 w-4 text-emerald-600" />
+                    ) : (
+                      <Lock className="h-4 w-4 text-amber-600" />
+                    )}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setPending(u)}
+                    aria-label="Excluir"
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </>
               )}
             </div>
           );
@@ -217,6 +243,29 @@ function Page() {
           load();
         }}
       />
+
+      <AdminPasswordDialog
+        open={!!blockPending}
+        onOpenChange={(o) => !o && setBlockPending(null)}
+        title={blockPending?.blocked ? "Desbloquear usuário" : "Bloquear usuário"}
+        description={`Digite sua senha de admin para ${
+          blockPending?.blocked ? "desbloquear" : "bloquear"
+        } "${blockPending?.username ?? ""}".`}
+        onConfirmed={async () => {
+          if (!blockPending) return;
+          try {
+            await blockFn({
+              data: { userId: blockPending.id, blocked: !blockPending.blocked },
+            });
+            toast.success(blockPending.blocked ? "Usuário desbloqueado" : "Usuário bloqueado");
+            setBlockPending(null);
+            load();
+          } catch (e: any) {
+            toast.error(toUserMessage(e, "Erro"));
+          }
+        }}
+      />
+
 
       {/* Reset password dialog */}
       {resetFor && (
