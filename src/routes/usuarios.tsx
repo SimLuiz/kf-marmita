@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { UserPlus, Trash2, ShieldCheck, KeyRound, User as UserIcon } from "lucide-react";
+import { UserPlus, Trash2, ShieldCheck, KeyRound, User as UserIcon, Lock, LockOpen } from "lucide-react";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import {
   listAppUsers,
   createAppUser,
   deleteAppUser,
   resetAppUserPassword,
+  setAppUserBlocked,
 } from "@/lib/admin-users.functions";
 import { PASSWORD_POLICY_HINT, validatePassword } from "@/lib/password-policy";
 import { toUserMessage } from "@/lib/safe-error";
