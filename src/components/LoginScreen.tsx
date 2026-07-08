@@ -5,12 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { UtensilsCrossed, ShieldAlert } from "lucide-react";
-import {
-  clearAttempts,
-  formatRemaining,
-  getLockRemainingMs,
-  registerFailure,
-} from "@/lib/login-lockout";
+import { formatRemaining } from "@/lib/login-lockout";
 import { toUserMessage } from "@/lib/safe-error";
 import { checkLoginAllowed } from "@/lib/session.functions";
 
@@ -22,29 +17,18 @@ export function LoginScreen() {
   const [lockMs, setLockMs] = useState(0);
 
   useEffect(() => {
-    if (!username) {
-      setLockMs(0);
-      return;
-    }
-    const tick = () => setLockMs(getLockRemainingMs(username));
-    tick();
-    const id = window.setInterval(tick, 1000);
+    if (lockMs <= 0) return;
+    const id = window.setInterval(() => {
+      setLockMs((v) => Math.max(0, v - 1000));
+    }, 1000);
     return () => window.clearInterval(id);
-  }, [username]);
+  }, [lockMs]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // 1) Cache local de UX
-    const local = getLockRemainingMs(username);
-    if (local > 0) {
-      toast.error(`Usuário bloqueado. Tente novamente em ${formatRemaining(local)}.`);
-      return;
-    }
-
     setLoading(true);
 
-    // 2) Lockout no SERVIDOR (fonte da verdade — imune a limpar storage / trocar navegador)
+    // Lockout SERVER-SIDE (por username e por IP) — fonte da verdade.
     try {
       const lock = await checkLoginAllowed({ data: { username: username.trim() } });
       if (lock.locked) {
@@ -63,16 +47,8 @@ export function LoginScreen() {
     const { error } = await signIn(username, password);
     setLoading(false);
     if (error) {
-      const r = registerFailure(username);
       const safe = toUserMessage(error, "Usuário ou senha inválidos");
-      if (r.locked) {
-        setLockMs(r.remainingMs);
-        toast.error(`Muitas tentativas. Bloqueado por ${formatRemaining(r.remainingMs)}.`);
-      } else {
-        toast.error(`${safe}. ${r.attemptsLeft} tentativa(s) restante(s).`);
-      }
-    } else {
-      clearAttempts(username);
+      toast.error(safe);
     }
   };
 
