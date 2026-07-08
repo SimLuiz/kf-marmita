@@ -75,11 +75,65 @@ export const listAppUsers = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     const { data: roles } = await supabaseAdmin.from("user_roles").select("user_id, role");
-    return (profiles ?? []).map((p) => ({
-      ...p,
-      roles: (roles ?? []).filter((r) => r.user_id === p.id).map((r) => r.role),
-    }));
+
+    // Puxa banned_until de auth.users para saber quem está bloqueado
+    const { data: authList } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    const bannedMap = new Map<string, string | null>();
+    for (const u of authList?.users ?? []) {
+      const bu = (u as any).banned_until as string | null | undefined;
+      bannedMap.set(u.id, bu ?? null);
+    }
+
+    const now = Date.now();
+    return (profiles ?? []).map((p) => {
+      const bu = bannedMap.get(p.id) ?? null;
+      const blocked = !!bu && new Date(bu).getTime() > now;
+      return {
+        ...p,
+        roles: (roles ?? []).filter((r) => r.user_id === p.id).map((r) => r.role),
+        blocked,
+        banned_until: blocked ? bu : null,
+      };
+    });
   });
+
+export const setAppUserBlocked = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ userId: z.string().uuid(), blocked: z.boolean() }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    if (data.userId === context.userId && data.blocked) {
+      throw new Error("Você não pode bloquear a si mesmo");
+    }
+    const { data: prof } = await supabaseAdmin
+      .from("profiles")
+      .select("username")
+      .eq("id", data.userId)
+      .maybeSingle();
+    if (data.blocked && prof?.username === "admin") {
+      throw new Error("Não é possível bloquear o admin do sistema");
+    }
+    // 'none' desbloqueia; qualquer duração no futuro bloqueia. Usamos 100 anos = permanente.
+    const ban_duration = data.blocked ? "876000h" : "none";
+    const { error } = await (supabaseAdmin.auth.admin.updateUserById as any)(data.userId, {
+      ban_duration,
+    });
+    if (error) throw new Error(error.message);
+    await audit(
+      context.userId,
+      data.blocked ? "USER_BLOCKED" : "USER_UNBLOCKED",
+      "auth.users",
+      data.userId,
+      { username: prof?.username ?? null },
+    );
+    return { ok: true };
+  });
+
 
 export const createAppUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
