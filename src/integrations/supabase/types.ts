@@ -327,6 +327,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      pg_database_size_current: { Args: never; Returns: number }
+      public_table_sizes: {
+        Args: never
+        Returns: {
+          name: string
+          row_estimate: number
+          total_bytes: number
+        }[]
+      }
       touch_and_check_idle: {
         Args: { _max_minutes: number }
         Returns: {
