@@ -42,8 +42,31 @@ function Page() {
   const { isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const fetchStorage = useServerFn(getDbStorage);
+  const doPreview = useServerFn(previewPurge);
+  const doExecute = useServerFn(executePurge);
   const [data, setData] = useState<DbStorage | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Purge state
+  const today = new Date().toISOString().slice(0, 10);
+  const monthAgo = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
+  const [from, setFrom] = useState(monthAgo);
+  const [to, setTo] = useState(today);
+  const [targets, setTargets] = useState<Record<PurgeTarget, boolean>>({
+    meal_records: false,
+    audit_logs: true,
+    login_attempts: true,
+  });
+  const [preview, setPreview] = useState<
+    { target: PurgeTarget; label: string; count: number }[] | null
+  >(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [purging, setPurging] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const selectedTargets = useMemo(
+    () => (Object.keys(targets) as PurgeTarget[]).filter((k) => targets[k]),
+    [targets],
+  );
 
   useEffect(() => {
     if (!loading && !isAdmin) {
