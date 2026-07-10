@@ -16,6 +16,7 @@ import { Route as RegistrarRouteImport } from './routes/registrar'
 import { Route as FuncionariosRouteImport } from './routes/funcionarios'
 import { Route as FornecedoresRouteImport } from './routes/fornecedores'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
+import { Route as ArmazenamentoRouteImport } from './routes/armazenamento'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FuncionariosIdRouteImport } from './routes/funcionarios.$id'
 
@@ -54,6 +55,11 @@ const AuditoriaRoute = AuditoriaRouteImport.update({
   path: '/auditoria',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArmazenamentoRoute = ArmazenamentoRouteImport.update({
+  id: '/armazenamento',
+  path: '/armazenamento',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -67,6 +73,7 @@ const FuncionariosIdRoute = FuncionariosIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/armazenamento': typeof ArmazenamentoRoute
   '/auditoria': typeof AuditoriaRoute
   '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
@@ -78,6 +85,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/armazenamento': typeof ArmazenamentoRoute
   '/auditoria': typeof AuditoriaRoute
   '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
@@ -90,6 +98,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/armazenamento': typeof ArmazenamentoRoute
   '/auditoria': typeof AuditoriaRoute
   '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/armazenamento'
     | '/auditoria'
     | '/fornecedores'
     | '/funcionarios'
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/armazenamento'
     | '/auditoria'
     | '/fornecedores'
     | '/funcionarios'
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/armazenamento'
     | '/auditoria'
     | '/fornecedores'
     | '/funcionarios'
@@ -137,6 +149,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ArmazenamentoRoute: typeof ArmazenamentoRoute
   AuditoriaRoute: typeof AuditoriaRoute
   FornecedoresRoute: typeof FornecedoresRoute
   FuncionariosRoute: typeof FuncionariosRouteWithChildren
@@ -197,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditoriaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/armazenamento': {
+      id: '/armazenamento'
+      path: '/armazenamento'
+      fullPath: '/armazenamento'
+      preLoaderRoute: typeof ArmazenamentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -228,6 +248,7 @@ const FuncionariosRouteWithChildren = FuncionariosRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ArmazenamentoRoute: ArmazenamentoRoute,
   AuditoriaRoute: AuditoriaRoute,
   FornecedoresRoute: FornecedoresRoute,
   FuncionariosRoute: FuncionariosRouteWithChildren,
