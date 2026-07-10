@@ -1,0 +1,133 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
+
+export type PurgeTarget = "meal_records" | "audit_logs" | "login_attempts";
+
+const TARGET_COLUMN: Record<PurgeTarget, string> = {
+  meal_records: "taken_at",
+  audit_logs: "created_at",
+  login_attempts: "attempted_at",
+};
+
+const TARGET_LABEL: Record<PurgeTarget, string> = {
+  meal_records: "Lançamentos de refeições",
+  audit_logs: "Logs de auditoria",
+  login_attempts: "Tentativas de login",
+};
+
+async function assertAdmin(supabase: any, userId: string) {
+  const { data } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!data) throw new Error("Acesso negado: somente admin");
+}
+
+const rangeSchema = z
+  .object({
+    targets: z.array(z.enum(["meal_records", "audit_logs", "login_attempts"])).min(1),
+    from: z.string().min(10),
+    to: z.string().min(10),
+  })
+  .refine((v) => new Date(v.from).getTime() <= new Date(v.to).getTime(), {
+    message: "Data inicial deve ser anterior à final",
+  });
+
+export const previewPurge = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => rangeSchema.parse(i))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const fromIso = new Date(`${data.from}T00:00:00`).toISOString();
+    const toIso = new Date(`${data.to}T23:59:59.999`).toISOString();
+    const result: { target: PurgeTarget; label: string; count: number }[] = [];
+    for (const t of data.targets) {
+      const col = TARGET_COLUMN[t];
+      const { count, error } = await (supabaseAdmin.from(t) as any)
+        .select("id", { count: "exact", head: true })
+        .gte(col, fromIso)
+        .lte(col, toIso);
+      if (error) throw new Error(error.message);
+      result.push({ target: t, label: TARGET_LABEL[t], count: count ?? 0 });
+    }
+    return { from: fromIso, to: toIso, items: result };
+  });
+
+export const executePurge = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => rangeSchema.parse(i))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const fromIso = new Date(`${data.from}T00:00:00`).toISOString();
+    const toIso = new Date(`${data.to}T23:59:59.999`).toISOString();
+
+    const deleted: { target: PurgeTarget; label: string; count: number }[] = [];
+    let photosRemoved = 0;
+
+    for (const t of data.targets) {
+      const col = TARGET_COLUMN[t];
+
+      // Se for meal_records, remove antes as fotos do storage
+      if (t === "meal_records") {
+        const { data: rows, error: selErr } = await supabaseAdmin
+          .from("meal_records")
+          .select("id, photo_path")
+          .gte(col, fromIso)
+          .lte(col, toIso);
+        if (selErr) throw new Error(selErr.message);
+        const paths = (rows ?? []).map((r: any) => r.photo_path).filter(Boolean);
+        // Remove em lotes de 100
+        for (let i = 0; i < paths.length; i += 100) {
+          const chunk = paths.slice(i, i + 100);
+          const { error: remErr } = await supabaseAdmin.storage
+            .from("meal-photos")
+            .remove(chunk);
+          if (!remErr) photosRemoved += chunk.length;
+        }
+      }
+
+      const { count, error } = await (supabaseAdmin.from(t) as any)
+        .delete({ count: "exact" })
+        .gte(col, fromIso)
+        .lte(col, toIso);
+      if (error) throw new Error(error.message);
+      deleted.push({ target: t, label: TARGET_LABEL[t], count: count ?? 0 });
+    }
+
+    // Auditoria
+    let ip: string | null = null;
+    let ua: string | null = null;
+    try {
+      ip =
+        getRequestIP({ xForwardedFor: true }) ||
+        getRequestHeader("cf-connecting-ip") ||
+        null;
+      ua = getRequestHeader("user-agent") ?? null;
+    } catch {
+      /* noop */
+    }
+    const { data: prof } = await supabaseAdmin
+      .from("profiles")
+      .select("username")
+      .eq("id", context.userId)
+      .maybeSingle();
+    await (supabaseAdmin.from("audit_logs") as any).insert({
+      user_id: context.userId,
+      username: prof?.username ?? null,
+      action: "DATA_PURGED",
+      table_name: data.targets.join(","),
+      record_id: null,
+      old_data: { from: fromIso, to: toIso, deleted, photosRemoved },
+      new_data: null,
+      ip_address: ip,
+      user_agent: ua,
+    });
+
+    return { deleted, photosRemoved };
+  });
