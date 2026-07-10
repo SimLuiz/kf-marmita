@@ -78,7 +78,7 @@ function Page() {
             Armazenamento
           </h1>
           <p className="text-xs text-muted-foreground">
-            Uso do banco de dados · limite de referência 500 MB
+            Uso do disco do banco de dados · capacidade 2 GB
           </p>
         </div>
         <Button variant="ghost" size="icon" onClick={load} disabled={busy} aria-label="Recarregar">
