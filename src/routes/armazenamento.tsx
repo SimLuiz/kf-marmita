@@ -1,12 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ProtectedShell } from "@/components/ProtectedShell";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Database, RefreshCw, HardDrive, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Database, RefreshCw, HardDrive, AlertTriangle, CheckCircle2, Trash2, Eye } from "lucide-react";
 import { getDbStorage, type DbStorage } from "@/lib/db-storage.functions";
+import {
+  previewPurge,
+  executePurge,
+  type PurgeTarget,
+} from "@/lib/db-purge.functions";
 import { toUserMessage } from "@/lib/safe-error";
 
 export const Route = createFileRoute("/armazenamento")({
@@ -33,8 +42,31 @@ function Page() {
   const { isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const fetchStorage = useServerFn(getDbStorage);
+  const doPreview = useServerFn(previewPurge);
+  const doExecute = useServerFn(executePurge);
   const [data, setData] = useState<DbStorage | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Purge state
+  const today = new Date().toISOString().slice(0, 10);
+  const monthAgo = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
+  const [from, setFrom] = useState(monthAgo);
+  const [to, setTo] = useState(today);
+  const [targets, setTargets] = useState<Record<PurgeTarget, boolean>>({
+    meal_records: false,
+    audit_logs: true,
+    login_attempts: true,
+  });
+  const [preview, setPreview] = useState<
+    { target: PurgeTarget; label: string; count: number }[] | null
+  >(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [purging, setPurging] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const selectedTargets = useMemo(
+    () => (Object.keys(targets) as PurgeTarget[]).filter((k) => targets[k]),
+    [targets],
+  );
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -158,11 +190,177 @@ function Page() {
             </div>
           </div>
 
+          {/* Limpeza de dados por período */}
+          <div
+            className="rounded-xl border border-destructive/30 bg-card p-4 space-y-3"
+            style={{ boxShadow: "var(--shadow-card)" }}
+          >
+            <div className="flex items-center gap-2">
+              <Trash2 className="h-4 w-4 text-destructive" />
+              <p className="text-sm font-semibold text-destructive">
+                Limpar dados por período
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Remove permanentemente os registros selecionados dentro do intervalo
+              de datas. Fotos das refeições também são apagadas do storage.
+            </p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label htmlFor="purge-from" className="text-xs">De</Label>
+                <Input
+                  id="purge-from"
+                  type="date"
+                  value={from}
+                  max={to}
+                  onChange={(e) => {
+                    setFrom(e.target.value);
+                    setPreview(null);
+                  }}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="purge-to" className="text-xs">Até</Label>
+                <Input
+                  id="purge-to"
+                  type="date"
+                  value={to}
+                  min={from}
+                  max={today}
+                  onChange={(e) => {
+                    setTo(e.target.value);
+                    setPreview(null);
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              {(
+                [
+                  { key: "meal_records", label: "Lançamentos de refeições (+ fotos)" },
+                  { key: "audit_logs", label: "Logs de auditoria" },
+                  { key: "login_attempts", label: "Tentativas de login" },
+                ] as { key: PurgeTarget; label: string }[]
+              ).map((it) => (
+                <label
+                  key={it.key}
+                  className="flex items-center gap-2 text-xs cursor-pointer"
+                >
+                  <Checkbox
+                    checked={targets[it.key]}
+                    onCheckedChange={(v) => {
+                      setTargets((t) => ({ ...t, [it.key]: !!v }));
+                      setPreview(null);
+                    }}
+                  />
+                  {it.label}
+                </label>
+              ))}
+            </div>
+
+            {preview && (
+              <div className="rounded-lg border bg-muted/40 p-3 space-y-1">
+                <p className="text-xs font-semibold">Prévia da exclusão</p>
+                {preview.map((p) => (
+                  <div key={p.target} className="flex justify-between text-xs">
+                    <span>{p.label}</span>
+                    <span className="font-mono">
+                      {p.count.toLocaleString("pt-BR")} registro(s)
+                    </span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-xs pt-1 border-t mt-1">
+                  <span className="font-semibold">Total</span>
+                  <span className="font-mono font-semibold">
+                    {preview
+                      .reduce((a, p) => a + p.count, 0)
+                      .toLocaleString("pt-BR")}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                disabled={previewing || selectedTargets.length === 0}
+                onClick={async () => {
+                  setPreviewing(true);
+                  setPreview(null);
+                  try {
+                    const r = (await doPreview({
+                      data: { targets: selectedTargets, from, to },
+                    })) as { items: typeof preview };
+                    setPreview(r.items);
+                  } catch (e: any) {
+                    toast.error(toUserMessage(e, "Falha ao carregar prévia"));
+                  } finally {
+                    setPreviewing(false);
+                  }
+                }}
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                {previewing ? "Calculando..." : "Ver prévia"}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="flex-1"
+                disabled={
+                  purging ||
+                  selectedTargets.length === 0 ||
+                  !preview ||
+                  preview.reduce((a, p) => a + p.count, 0) === 0
+                }
+                onClick={() => setConfirmOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Excluir
+              </Button>
+            </div>
+          </div>
+
           <p className="text-[11px] text-muted-foreground text-center">
             Atualizado em {new Date(data.generated_at).toLocaleString("pt-BR")}
           </p>
         </>
       )}
+
+      <AdminPasswordDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Confirmar limpeza de dados"
+        description={`Isso vai excluir permanentemente os registros selecionados entre ${from} e ${to}. Digite a senha do admin para confirmar.`}
+        onConfirmed={async () => {
+          setPurging(true);
+          try {
+            const r = (await doExecute({
+              data: { targets: selectedTargets, from, to },
+            })) as {
+              deleted: { label: string; count: number }[];
+              photosRemoved: number;
+            };
+            const total = r.deleted.reduce((a, d) => a + d.count, 0);
+            toast.success(
+              `${total.toLocaleString("pt-BR")} registro(s) excluídos${
+                r.photosRemoved ? ` · ${r.photosRemoved} foto(s) removidas` : ""
+              }`,
+            );
+            setPreview(null);
+            await load();
+          } catch (e: any) {
+            toast.error(toUserMessage(e, "Falha na exclusão"));
+          } finally {
+            setPurging(false);
+          }
+        }}
+      />
     </div>
   );
 }
