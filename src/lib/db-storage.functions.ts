@@ -14,8 +14,8 @@ export interface DbStorage {
   generated_at: string;
 }
 
-// Soft limit padrão do plano gratuito Supabase (500 MB). Ajuste se seu plano diferir.
-const SOFT_LIMIT_BYTES = 500 * 1024 * 1024;
+// Disco provisionado no Lovable Cloud (visível em Advanced settings → Disk space)
+const SOFT_LIMIT_BYTES = 2 * 1024 * 1024 * 1024;
 
 export const getDbStorage = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
