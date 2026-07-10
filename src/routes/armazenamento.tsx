@@ -1,12 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ProtectedShell } from "@/components/ProtectedShell";
+import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Database, RefreshCw, HardDrive, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Database, RefreshCw, HardDrive, AlertTriangle, CheckCircle2, Trash2, Eye } from "lucide-react";
 import { getDbStorage, type DbStorage } from "@/lib/db-storage.functions";
+import {
+  previewPurge,
+  executePurge,
+  type PurgeTarget,
+} from "@/lib/db-purge.functions";
 import { toUserMessage } from "@/lib/safe-error";
 
 export const Route = createFileRoute("/armazenamento")({
