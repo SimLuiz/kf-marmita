@@ -85,10 +85,20 @@ export const executePurge = createServerFn({ method: "POST" })
         // Remove em lotes de 100
         for (let i = 0; i < paths.length; i += 100) {
           const chunk = paths.slice(i, i + 100);
-          const { error: remErr } = await supabaseAdmin.storage
+          // Normaliza: se algum path veio como URL completa, extrai o caminho relativo ao bucket
+          const normalized = chunk.map((p: string) => {
+            const marker = "/meal-photos/";
+            const idx = p.indexOf(marker);
+            return idx >= 0 ? p.slice(idx + marker.length) : p;
+          });
+          const { data: removed, error: remErr } = await supabaseAdmin.storage
             .from("meal-photos")
-            .remove(chunk);
-          if (!remErr) photosRemoved += chunk.length;
+            .remove(normalized);
+          if (remErr) {
+            console.warn("[purge] falha ao remover fotos:", remErr.message);
+          } else {
+            photosRemoved += removed?.length ?? normalized.length;
+          }
         }
       }
 
