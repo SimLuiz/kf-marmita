@@ -133,7 +133,7 @@ function SignaturePad({
           onPointerLeave={end}
           onPointerCancel={end}
           className="block w-full touch-none"
-          style={{ height: 260 }}
+          style={{ height: 420 }}
         />
       </div>
       <div className="flex items-center justify-between">
