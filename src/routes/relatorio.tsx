@@ -180,7 +180,7 @@ function Page() {
   const totalCount = rows.length;
   const totalValue = rows.reduce((s, r) => s + r.price, 0);
   const totalCompany = rows.reduce((s, r) => s + r.company_price, 0);
-  const monthName = monthLabel(cursor);
+  const periodSlug = periodLabel.replace(/[^\w]+/g, "-").replace(/^-|-$/g, "");
 
   // grouped per employee for on-screen display
   const byEmployee = useMemo(() => {
