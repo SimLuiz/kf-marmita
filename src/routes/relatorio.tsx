@@ -212,7 +212,7 @@ function Page() {
     try {
       const ExcelJS = (await import("exceljs")).default;
       const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet(monthName);
+      const ws = wb.addWorksheet(periodLabel.slice(0,31));
 
       ws.columns = [
         { header: "Funcionário", key: "name", width: 28 },
@@ -300,7 +300,7 @@ function Page() {
   };
 
   const exportPDF = () => {
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Relatório ${monthName}</title>
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Relatório ${periodLabel}</title>
 <style>
 body{font-family:system-ui,-apple-system,sans-serif;padding:32px;color:#222}
 h1{margin:0 0 4px;font-size:22px}
@@ -313,7 +313,7 @@ td.num,th.num{text-align:right}
 @media print{button{display:none}}
 </style></head><body>
 <h1>Relatório de Marmitas</h1>
-<div class="sub">${monthName}</div>
+<div class="sub">${periodLabel}</div>
 <table><thead><tr>
 <th>Funcionário</th><th>CPF</th><th>Empresa</th><th>Fornecedor</th><th>Marmita</th>
 <th>Data/hora</th><th class="num">Funcionário paga</th><th class="num">Empresa paga</th>
@@ -359,7 +359,7 @@ ${rows
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <div className="font-semibold capitalize">{monthName}</div>
+        <div className="font-semibold capitalize">{periodLabel}</div>
         <Button
           variant="ghost"
           size="icon"
