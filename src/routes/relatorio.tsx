@@ -344,35 +344,81 @@ ${rows
       </div>
 
       <div
-        className="bg-card rounded-2xl p-3 flex items-center justify-between"
+        className="bg-card rounded-2xl p-3 space-y-3"
         style={{ boxShadow: "var(--shadow-card)" }}
       >
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            const d = new Date(cursor);
-            d.setMonth(d.getMonth() - 1);
-            setCursor(d);
-          }}
-          aria-label="Mês anterior"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <div className="font-semibold capitalize">{periodLabel}</div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            const d = new Date(cursor);
-            d.setMonth(d.getMonth() + 1);
-            setCursor(d);
-          }}
-          aria-label="Próximo mês"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant={mode === "month" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setMode("month")}
+          >
+            Por mês
+          </Button>
+          <Button
+            variant={mode === "range" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setMode("range")}
+          >
+            <CalendarRange className="h-4 w-4 mr-1" /> Por período
+          </Button>
+        </div>
+
+        {mode === "month" ? (
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                const d = new Date(cursor);
+                d.setMonth(d.getMonth() - 1);
+                setCursor(d);
+              }}
+              aria-label="Mês anterior"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div className="font-semibold capitalize">{periodLabel}</div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                const d = new Date(cursor);
+                d.setMonth(d.getMonth() + 1);
+                setCursor(d);
+              }}
+              aria-label="Próximo mês"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-xs text-muted-foreground space-y-1">
+                <span>De</span>
+                <Input
+                  type="date"
+                  value={toInputDate(startDate)}
+                  max={toInputDate(endDate)}
+                  onChange={(e) => e.target.value && setStartDate(fromInputDate(e.target.value))}
+                />
+              </label>
+              <label className="text-xs text-muted-foreground space-y-1">
+                <span>Até</span>
+                <Input
+                  type="date"
+                  value={toInputDate(endDate)}
+                  min={toInputDate(startDate)}
+                  onChange={(e) => e.target.value && setEndDate(fromInputDate(e.target.value))}
+                />
+              </label>
+            </div>
+            <div className="text-center text-sm font-semibold">{periodLabel}</div>
+          </div>
+        )}
       </div>
+
 
       <div className="grid grid-cols-3 gap-3">
         <div
