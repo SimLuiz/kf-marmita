@@ -4,7 +4,8 @@ import { ProtectedShell } from "@/components/ProtectedShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Download, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, FileText, CalendarRange } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/relatorio")({
@@ -42,12 +43,36 @@ const fmtDateTime = (iso: string) => {
     minute: "2-digit",
   });
 };
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+const toInputDate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+const fromInputDate = (s: string) => {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0);
+};
 
 function Page() {
   const { user } = useAuth();
+  const [mode, setMode] = useState<"month" | "range">("month");
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  const [startDate, setStartDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  const [endDate, setEndDate] = useState<Date>(() => {
+    const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   });
@@ -56,11 +81,26 @@ function Page() {
   const [sigUrls, setSigUrls] = useState<Record<string, string>>({});
 
   const range = useMemo(() => {
-    const start = new Date(cursor);
-    const end = new Date(cursor);
-    end.setMonth(end.getMonth() + 1);
+    if (mode === "month") {
+      const start = new Date(cursor);
+      const end = new Date(cursor);
+      end.setMonth(end.getMonth() + 1);
+      return { start, end };
+    }
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
+    end.setDate(end.getDate() + 1); // inclusive end day
     return { start, end };
-  }, [cursor]);
+  }, [mode, cursor, startDate, endDate]);
+
+  const periodLabel = useMemo(() => {
+    if (mode === "month") return monthLabel(cursor);
+    const endInclusive = new Date(range.end);
+    endInclusive.setDate(endInclusive.getDate() - 1);
+    return `${fmtDate(startDate)} — ${fmtDate(endInclusive)}`;
+  }, [mode, cursor, startDate, endDate, range.end]);
 
   useEffect(() => {
     if (!user) return;
@@ -140,7 +180,7 @@ function Page() {
   const totalCount = rows.length;
   const totalValue = rows.reduce((s, r) => s + r.price, 0);
   const totalCompany = rows.reduce((s, r) => s + r.company_price, 0);
-  const monthName = monthLabel(cursor);
+  const periodSlug = periodLabel.replace(/[^\w]+/g, "-").replace(/^-|-$/g, "");
 
   // grouped per employee for on-screen display
   const byEmployee = useMemo(() => {
@@ -172,7 +212,7 @@ function Page() {
     try {
       const ExcelJS = (await import("exceljs")).default;
       const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet(monthName);
+      const ws = wb.addWorksheet(periodLabel.slice(0,31));
 
       ws.columns = [
         { header: "Funcionário", key: "name", width: 28 },
@@ -250,7 +290,7 @@ function Page() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `relatorio-${monthName.replace(/\s/g, "-")}.xlsx`;
+      a.download = `relatorio-${periodSlug}.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
@@ -260,7 +300,7 @@ function Page() {
   };
 
   const exportPDF = () => {
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Relatório ${monthName}</title>
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Relatório ${periodLabel}</title>
 <style>
 body{font-family:system-ui,-apple-system,sans-serif;padding:32px;color:#222}
 h1{margin:0 0 4px;font-size:22px}
@@ -273,7 +313,7 @@ td.num,th.num{text-align:right}
 @media print{button{display:none}}
 </style></head><body>
 <h1>Relatório de Marmitas</h1>
-<div class="sub">${monthName}</div>
+<div class="sub">${periodLabel}</div>
 <table><thead><tr>
 <th>Funcionário</th><th>CPF</th><th>Empresa</th><th>Fornecedor</th><th>Marmita</th>
 <th>Data/hora</th><th class="num">Funcionário paga</th><th class="num">Empresa paga</th>
@@ -304,35 +344,81 @@ ${rows
       </div>
 
       <div
-        className="bg-card rounded-2xl p-3 flex items-center justify-between"
+        className="bg-card rounded-2xl p-3 space-y-3"
         style={{ boxShadow: "var(--shadow-card)" }}
       >
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            const d = new Date(cursor);
-            d.setMonth(d.getMonth() - 1);
-            setCursor(d);
-          }}
-          aria-label="Mês anterior"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <div className="font-semibold capitalize">{monthName}</div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            const d = new Date(cursor);
-            d.setMonth(d.getMonth() + 1);
-            setCursor(d);
-          }}
-          aria-label="Próximo mês"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant={mode === "month" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setMode("month")}
+          >
+            Por mês
+          </Button>
+          <Button
+            variant={mode === "range" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setMode("range")}
+          >
+            <CalendarRange className="h-4 w-4 mr-1" /> Por período
+          </Button>
+        </div>
+
+        {mode === "month" ? (
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                const d = new Date(cursor);
+                d.setMonth(d.getMonth() - 1);
+                setCursor(d);
+              }}
+              aria-label="Mês anterior"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <div className="font-semibold capitalize">{periodLabel}</div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                const d = new Date(cursor);
+                d.setMonth(d.getMonth() + 1);
+                setCursor(d);
+              }}
+              aria-label="Próximo mês"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-xs text-muted-foreground space-y-1">
+                <span>De</span>
+                <Input
+                  type="date"
+                  value={toInputDate(startDate)}
+                  max={toInputDate(endDate)}
+                  onChange={(e) => e.target.value && setStartDate(fromInputDate(e.target.value))}
+                />
+              </label>
+              <label className="text-xs text-muted-foreground space-y-1">
+                <span>Até</span>
+                <Input
+                  type="date"
+                  value={toInputDate(endDate)}
+                  min={toInputDate(startDate)}
+                  onChange={(e) => e.target.value && setEndDate(fromInputDate(e.target.value))}
+                />
+              </label>
+            </div>
+            <div className="text-center text-sm font-semibold">{periodLabel}</div>
+          </div>
+        )}
       </div>
+
 
       <div className="grid grid-cols-3 gap-3">
         <div
