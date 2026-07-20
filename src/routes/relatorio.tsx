@@ -58,9 +58,21 @@ const fromInputDate = (s: string) => {
 
 function Page() {
   const { user } = useAuth();
+  const [mode, setMode] = useState<"month" | "range">("month");
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  const [startDate, setStartDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  const [endDate, setEndDate] = useState<Date>(() => {
+    const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
   });
@@ -69,11 +81,26 @@ function Page() {
   const [sigUrls, setSigUrls] = useState<Record<string, string>>({});
 
   const range = useMemo(() => {
-    const start = new Date(cursor);
-    const end = new Date(cursor);
-    end.setMonth(end.getMonth() + 1);
+    if (mode === "month") {
+      const start = new Date(cursor);
+      const end = new Date(cursor);
+      end.setMonth(end.getMonth() + 1);
+      return { start, end };
+    }
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(0, 0, 0, 0);
+    end.setDate(end.getDate() + 1); // inclusive end day
     return { start, end };
-  }, [cursor]);
+  }, [mode, cursor, startDate, endDate]);
+
+  const periodLabel = useMemo(() => {
+    if (mode === "month") return monthLabel(cursor);
+    const endInclusive = new Date(range.end);
+    endInclusive.setDate(endInclusive.getDate() - 1);
+    return `${fmtDate(startDate)} — ${fmtDate(endInclusive)}`;
+  }, [mode, cursor, startDate, endDate, range.end]);
 
   useEffect(() => {
     if (!user) return;
