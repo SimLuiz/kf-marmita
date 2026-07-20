@@ -4,7 +4,8 @@ import { ProtectedShell } from "@/components/ProtectedShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Download, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, FileText, CalendarRange } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/relatorio")({
