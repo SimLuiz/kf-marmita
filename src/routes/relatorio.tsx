@@ -212,7 +212,7 @@ function Page() {
     try {
       const ExcelJS = (await import("exceljs")).default;
       const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet(periodLabel.slice(0,31));
+      const ws = wb.addWorksheet(periodLabel.replace(/[\\/?*\[\]:]/g, "-").slice(0, 31));
 
       ws.columns = [
         { header: "Funcionário", key: "name", width: 28 },
