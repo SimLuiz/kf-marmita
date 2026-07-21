@@ -147,7 +147,7 @@ function SignaturePad({
 }
 
 function Page() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -158,6 +158,8 @@ function Page() {
   const [padKey, setPadKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
+  const [customDate, setCustomDate] = useState<string>("");
+
 
   useEffect(() => {
     if (!user) return;
