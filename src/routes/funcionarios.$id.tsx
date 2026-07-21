@@ -78,12 +78,15 @@ function Page() {
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<RecordWithUrl | null>(null);
+  const [editRec, setEditRec] = useState<RecordWithUrl | null>(null);
+  const [mealTypes, setMealTypes] = useState<MealTypeOpt[]>([]);
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     d.setDate(1);
     d.setHours(0, 0, 0, 0);
     return d;
   });
+
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   const range = useMemo(() => {
