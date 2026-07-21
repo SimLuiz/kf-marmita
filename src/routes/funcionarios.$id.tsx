@@ -6,6 +6,14 @@ import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { toUserMessage } from "@/lib/safe-error";
 import {
@@ -24,6 +32,14 @@ interface Employee {
   name: string;
   cpf: string | null;
   company: string | null;
+}
+interface MealTypeOpt {
+  id: string;
+  name: string;
+  price: number;
+  company_price: number;
+  supplier_id: string;
+  suppliers?: { name: string } | null;
 }
 interface Record {
   id: string;
@@ -48,6 +64,7 @@ export const Route = createFileRoute("/funcionarios/$id")({
     </ProtectedShell>
   ),
 });
+
 
 const monthLabel = (d: Date) =>
   d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
