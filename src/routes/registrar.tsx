@@ -390,7 +390,28 @@ function Page() {
             </div>
           </div>
 
+          {isAdmin && (
+            <div
+              className="bg-card rounded-xl p-3 space-y-1.5"
+              style={{ boxShadow: "var(--shadow-card)" }}
+            >
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Data e hora do lançamento (admin)
+              </label>
+              <input
+                type="datetime-local"
+                value={customDate}
+                onChange={(e) => setCustomDate(e.target.value)}
+                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Deixe em branco para usar agora. Você pode escolher datas passadas ou futuras.
+              </p>
+            </div>
+          )}
+
           <SignaturePad key={padKey} onChange={setSigBlob} />
+
 
           <div className="grid grid-cols-2 gap-3">
             <Button
