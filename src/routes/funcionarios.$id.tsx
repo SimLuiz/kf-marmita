@@ -362,15 +362,26 @@ function Page() {
                               </div>
                             </div>
                             {isAdmin && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => askRemoveRecord(rec)}
-                                aria-label="Excluir registro"
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                              <div className="flex flex-col gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setEditRec(rec)}
+                                  aria-label="Editar tipo de marmita"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => askRemoveRecord(rec)}
+                                  aria-label="Excluir registro"
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
                             )}
+
                           </div>
                         );
                       })}
