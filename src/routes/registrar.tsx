@@ -211,14 +211,19 @@ function Page() {
         .upload(path, sigBlob, { contentType: "image/png" });
       if (upErr) throw upErr;
 
-      const { error: insErr } = await (supabase as any).from("meal_records").insert({
+      const insertPayload: any = {
         owner_id: user.id,
         employee_id: selected.id,
         meal_type_id: selectedType.id,
         photo_path: path,
         unit_price: selectedType.price,
         company_unit_price: selectedType.company_price,
-      });
+      };
+      if (isAdmin && customDate) {
+        insertPayload.taken_at = new Date(customDate).toISOString();
+      }
+      const { error: insErr } = await (supabase as any).from("meal_records").insert(insertPayload);
+
       if (insErr) throw insErr;
 
       toast.success(`Marmita registrada para ${selected.name}`);
