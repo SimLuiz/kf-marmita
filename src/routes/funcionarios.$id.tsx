@@ -147,7 +147,20 @@ function Page() {
     if (user) loadRecords();
   }, [user, id, range.start, range.end]);
 
+  useEffect(() => {
+    if (!isAdmin) return;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("meal_types")
+        .select("id,name,price,company_price,supplier_id,suppliers(name)")
+        .is("archived_at", null)
+        .order("name");
+      setMealTypes((data as MealTypeOpt[]) ?? []);
+    })();
+  }, [isAdmin]);
+
   const askRemoveRecord = (rec: RecordWithUrl) => setPendingDelete(rec);
+
 
   if (!emp) {
     return (
