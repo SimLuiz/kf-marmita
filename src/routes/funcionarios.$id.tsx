@@ -433,6 +433,122 @@ function Page() {
           />
         </button>
       )}
+      {isAdmin && (
+        <EditMealTypeDialog
+          record={editRec}
+          mealTypes={mealTypes}
+          onOpenChange={(o) => !o && setEditRec(null)}
+          onSaved={() => {
+            setEditRec(null);
+            loadRecords();
+          }}
+        />
+      )}
     </div>
   );
 }
+
+function EditMealTypeDialog({
+  record,
+  mealTypes,
+  onOpenChange,
+  onSaved,
+}: {
+  record: RecordWithUrl | null;
+  mealTypes: MealTypeOpt[];
+  onOpenChange: (o: boolean) => void;
+  onSaved: () => void;
+}) {
+  const [mealTypeId, setMealTypeId] = useState<string>("");
+  const [taken, setTaken] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (record) {
+      setMealTypeId(record.meal_type_id ?? "");
+      const d = new Date(record.taken_at);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      setTaken(
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+      );
+    }
+  }, [record]);
+
+  const save = async () => {
+    if (!record) return;
+    const mt = mealTypes.find((m) => m.id === mealTypeId);
+    if (!mt) {
+      toast.error("Selecione o tipo de marmita");
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload: any = {
+        meal_type_id: mt.id,
+        unit_price: mt.price,
+        company_unit_price: mt.company_price,
+      };
+      if (taken) payload.taken_at = new Date(taken).toISOString();
+      const { error } = await (supabase as any)
+        .from("meal_records")
+        .update(payload)
+        .eq("id", record.id);
+      if (error) throw error;
+      toast.success("Registro atualizado");
+      onSaved();
+    } catch (e: any) {
+      toast.error(toUserMessage(e, "Erro ao atualizar"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!record} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar registro</DialogTitle>
+          <DialogDescription>
+            Altere o tipo de marmita e/ou a data deste lançamento.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Tipo de marmita</label>
+            <select
+              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              value={mealTypeId}
+              onChange={(e) => setMealTypeId(e.target.value)}
+            >
+              <option value="">Selecione...</option>
+              {mealTypes.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.suppliers?.name ? `${m.suppliers.name} · ` : ""}
+                  {m.name} — {Number(m.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Data e hora</label>
+            <input
+              type="datetime-local"
+              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              value={taken}
+              onChange={(e) => setTaken(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={save} disabled={saving || !mealTypeId}>
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
