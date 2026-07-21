@@ -147,7 +147,7 @@ function SignaturePad({
 }
 
 function Page() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -158,6 +158,8 @@ function Page() {
   const [padKey, setPadKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
+  const [customDate, setCustomDate] = useState<string>("");
+
 
   useEffect(() => {
     if (!user) return;
@@ -209,14 +211,19 @@ function Page() {
         .upload(path, sigBlob, { contentType: "image/png" });
       if (upErr) throw upErr;
 
-      const { error: insErr } = await (supabase as any).from("meal_records").insert({
+      const insertPayload: any = {
         owner_id: user.id,
         employee_id: selected.id,
         meal_type_id: selectedType.id,
         photo_path: path,
         unit_price: selectedType.price,
         company_unit_price: selectedType.company_price,
-      });
+      };
+      if (isAdmin && customDate) {
+        insertPayload.taken_at = new Date(customDate).toISOString();
+      }
+      const { error: insErr } = await (supabase as any).from("meal_records").insert(insertPayload);
+
       if (insErr) throw insErr;
 
       toast.success(`Marmita registrada para ${selected.name}`);
@@ -383,7 +390,28 @@ function Page() {
             </div>
           </div>
 
+          {isAdmin && (
+            <div
+              className="bg-card rounded-xl p-3 space-y-1.5"
+              style={{ boxShadow: "var(--shadow-card)" }}
+            >
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Data e hora do lançamento (admin)
+              </label>
+              <input
+                type="datetime-local"
+                value={customDate}
+                onChange={(e) => setCustomDate(e.target.value)}
+                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Deixe em branco para usar agora. Você pode escolher datas passadas ou futuras.
+              </p>
+            </div>
+          )}
+
           <SignaturePad key={padKey} onChange={setSigBlob} />
+
 
           <div className="grid grid-cols-2 gap-3">
             <Button

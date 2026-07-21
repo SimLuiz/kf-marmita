@@ -6,6 +6,14 @@ import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { toUserMessage } from "@/lib/safe-error";
 import {
@@ -24,6 +32,14 @@ interface Employee {
   name: string;
   cpf: string | null;
   company: string | null;
+}
+interface MealTypeOpt {
+  id: string;
+  name: string;
+  price: number;
+  company_price: number;
+  supplier_id: string;
+  suppliers?: { name: string } | null;
 }
 interface Record {
   id: string;
@@ -49,6 +65,7 @@ export const Route = createFileRoute("/funcionarios/$id")({
   ),
 });
 
+
 const monthLabel = (d: Date) =>
   d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
@@ -61,12 +78,15 @@ function Page() {
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<RecordWithUrl | null>(null);
+  const [editRec, setEditRec] = useState<RecordWithUrl | null>(null);
+  const [mealTypes, setMealTypes] = useState<MealTypeOpt[]>([]);
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     d.setDate(1);
     d.setHours(0, 0, 0, 0);
     return d;
   });
+
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   const range = useMemo(() => {
@@ -127,7 +147,20 @@ function Page() {
     if (user) loadRecords();
   }, [user, id, range.start, range.end]);
 
+  useEffect(() => {
+    if (!isAdmin) return;
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("meal_types")
+        .select("id,name,price,company_price,supplier_id,suppliers(name)")
+        .is("archived_at", null)
+        .order("name");
+      setMealTypes((data as MealTypeOpt[]) ?? []);
+    })();
+  }, [isAdmin]);
+
   const askRemoveRecord = (rec: RecordWithUrl) => setPendingDelete(rec);
+
 
   if (!emp) {
     return (
@@ -329,15 +362,26 @@ function Page() {
                               </div>
                             </div>
                             {isAdmin && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => askRemoveRecord(rec)}
-                                aria-label="Excluir registro"
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                              <div className="flex flex-col gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setEditRec(rec)}
+                                  aria-label="Editar tipo de marmita"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => askRemoveRecord(rec)}
+                                  aria-label="Excluir registro"
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
                             )}
+
                           </div>
                         );
                       })}
@@ -389,6 +433,122 @@ function Page() {
           />
         </button>
       )}
+      {isAdmin && (
+        <EditMealTypeDialog
+          record={editRec}
+          mealTypes={mealTypes}
+          onOpenChange={(o) => !o && setEditRec(null)}
+          onSaved={() => {
+            setEditRec(null);
+            loadRecords();
+          }}
+        />
+      )}
     </div>
   );
 }
+
+function EditMealTypeDialog({
+  record,
+  mealTypes,
+  onOpenChange,
+  onSaved,
+}: {
+  record: RecordWithUrl | null;
+  mealTypes: MealTypeOpt[];
+  onOpenChange: (o: boolean) => void;
+  onSaved: () => void;
+}) {
+  const [mealTypeId, setMealTypeId] = useState<string>("");
+  const [taken, setTaken] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (record) {
+      setMealTypeId(record.meal_type_id ?? "");
+      const d = new Date(record.taken_at);
+      const pad = (n: number) => String(n).padStart(2, "0");
+      setTaken(
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+      );
+    }
+  }, [record]);
+
+  const save = async () => {
+    if (!record) return;
+    const mt = mealTypes.find((m) => m.id === mealTypeId);
+    if (!mt) {
+      toast.error("Selecione o tipo de marmita");
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload: any = {
+        meal_type_id: mt.id,
+        unit_price: mt.price,
+        company_unit_price: mt.company_price,
+      };
+      if (taken) payload.taken_at = new Date(taken).toISOString();
+      const { error } = await (supabase as any)
+        .from("meal_records")
+        .update(payload)
+        .eq("id", record.id);
+      if (error) throw error;
+      toast.success("Registro atualizado");
+      onSaved();
+    } catch (e: any) {
+      toast.error(toUserMessage(e, "Erro ao atualizar"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!record} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar registro</DialogTitle>
+          <DialogDescription>
+            Altere o tipo de marmita e/ou a data deste lançamento.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Tipo de marmita</label>
+            <select
+              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              value={mealTypeId}
+              onChange={(e) => setMealTypeId(e.target.value)}
+            >
+              <option value="">Selecione...</option>
+              {mealTypes.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.suppliers?.name ? `${m.suppliers.name} · ` : ""}
+                  {m.name} — {Number(m.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Data e hora</label>
+            <input
+              type="datetime-local"
+              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              value={taken}
+              onChange={(e) => setTaken(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={save} disabled={saving || !mealTypeId}>
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
