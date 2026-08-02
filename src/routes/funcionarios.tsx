@@ -5,6 +5,7 @@ import { EditEmployeeDialog } from "@/components/EditEmployeeDialog";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { usePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +18,7 @@ import {
   IdCard,
   Pencil,
   ChevronRight,
+  Briefcase,
 } from "lucide-react";
 
 interface Employee {
@@ -24,6 +26,7 @@ interface Employee {
   name: string;
   cpf: string | null;
   company: string | null;
+  sector: string | null;
   created_at: string;
 }
 
@@ -55,11 +58,13 @@ function Page() {
 
 function FuncionariosList() {
   const { user, isAdmin } = useAuth();
+  const { can } = usePermissions();
   const navigate = useNavigate();
   const [list, setList] = useState<Employee[]>([]);
   const [name, setName] = useState("");
   const [cpf, setCpf] = useState("");
   const [company, setCompany] = useState("");
+  const [sector, setSector] = useState("");
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Employee | null>(null);
@@ -91,6 +96,7 @@ function FuncionariosList() {
       name: name.trim(),
       cpf: cpfDigits ? formatCPF(cpfDigits) : null,
       company: company.trim() || null,
+      sector: sector.trim() || null,
       owner_id: user.id,
     });
     setLoading(false);
@@ -98,6 +104,7 @@ function FuncionariosList() {
     setName("");
     setCpf("");
     setCompany("");
+    setSector("");
     toast.success("Funcionário cadastrado");
     load();
   };
@@ -121,6 +128,7 @@ function FuncionariosList() {
         </p>
       </div>
 
+      {can("can_create_employees") && (
       <form
         onSubmit={add}
         className="bg-card rounded-2xl p-4 space-y-3"
@@ -158,11 +166,22 @@ function FuncionariosList() {
               maxLength={100}
             />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="sector">Setor</Label>
+            <Input
+              id="sector"
+              placeholder="Setor / departamento"
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
+              maxLength={100}
+            />
+          </div>
         </div>
         <Button type="submit" className="w-full" disabled={loading || !name.trim()}>
           <UserPlus className="h-4 w-4 mr-1" /> Cadastrar funcionário
         </Button>
       </form>
+      )}
 
       <div className="space-y-2">
         {list.length === 0 && (
@@ -201,19 +220,26 @@ function FuncionariosList() {
                     <Building2 className="h-3 w-3" /> {emp.company}
                   </span>
                 )}
+                {emp.sector && (
+                  <span className="inline-flex items-center gap-1">
+                    <Briefcase className="h-3 w-3" /> {emp.sector}
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
+              {can("can_edit_employees") && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => openEdit(emp, e)}
+                  aria-label="Editar"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
               {isAdmin && (
                 <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => openEdit(emp, e)}
-                    aria-label="Editar"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"

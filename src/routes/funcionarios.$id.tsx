@@ -5,6 +5,7 @@ import { EditEmployeeDialog } from "@/components/EditEmployeeDialog";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { usePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +24,7 @@ import {
   ChevronRight,
   IdCard,
   Pencil,
+  Briefcase,
   Trash2,
   Utensils,
 } from "lucide-react";
@@ -32,6 +34,7 @@ interface Employee {
   name: string;
   cpf: string | null;
   company: string | null;
+  sector: string | null;
 }
 interface MealTypeOpt {
   id: string;
@@ -72,6 +75,7 @@ const monthLabel = (d: Date) =>
 function Page() {
   const { id } = Route.useParams();
   const { user, isAdmin } = useAuth();
+  const { can } = usePermissions();
   const navigate = useNavigate();
   const [emp, setEmp] = useState<Employee | null>(null);
   const [records, setRecords] = useState<RecordWithUrl[]>([]);
@@ -99,7 +103,7 @@ function Page() {
   const loadEmployee = async () => {
     const { data, error } = await (supabase as any)
       .from("employees_view")
-      .select("id,name,cpf,company")
+      .select("id,name,cpf,company,sector")
       .eq("id", id)
       .maybeSingle();
     if (error) return toast.error(toUserMessage(error));
@@ -148,7 +152,7 @@ function Page() {
   }, [user, id, range.start, range.end]);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin && !can("can_edit_records")) return;
     (async () => {
       const { data } = await (supabase as any)
         .from("meal_types")
@@ -181,7 +185,7 @@ function Page() {
           </Link>
         </Button>
         <h2 className="text-xl font-bold flex-1 truncate">{emp.name}</h2>
-        {isAdmin && (
+        {can("can_edit_employees") && (
           <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
             <Pencil className="h-4 w-4 mr-1" /> Editar
           </Button>
@@ -205,8 +209,13 @@ function Page() {
                 </div>
               )}
               {emp.company && (
-                <div className="inline-flex items-center gap-1">
+                <div className="inline-flex items-center gap-1 mr-3">
                   <Building2 className="h-3 w-3" /> {emp.company}
+                </div>
+              )}
+              {emp.sector && (
+                <div className="inline-flex items-center gap-1">
+                  <Briefcase className="h-3 w-3" /> {emp.sector}
                 </div>
               )}
             </div>
@@ -361,8 +370,9 @@ function Page() {
                                 · <span className="font-semibold text-foreground">{fmt(price)}</span>
                               </div>
                             </div>
-                            {isAdmin && (
+                            {(isAdmin || can("can_edit_records")) && (
                               <div className="flex flex-col gap-1">
+                                {can("can_edit_records") && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -371,6 +381,8 @@ function Page() {
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
+                                )}
+                                {isAdmin && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -379,6 +391,7 @@ function Page() {
                                 >
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
+                                )}
                               </div>
                             )}
 
@@ -433,7 +446,7 @@ function Page() {
           />
         </button>
       )}
-      {isAdmin && (
+      {(isAdmin || can("can_edit_records")) && (
         <EditMealTypeDialog
           record={editRec}
           mealTypes={mealTypes}

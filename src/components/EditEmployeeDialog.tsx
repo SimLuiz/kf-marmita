@@ -18,6 +18,7 @@ interface Employee {
   name: string;
   cpf: string | null;
   company: string | null;
+  sector: string | null;
 }
 
 function formatCPF(v: string) {
@@ -39,6 +40,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
   const [name, setName] = useState("");
   const [cpf, setCpf] = useState("");
   const [company, setCompany] = useState("");
+  const [sector, setSector] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -46,6 +48,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
       setName(employee.name);
       setCpf(employee.cpf ?? "");
       setCompany(employee.company ?? "");
+      setSector(employee.sector ?? "");
     }
   }, [employee]);
 
@@ -63,6 +66,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
         name: name.trim(),
         cpf: cpfDigits ? formatCPF(cpfDigits) : null,
         company: company.trim() || null,
+        sector: sector.trim() || null,
       })
       .eq("id", employee.id);
     setSaving(false);
@@ -109,6 +113,16 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
                 maxLength={100}
               />
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-sector">Setor</Label>
+            <Input
+              id="edit-sector"
+              placeholder="Setor / departamento"
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
+              maxLength={100}
+            />
           </div>
           <DialogFooter className="gap-2">
             <Button

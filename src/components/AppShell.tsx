@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, Pen, FileText, LogOut, Truck, ShieldCheck, ScrollText, ShieldAlert, HardDrive } from "lucide-react";
+import { Home, Users, Pen, FileText, LogOut, Truck, ShieldCheck, ScrollText, ShieldAlert, HardDrive, SlidersHorizontal } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
@@ -13,6 +13,7 @@ const baseItems = [
 
 const adminItems = [
   { to: "/usuarios", label: "Usuários", icon: ShieldCheck },
+  { to: "/permissoes", label: "Permis.", icon: SlidersHorizontal },
   { to: "/auditoria", label: "Auditoria", icon: ScrollText },
   { to: "/seguranca", label: "Segur.", icon: ShieldAlert },
   { to: "/armazenamento", label: "Armaz.", icon: HardDrive },
@@ -23,14 +24,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   const items = isAdmin ? [...baseItems, ...adminItems] : baseItems;
-  const cols =
-    items.length === 8
-      ? "grid-cols-8"
-      : items.length === 7
-        ? "grid-cols-7"
-        : items.length === 6
-          ? "grid-cols-6"
-          : "grid-cols-5";
+  const perRow = items.length > 5 ? Math.ceil(items.length / 2) : items.length;
+
 
   return (
     <div className="min-h-screen flex flex-col pb-20">
@@ -52,7 +47,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 mx-auto w-full max-w-2xl px-4 py-6">{children}</main>
 
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-card/95 backdrop-blur">
-        <div className={`mx-auto max-w-2xl grid ${cols}`}>
+        <div
+          className="mx-auto max-w-2xl grid"
+          style={{ gridTemplateColumns: `repeat(${perRow}, minmax(0, 1fr))` }}
+        >
           {items.map((it) => {
             const active =
               it.to === "/" ? location.pathname === "/" : location.pathname.startsWith(it.to);
