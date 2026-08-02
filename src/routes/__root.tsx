@@ -32,8 +32,10 @@ export const Route = createRootRoute({
   shellComponent: RootShell,
   component: () => (
     <AuthProvider>
-      <Outlet />
-      <Toaster richColors position="top-center" />
+      <PermissionsProvider>
+        <Outlet />
+        <Toaster richColors position="top-center" />
+      </PermissionsProvider>
     </AuthProvider>
   ),
 });
