@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_permissions: {
+        Row: {
+          can_backdate_records: boolean
+          can_create_employees: boolean
+          can_edit_employees: boolean
+          can_edit_records: boolean
+          can_manage_suppliers: boolean
+          created_at: string
+          id: string
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          can_backdate_records?: boolean
+          can_create_employees?: boolean
+          can_edit_employees?: boolean
+          can_edit_records?: boolean
+          can_manage_suppliers?: boolean
+          created_at?: string
+          id?: string
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          can_backdate_records?: boolean
+          can_create_employees?: boolean
+          can_edit_employees?: boolean
+          can_edit_records?: boolean
+          can_manage_suppliers?: boolean
+          created_at?: string
+          id?: string
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -66,6 +102,7 @@ export type Database = {
           id: string
           name: string
           owner_id: string
+          sector: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -76,6 +113,7 @@ export type Database = {
           id?: string
           name: string
           owner_id: string
+          sector?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -86,6 +124,7 @@ export type Database = {
           id?: string
           name?: string
           owner_id?: string
+          sector?: string | null
         }
         Relationships: []
       }
@@ -289,6 +328,7 @@ export type Database = {
           id: string | null
           name: string | null
           owner_id: string | null
+          sector: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -298,6 +338,7 @@ export type Database = {
           id?: string | null
           name?: string | null
           owner_id?: string | null
+          sector?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -307,6 +348,7 @@ export type Database = {
           id?: string | null
           name?: string | null
           owner_id?: string | null
+          sector?: string | null
         }
         Relationships: []
       }
