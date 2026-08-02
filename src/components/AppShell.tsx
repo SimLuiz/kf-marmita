@@ -13,6 +13,7 @@ const baseItems = [
 
 const adminItems = [
   { to: "/usuarios", label: "Usuários", icon: ShieldCheck },
+  { to: "/permissoes", label: "Permis.", icon: SlidersHorizontal },
   { to: "/auditoria", label: "Auditoria", icon: ScrollText },
   { to: "/seguranca", label: "Segur.", icon: ShieldAlert },
   { to: "/armazenamento", label: "Armaz.", icon: HardDrive },
@@ -23,14 +24,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   const items = isAdmin ? [...baseItems, ...adminItems] : baseItems;
-  const cols =
-    items.length === 8
-      ? "grid-cols-8"
-      : items.length === 7
-        ? "grid-cols-7"
-        : items.length === 6
-          ? "grid-cols-6"
-          : "grid-cols-5";
+  const perRow = items.length > 5 ? Math.ceil(items.length / 2) : items.length;
+
 
   return (
     <div className="min-h-screen flex flex-col pb-20">
