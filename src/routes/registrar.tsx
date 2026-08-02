@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { usePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -148,6 +149,7 @@ function SignaturePad({
 
 function Page() {
   const { user, isAdmin } = useAuth();
+  const { can } = usePermissions();
   const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -219,7 +221,7 @@ function Page() {
         unit_price: selectedType.price,
         company_unit_price: selectedType.company_price,
       };
-      if (isAdmin && customDate) {
+      if ((isAdmin || can("can_backdate_records")) && customDate) {
         insertPayload.taken_at = new Date(customDate).toISOString();
       }
       const { error: insErr } = await (supabase as any).from("meal_records").insert(insertPayload);
@@ -390,13 +392,13 @@ function Page() {
             </div>
           </div>
 
-          {isAdmin && (
+          {(isAdmin || can("can_backdate_records")) && (
             <div
               className="bg-card rounded-xl p-3 space-y-1.5"
               style={{ boxShadow: "var(--shadow-card)" }}
             >
               <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Data e hora do lançamento (admin)
+                Data e hora do lançamento
               </label>
               <input
                 type="datetime-local"

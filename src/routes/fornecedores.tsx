@@ -4,6 +4,7 @@ import { ProtectedShell } from "@/components/ProtectedShell";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { usePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,8 @@ const brl = (n: number) =>
 
 function Page() {
   const { user, isAdmin } = useAuth();
+  const { can } = usePermissions();
+  const canManage = isAdmin || can("can_manage_suppliers");
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [types, setTypes] = useState<MealType[]>([]);
   const [newSupplier, setNewSupplier] = useState("");
@@ -142,7 +145,7 @@ function Page() {
         </p>
       </div>
 
-      {isAdmin && (
+      {canManage && (
         <form
           onSubmit={addSupplier}
           className="bg-card rounded-2xl p-4 space-y-3"
@@ -198,7 +201,7 @@ function Page() {
                   ) : (
                     <>
                       <span className="font-semibold flex-1 truncate">{s.name}</span>
-                      {isAdmin && (
+                      {canManage && (
                         <>
                           <Button
                             size="icon"
@@ -207,9 +210,11 @@ function Page() {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          {isAdmin && (
                           <Button size="icon" variant="ghost" onClick={() => askRemoveSupplier(s)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
+                          )}
                         </>
                       )}
                     </>
@@ -284,7 +289,7 @@ function Page() {
                             Empresa: {brl(t.company_price)}
                           </div>
                         </div>
-                        {isAdmin && (
+                        {canManage && (
                           <>
                             <Button
                               size="icon"
@@ -300,6 +305,7 @@ function Page() {
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
+                            {isAdmin && (
                             <Button size="icon" variant="ghost" onClick={() => askRemoveType(t)}>
                               <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
