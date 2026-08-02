@@ -47,7 +47,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1 mx-auto w-full max-w-2xl px-4 py-6">{children}</main>
 
       <nav className="fixed bottom-0 inset-x-0 z-30 border-t bg-card/95 backdrop-blur">
-        <div className={`mx-auto max-w-2xl grid ${cols}`}>
+        <div
+          className="mx-auto max-w-2xl grid"
+          style={{ gridTemplateColumns: `repeat(${perRow}, minmax(0, 1fr))` }}
+        >
           {items.map((it) => {
             const active =
               it.to === "/" ? location.pathname === "/" : location.pathname.startsWith(it.to);
