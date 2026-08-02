@@ -309,6 +309,7 @@ function Page() {
                             <Button size="icon" variant="ghost" onClick={() => askRemoveType(t)}>
                               <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
+                            )}
                           </>
                         )}
                       </div>
@@ -316,7 +317,7 @@ function Page() {
                   )}
                 </div>
 
-                {isAdmin && (
+                {canManage && (
                   <div className="space-y-2 pt-1">
                     <Input
                       placeholder="Tipo (ex: Executiva)"
