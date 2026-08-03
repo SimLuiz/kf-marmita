@@ -22,6 +22,7 @@ interface DetailRow {
   name: string;
   cpf: string | null;
   company: string | null;
+  sector: string | null;
   supplier: string;
   meal: string;
   price: number;
@@ -107,7 +108,7 @@ function Page() {
     setLoading(true);
     (async () => {
       const [emps, sups, mts, recs] = await Promise.all([
-        (supabase as any).from("employees_view").select("id,name,cpf,company"),
+        (supabase as any).from("employees_view").select("id,name,cpf,company,sector"),
         supabase.from("suppliers").select("id,name"),
         (supabase as any).from("meal_types").select("id,supplier_id,name,price,company_price"),
         (supabase as any)
@@ -139,6 +140,7 @@ function Page() {
           name: emp.name,
           cpf: emp.cpf ?? null,
           company: emp.company ?? null,
+          sector: emp.sector ?? null,
           supplier: sup?.name ?? "—",
           meal: mt?.name ?? "(não informada)",
           price: r.unit_price != null ? Number(r.unit_price) : mt ? Number(mt.price) : 0,
@@ -218,6 +220,7 @@ function Page() {
         { header: "Funcionário", key: "name", width: 28 },
         { header: "CPF", key: "cpf", width: 16 },
         { header: "Empresa", key: "company", width: 20 },
+        { header: "Setor", key: "sector", width: 18 },
         { header: "Fornecedor", key: "supplier", width: 20 },
         { header: "Marmita", key: "meal", width: 20 },
         { header: "Data/hora", key: "taken_at", width: 16 },
@@ -245,13 +248,14 @@ function Page() {
       );
 
       const ROW_H = 130;
-      const SIG_COL_INDEX = 8; // 0-based index for Assinatura (9th column)
+      const SIG_COL_INDEX = 9; // 0-based index for Assinatura (10th column)
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
         const row = ws.addRow({
           name: r.name,
           cpf: r.cpf ?? "",
           company: r.company ?? "",
+          sector: r.sector ?? "",
           supplier: r.supplier,
           meal: r.meal,
           taken_at: fmtDateTime(r.taken_at),
@@ -315,17 +319,17 @@ td.num,th.num{text-align:right}
 <h1>Relatório de Marmitas</h1>
 <div class="sub">${periodLabel}</div>
 <table><thead><tr>
-<th>Funcionário</th><th>CPF</th><th>Empresa</th><th>Fornecedor</th><th>Marmita</th>
+<th>Funcionário</th><th>CPF</th><th>Empresa</th><th>Setor</th><th>Fornecedor</th><th>Marmita</th>
 <th>Data/hora</th><th class="num">Funcionário paga</th><th class="num">Empresa paga</th>
 </tr></thead>
 <tbody>
 ${rows
   .map(
     (r) =>
-      `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.cpf ?? "—")}</td><td>${escapeHtml(r.company ?? "—")}</td><td>${escapeHtml(r.supplier)}</td><td>${escapeHtml(r.meal)}</td><td>${escapeHtml(fmtDateTime(r.taken_at))}</td><td class="num">${brl(r.price)}</td><td class="num">${brl(r.company_price)}</td></tr>`
+      `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.cpf ?? "—")}</td><td>${escapeHtml(r.company ?? "—")}</td><td>${escapeHtml(r.sector ?? "—")}</td><td>${escapeHtml(r.supplier)}</td><td>${escapeHtml(r.meal)}</td><td>${escapeHtml(fmtDateTime(r.taken_at))}</td><td class="num">${brl(r.price)}</td><td class="num">${brl(r.company_price)}</td></tr>`
   )
   .join("")}
-<tr class="total"><td colspan="6">TOTAL (${totalCount})</td><td class="num">${brl(totalValue)}</td><td class="num">${brl(totalCompany)}</td></tr>
+<tr class="total"><td colspan="7">TOTAL (${totalCount})</td><td class="num">${brl(totalValue)}</td><td class="num">${brl(totalCompany)}</td></tr>
 </tbody></table>
 <button style="margin-top:24px;padding:10px 18px;font-size:14px" onclick="window.print()">Imprimir / Salvar PDF</button>
 <script>setTimeout(()=>window.print(),300)</script>
@@ -474,9 +478,9 @@ ${rows
                   </div>
                   <div className="min-w-0">
                     <div className="font-medium truncate">{g.row.name}</div>
-                    {g.row.company && (
+                    {(g.row.company || g.row.sector) && (
                       <div className="text-xs text-muted-foreground truncate">
-                        {g.row.company}
+                        {[g.row.company, g.row.sector].filter(Boolean).join(" · ")}
                       </div>
                     )}
                   </div>
