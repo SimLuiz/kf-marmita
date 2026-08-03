@@ -478,9 +478,9 @@ ${rows
                   </div>
                   <div className="min-w-0">
                     <div className="font-medium truncate">{g.row.name}</div>
-                    {g.row.company && (
+                    {(g.row.company || g.row.sector) && (
                       <div className="text-xs text-muted-foreground truncate">
-                        {g.row.company}
+                        {[g.row.company, g.row.sector].filter(Boolean).join(" · ")}
                       </div>
                     )}
                   </div>
