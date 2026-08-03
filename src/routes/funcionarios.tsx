@@ -69,6 +69,8 @@ function FuncionariosList() {
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Employee | null>(null);
+  const [query, setQuery] = useState("");
+
 
   const load = async () => {
     const { data, error } = await (supabase as any)
