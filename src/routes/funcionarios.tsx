@@ -168,49 +168,69 @@ function FuncionariosList() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="cpf">CPF</Label>
+            <Label htmlFor="cpf">CPF *</Label>
             <Input
               id="cpf"
               placeholder="000.000.000-00"
               inputMode="numeric"
               value={cpf}
               onChange={(e) => setCpf(formatCPF(e.target.value))}
+              required
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="company">Empresa</Label>
+            <Label htmlFor="company">Empresa *</Label>
             <Input
               id="company"
               placeholder="Empresa"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
               maxLength={100}
+              required
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="sector">Setor</Label>
+            <Label htmlFor="sector">Setor *</Label>
             <Input
               id="sector"
               placeholder="Setor / departamento"
               value={sector}
               onChange={(e) => setSector(e.target.value)}
               maxLength={100}
+              required
             />
           </div>
         </div>
-        <Button type="submit" className="w-full" disabled={loading || !name.trim()}>
+        <Button type="submit" className="w-full" disabled={loading || !formValid}>
           <UserPlus className="h-4 w-4 mr-1" /> Cadastrar funcionário
         </Button>
+        {!formValid && (
+          <p className="text-xs text-muted-foreground text-center">
+            Preencha nome, CPF (11 dígitos), empresa e setor para concluir o cadastro.
+          </p>
+        )}
       </form>
       )}
 
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          className="pl-9"
+          placeholder="Pesquisar por nome ou CPF"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
+
       <div className="space-y-2">
-        {list.length === 0 && (
+        {filtered.length === 0 && (
           <p className="text-center text-muted-foreground text-sm py-8">
-            Nenhum funcionário cadastrado ainda.
+            {list.length === 0
+              ? "Nenhum funcionário cadastrado ainda."
+              : "Nenhum funcionário encontrado para essa busca."}
           </p>
         )}
-        {list.map((emp) => (
+        {filtered.map((emp) => (
           <div
             key={emp.id}
             role="button"
