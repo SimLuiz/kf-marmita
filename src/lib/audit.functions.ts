@@ -32,17 +32,7 @@ function getUa() {
 
 export const logAuditEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
-    z
-      .object({
-        action: z.enum(ACTIONS),
-        table_name: z.string().max(64).optional(),
-        record_id: z.string().max(128).optional(),
-        old_data: z.record(z.string(), z.any()).optional(),
-        new_data: z.record(z.string(), z.any()).optional(),
-      })
-      .parse(input),
-  )
+  .inputValidator((input) => z.object({ action: z.enum(ACTIONS) }).parse(input))
   .handler(async ({ context, data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: prof } = await supabaseAdmin
@@ -54,10 +44,10 @@ export const logAuditEvent = createServerFn({ method: "POST" })
       user_id: context.userId,
       username: prof?.username ?? null,
       action: data.action,
-      table_name: data.table_name ?? null,
-      record_id: data.record_id ?? null,
-      old_data: data.old_data ?? null,
-      new_data: data.new_data ?? null,
+      table_name: null,
+      record_id: null,
+      old_data: null,
+      new_data: null,
       ip_address: getIp(),
       user_agent: getUa(),
     });
