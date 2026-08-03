@@ -255,6 +255,7 @@ function Page() {
           name: r.name,
           cpf: r.cpf ?? "",
           company: r.company ?? "",
+          sector: r.sector ?? "",
           supplier: r.supplier,
           meal: r.meal,
           taken_at: fmtDateTime(r.taken_at),
