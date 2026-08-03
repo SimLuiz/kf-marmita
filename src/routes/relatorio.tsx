@@ -108,7 +108,7 @@ function Page() {
     setLoading(true);
     (async () => {
       const [emps, sups, mts, recs] = await Promise.all([
-        (supabase as any).from("employees_view").select("id,name,cpf,company"),
+        (supabase as any).from("employees_view").select("id,name,cpf,company,sector"),
         supabase.from("suppliers").select("id,name"),
         (supabase as any).from("meal_types").select("id,supplier_id,name,price,company_price"),
         (supabase as any)
