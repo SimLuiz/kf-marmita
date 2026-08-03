@@ -87,19 +87,37 @@ function FuncionariosList() {
     if (user) load();
   }, [user]);
 
+  const cpfDigits = cpf.replace(/\D/g, "");
+  const formValid =
+    !!name.trim() && cpfDigits.length === 11 && !!company.trim() && !!sector.trim();
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return list;
+    const qDigits = q.replace(/\D/g, "");
+    return list.filter((emp) => {
+      const byName = emp.name.toLowerCase().includes(q);
+      const byCpf =
+        !!qDigits && !!emp.cpf && emp.cpf.replace(/\D/g, "").includes(qDigits);
+      return byName || byCpf;
+    });
+  }, [list, query]);
+
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !user) return;
-    const cpfDigits = cpf.replace(/\D/g, "");
-    if (cpfDigits && cpfDigits.length !== 11) {
+    if (!user) return;
+    if (!name.trim() || !company.trim() || !sector.trim()) {
+      return toast.error("Preencha todos os campos");
+    }
+    if (cpfDigits.length !== 11) {
       return toast.error("CPF deve ter 11 dígitos");
     }
     setLoading(true);
     const { error } = await supabase.from("employees").insert({
       name: name.trim(),
-      cpf: cpfDigits ? formatCPF(cpfDigits) : null,
-      company: company.trim() || null,
-      sector: sector.trim() || null,
+      cpf: formatCPF(cpfDigits),
+      company: company.trim(),
+      sector: sector.trim(),
       owner_id: user.id,
     });
     setLoading(false);
