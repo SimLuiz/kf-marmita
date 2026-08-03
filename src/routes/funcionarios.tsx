@@ -1,5 +1,5 @@
 import { Outlet, createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
 import { EditEmployeeDialog } from "@/components/EditEmployeeDialog";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
@@ -19,6 +19,7 @@ import {
   Pencil,
   ChevronRight,
   Briefcase,
+  Search,
 } from "lucide-react";
 
 interface Employee {
