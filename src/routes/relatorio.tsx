@@ -140,6 +140,7 @@ function Page() {
           name: emp.name,
           cpf: emp.cpf ?? null,
           company: emp.company ?? null,
+          sector: emp.sector ?? null,
           supplier: sup?.name ?? "—",
           meal: mt?.name ?? "(não informada)",
           price: r.unit_price != null ? Number(r.unit_price) : mt ? Number(mt.price) : 0,
