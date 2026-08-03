@@ -3,15 +3,11 @@ import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const ACTIONS = [
-  "LOGIN",
-  "LOGIN_FAILED",
-  "LOGOUT",
-  "PASSWORD_RESET",
-  "USER_CREATED",
-  "USER_DELETED",
-  "ADMIN_PASSWORD_RESET",
-] as const;
+// Somente eventos self-service podem ser registrados pelo cliente.
+// Ações privilegiadas (USER_CREATED, USER_DELETED, ADMIN_PASSWORD_RESET, PASSWORD_RESET)
+// são gravadas exclusivamente pelas server functions que as executam.
+const ACTIONS = ["LOGIN", "LOGOUT"] as const;
+
 
 function getIp() {
   try {
