@@ -248,7 +248,7 @@ function Page() {
       );
 
       const ROW_H = 130;
-      const SIG_COL_INDEX = 8; // 0-based index for Assinatura (9th column)
+      const SIG_COL_INDEX = 9; // 0-based index for Assinatura (10th column)
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i];
         const row = ws.addRow({
