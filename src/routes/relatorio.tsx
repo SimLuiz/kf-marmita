@@ -319,17 +319,17 @@ td.num,th.num{text-align:right}
 <h1>Relatório de Marmitas</h1>
 <div class="sub">${periodLabel}</div>
 <table><thead><tr>
-<th>Funcionário</th><th>CPF</th><th>Empresa</th><th>Fornecedor</th><th>Marmita</th>
+<th>Funcionário</th><th>CPF</th><th>Empresa</th><th>Setor</th><th>Fornecedor</th><th>Marmita</th>
 <th>Data/hora</th><th class="num">Funcionário paga</th><th class="num">Empresa paga</th>
 </tr></thead>
 <tbody>
 ${rows
   .map(
     (r) =>
-      `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.cpf ?? "—")}</td><td>${escapeHtml(r.company ?? "—")}</td><td>${escapeHtml(r.supplier)}</td><td>${escapeHtml(r.meal)}</td><td>${escapeHtml(fmtDateTime(r.taken_at))}</td><td class="num">${brl(r.price)}</td><td class="num">${brl(r.company_price)}</td></tr>`
+      `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.cpf ?? "—")}</td><td>${escapeHtml(r.company ?? "—")}</td><td>${escapeHtml(r.sector ?? "—")}</td><td>${escapeHtml(r.supplier)}</td><td>${escapeHtml(r.meal)}</td><td>${escapeHtml(fmtDateTime(r.taken_at))}</td><td class="num">${brl(r.price)}</td><td class="num">${brl(r.company_price)}</td></tr>`
   )
   .join("")}
-<tr class="total"><td colspan="6">TOTAL (${totalCount})</td><td class="num">${brl(totalValue)}</td><td class="num">${brl(totalCompany)}</td></tr>
+<tr class="total"><td colspan="7">TOTAL (${totalCount})</td><td class="num">${brl(totalValue)}</td><td class="num">${brl(totalCompany)}</td></tr>
 </tbody></table>
 <button style="margin-top:24px;padding:10px 18px;font-size:14px" onclick="window.print()">Imprimir / Salvar PDF</button>
 <script>setTimeout(()=>window.print(),300)</script>
