@@ -22,6 +22,7 @@ interface DetailRow {
   name: string;
   cpf: string | null;
   company: string | null;
+  sector: string | null;
   supplier: string;
   meal: string;
   price: number;
