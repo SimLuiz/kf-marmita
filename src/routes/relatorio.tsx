@@ -220,6 +220,7 @@ function Page() {
         { header: "Funcionário", key: "name", width: 28 },
         { header: "CPF", key: "cpf", width: 16 },
         { header: "Empresa", key: "company", width: 20 },
+        { header: "Setor", key: "sector", width: 18 },
         { header: "Fornecedor", key: "supplier", width: 20 },
         { header: "Marmita", key: "meal", width: 20 },
         { header: "Data/hora", key: "taken_at", width: 16 },
