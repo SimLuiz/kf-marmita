@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Download, FileText, CalendarRange } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { fetchAllRows } from "@/lib/fetch-all";
 
 export const Route = createFileRoute("/relatorio")({
   component: () => (
