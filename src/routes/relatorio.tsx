@@ -108,15 +108,22 @@ function Page() {
     setLoading(true);
     (async () => {
       const [emps, sups, mts, recs] = await Promise.all([
-        (supabase as any).from("employees_view").select("id,name,cpf,company,sector"),
-        supabase.from("suppliers").select("id,name"),
-        (supabase as any).from("meal_types").select("id,supplier_id,name,price,company_price"),
-        (supabase as any)
-          .from("meal_records")
-          .select("id,employee_id,meal_type_id,photo_path,taken_at,unit_price,company_unit_price")
-          .gte("taken_at", range.start.toISOString())
-          .lt("taken_at", range.end.toISOString())
-          .order("taken_at", { ascending: false }),
+        fetchAllRows((f, t) =>
+          (supabase as any).from("employees_view").select("id,name,cpf,company,sector").range(f, t)
+        ),
+        fetchAllRows((f, t) => supabase.from("suppliers").select("id,name").range(f, t)),
+        fetchAllRows((f, t) =>
+          (supabase as any).from("meal_types").select("id,supplier_id,name,price,company_price").range(f, t)
+        ),
+        fetchAllRows((f, t) =>
+          (supabase as any)
+            .from("meal_records")
+            .select("id,employee_id,meal_type_id,photo_path,taken_at,unit_price,company_unit_price")
+            .gte("taken_at", range.start.toISOString())
+            .lt("taken_at", range.end.toISOString())
+            .order("taken_at", { ascending: false })
+            .range(f, t)
+        ),
       ]);
 
       const empMap = new Map<string, any>((emps.data ?? []).map((e: any) => [e.id, e]));
