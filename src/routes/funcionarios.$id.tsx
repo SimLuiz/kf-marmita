@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
+import { fetchAllRows } from "@/lib/fetch-all";
 import { EditEmployeeDialog } from "@/components/EditEmployeeDialog";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,13 +119,16 @@ function Page() {
   const loadRecords = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("meal_records")
-      .select("id,taken_at,photo_path,meal_type_id,unit_price,meal_types(name,price,suppliers(name))")
-      .eq("employee_id", id)
-      .gte("taken_at", range.start.toISOString())
-      .lt("taken_at", range.end.toISOString())
-      .order("taken_at", { ascending: false });
+    const { data, error } = await fetchAllRows((f, t) =>
+      supabase
+        .from("meal_records")
+        .select("id,taken_at,photo_path,meal_type_id,unit_price,meal_types(name,price,suppliers(name))")
+        .eq("employee_id", id)
+        .gte("taken_at", range.start.toISOString())
+        .lt("taken_at", range.end.toISOString())
+        .order("taken_at", { ascending: false })
+        .range(f, t)
+    );
     if (error) {
       toast.error(toUserMessage(error));
       setLoading(false);
