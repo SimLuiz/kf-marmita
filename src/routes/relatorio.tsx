@@ -470,6 +470,20 @@ ${rows
         )}
       </div>
 
+      {dupIds.size > 0 && (
+        <div
+          className="bg-card rounded-2xl p-3 flex items-center justify-between gap-3"
+          style={{ boxShadow: "var(--shadow-card)" }}
+        >
+          <div className="text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">{dupIds.size}</span> lançamento(s)
+            repetido(s) detectado(s) (mesmo funcionário e marmita em menos de 3 min)
+          </div>
+          <Button size="sm" variant={hideDup ? "default" : "outline"} onClick={() => setHideDup((v) => !v)}>
+            {hideDup ? "Ocultos" : "Incluídos"}
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-3">
         <div
