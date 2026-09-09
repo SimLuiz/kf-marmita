@@ -165,7 +165,7 @@ function Page() {
         });
       });
 
-      setRows(list);
+      setAllRows(list);
 
       // Build signed URLs for the first signature per employee
       const uniquePaths = new Map<string, string>();
