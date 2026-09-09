@@ -78,7 +78,8 @@ function Page() {
     d.setHours(0, 0, 0, 0);
     return d;
   });
-  const [rows, setRows] = useState<DetailRow[]>([]);
+  const [allRows, setAllRows] = useState<DetailRow[]>([]);
+  const [hideDup, setHideDup] = useState(true);
   const [loading, setLoading] = useState(false);
   const [sigUrls, setSigUrls] = useState<Record<string, string>>({});
 
@@ -123,6 +124,7 @@ function Page() {
             .gte("taken_at", range.start.toISOString())
             .lt("taken_at", range.end.toISOString())
             .order("taken_at", { ascending: false })
+            .order("id", { ascending: false })
             .range(f, t)
         ),
       ]);
@@ -163,7 +165,7 @@ function Page() {
         });
       });
 
-      setRows(list);
+      setAllRows(list);
 
       // Build signed URLs for the first signature per employee
       const uniquePaths = new Map<string, string>();
@@ -186,6 +188,29 @@ function Page() {
       setLoading(false);
     })();
   }, [user, range.start, range.end]);
+
+  // Lançamentos repetidos: mesmo funcionário + mesma marmita em menos de 3 minutos
+  const dupIds = useMemo(() => {
+    const DUP_WINDOW = 3 * 60 * 1000;
+    const sorted = [...allRows].sort(
+      (a, b) => new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+    );
+    const lastKept = new Map<string, number>();
+    const dups = new Set<string>();
+    sorted.forEach((r) => {
+      const key = `${r.employee_id}|${r.meal}`;
+      const t = new Date(r.taken_at).getTime();
+      const prev = lastKept.get(key);
+      if (prev != null && t - prev < DUP_WINDOW) dups.add(r.id);
+      else lastKept.set(key, t);
+    });
+    return dups;
+  }, [allRows]);
+
+  const rows = useMemo(
+    () => (hideDup ? allRows.filter((r) => !dupIds.has(r.id)) : allRows),
+    [allRows, hideDup, dupIds]
+  );
 
   const totalCount = rows.length;
   const totalValue = rows.reduce((s, r) => s + r.price, 0);
@@ -325,7 +350,21 @@ td.num,th.num{text-align:right}
 @media print{button{display:none}}
 </style></head><body>
 <h1>Relatório de Marmitas</h1>
-<div class="sub">${periodLabel}</div>
+<div class="sub">${periodLabel}${hideDup && dupIds.size > 0 ? ` · ${dupIds.size} lançamento(s) repetido(s) ocultado(s)` : ""}</div>
+<h2 style="font-size:15px;margin:0 0 8px">Resumo por funcionário</h2>
+<table style="margin-bottom:28px"><thead><tr>
+<th>Funcionário</th><th>Empresa</th><th>Setor</th><th class="num">Marmitas</th>
+<th class="num">Funcionário paga</th><th class="num">Empresa paga</th>
+</tr></thead><tbody>
+${byEmployee
+  .map(
+    (g) =>
+      `<tr><td>${escapeHtml(g.row.name)}</td><td>${escapeHtml(g.row.company ?? "—")}</td><td>${escapeHtml(g.row.sector ?? "—")}</td><td class="num">${g.count}</td><td class="num">${brl(g.total)}</td><td class="num">${brl(g.totalCompany)}</td></tr>`
+  )
+  .join("")}
+<tr class="total"><td colspan="3">TOTAL</td><td class="num">${totalCount}</td><td class="num">${brl(totalValue)}</td><td class="num">${brl(totalCompany)}</td></tr>
+</tbody></table>
+<h2 style="font-size:15px;margin:0 0 8px">Detalhamento</h2>
 <table><thead><tr>
 <th>Funcionário</th><th>CPF</th><th>Empresa</th><th>Setor</th><th>Fornecedor</th><th>Marmita</th>
 <th>Data/hora</th><th class="num">Funcionário paga</th><th class="num">Empresa paga</th>
@@ -431,6 +470,20 @@ ${rows
         )}
       </div>
 
+      {dupIds.size > 0 && (
+        <div
+          className="bg-card rounded-2xl p-3 flex items-center justify-between gap-3"
+          style={{ boxShadow: "var(--shadow-card)" }}
+        >
+          <div className="text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">{dupIds.size}</span> lançamento(s)
+            repetido(s) detectado(s) (mesmo funcionário e marmita em menos de 3 min)
+          </div>
+          <Button size="sm" variant={hideDup ? "default" : "outline"} onClick={() => setHideDup((v) => !v)}>
+            {hideDup ? "Ocultos" : "Incluídos"}
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-3">
         <div
