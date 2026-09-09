@@ -189,6 +189,29 @@ function Page() {
     })();
   }, [user, range.start, range.end]);
 
+  // Lançamentos repetidos: mesmo funcionário + mesma marmita em menos de 3 minutos
+  const dupIds = useMemo(() => {
+    const DUP_WINDOW = 3 * 60 * 1000;
+    const sorted = [...allRows].sort(
+      (a, b) => new Date(a.taken_at).getTime() - new Date(b.taken_at).getTime()
+    );
+    const lastKept = new Map<string, number>();
+    const dups = new Set<string>();
+    sorted.forEach((r) => {
+      const key = `${r.employee_id}|${r.meal}`;
+      const t = new Date(r.taken_at).getTime();
+      const prev = lastKept.get(key);
+      if (prev != null && t - prev < DUP_WINDOW) dups.add(r.id);
+      else lastKept.set(key, t);
+    });
+    return dups;
+  }, [allRows]);
+
+  const rows = useMemo(
+    () => (hideDup ? allRows.filter((r) => !dupIds.has(r.id)) : allRows),
+    [allRows, hideDup, dupIds]
+  );
+
   const totalCount = rows.length;
   const totalValue = rows.reduce((s, r) => s + r.price, 0);
   const totalCompany = rows.reduce((s, r) => s + r.company_price, 0);
