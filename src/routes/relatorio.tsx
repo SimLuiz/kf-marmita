@@ -78,7 +78,8 @@ function Page() {
     d.setHours(0, 0, 0, 0);
     return d;
   });
-  const [rows, setRows] = useState<DetailRow[]>([]);
+  const [allRows, setAllRows] = useState<DetailRow[]>([]);
+  const [hideDup, setHideDup] = useState(true);
   const [loading, setLoading] = useState(false);
   const [sigUrls, setSigUrls] = useState<Record<string, string>>({});
 
