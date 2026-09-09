@@ -124,6 +124,7 @@ function Page() {
             .gte("taken_at", range.start.toISOString())
             .lt("taken_at", range.end.toISOString())
             .order("taken_at", { ascending: false })
+            .order("id", { ascending: false })
             .range(f, t)
         ),
       ]);
