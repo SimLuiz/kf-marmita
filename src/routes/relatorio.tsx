@@ -350,7 +350,21 @@ td.num,th.num{text-align:right}
 @media print{button{display:none}}
 </style></head><body>
 <h1>Relatório de Marmitas</h1>
-<div class="sub">${periodLabel}</div>
+<div class="sub">${periodLabel}${hideDup && dupIds.size > 0 ? ` · ${dupIds.size} lançamento(s) repetido(s) ocultado(s)` : ""}</div>
+<h2 style="font-size:15px;margin:0 0 8px">Resumo por funcionário</h2>
+<table style="margin-bottom:28px"><thead><tr>
+<th>Funcionário</th><th>Empresa</th><th>Setor</th><th class="num">Marmitas</th>
+<th class="num">Funcionário paga</th><th class="num">Empresa paga</th>
+</tr></thead><tbody>
+${byEmployee
+  .map(
+    (g) =>
+      `<tr><td>${escapeHtml(g.row.name)}</td><td>${escapeHtml(g.row.company ?? "—")}</td><td>${escapeHtml(g.row.sector ?? "—")}</td><td class="num">${g.count}</td><td class="num">${brl(g.total)}</td><td class="num">${brl(g.totalCompany)}</td></tr>`
+  )
+  .join("")}
+<tr class="total"><td colspan="3">TOTAL</td><td class="num">${totalCount}</td><td class="num">${brl(totalValue)}</td><td class="num">${brl(totalCompany)}</td></tr>
+</tbody></table>
+<h2 style="font-size:15px;margin:0 0 8px">Detalhamento</h2>
 <table><thead><tr>
 <th>Funcionário</th><th>CPF</th><th>Empresa</th><th>Setor</th><th>Fornecedor</th><th>Marmita</th>
 <th>Data/hora</th><th class="num">Funcionário paga</th><th class="num">Empresa paga</th>
