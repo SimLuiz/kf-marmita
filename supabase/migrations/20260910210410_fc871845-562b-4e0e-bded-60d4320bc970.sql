@@ -1,0 +1,1 @@
+create unique index employees_cpf_unique_idx on public.employees (cpf) where cpf is not null;
