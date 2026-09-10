@@ -121,7 +121,10 @@ function FuncionariosList() {
       owner_id: user.id,
     });
     setLoading(false);
-    if (error) return toast.error(toUserMessage(error));
+    if (error)
+      return toast.error(
+        error.code === "23505" ? "Já existe um funcionário com esse CPF" : toUserMessage(error)
+      );
     setName("");
     setCpf("");
     setCompany("");

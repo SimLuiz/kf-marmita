@@ -70,7 +70,10 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
       })
       .eq("id", employee.id);
     setSaving(false);
-    if (error) return toast.error(toUserMessage(error));
+    if (error)
+      return toast.error(
+        error.code === "23505" ? "Já existe um funcionário com esse CPF" : toUserMessage(error)
+      );
     toast.success("Cadastro atualizado");
     onSaved();
     onOpenChange(false);
