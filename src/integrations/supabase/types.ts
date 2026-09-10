@@ -354,6 +354,7 @@ export type Database = {
       }
     }
     Functions: {
+      app_perm: { Args: { _key: string }; Returns: boolean }
       check_login_lockout: {
         Args: { _ip: string; _username: string }
         Returns: {
