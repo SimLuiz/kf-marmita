@@ -13,6 +13,7 @@ import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as SegurancaRouteImport } from './routes/seguranca'
 import { Route as RelatorioRouteImport } from './routes/relatorio'
 import { Route as RegistrarRouteImport } from './routes/registrar'
+import { Route as PorDiaRouteImport } from './routes/por-dia'
 import { Route as PermissoesRouteImport } from './routes/permissoes'
 import { Route as FuncionariosRouteImport } from './routes/funcionarios'
 import { Route as FornecedoresRouteImport } from './routes/fornecedores'
@@ -39,6 +40,11 @@ const RelatorioRoute = RelatorioRouteImport.update({
 const RegistrarRoute = RegistrarRouteImport.update({
   id: '/registrar',
   path: '/registrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PorDiaRoute = PorDiaRouteImport.update({
+  id: '/por-dia',
+  path: '/por-dia',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PermissoesRoute = PermissoesRouteImport.update({
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/permissoes': typeof PermissoesRoute
+  '/por-dia': typeof PorDiaRoute
   '/registrar': typeof RegistrarRoute
   '/relatorio': typeof RelatorioRoute
   '/seguranca': typeof SegurancaRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/permissoes': typeof PermissoesRoute
+  '/por-dia': typeof PorDiaRoute
   '/registrar': typeof RegistrarRoute
   '/relatorio': typeof RelatorioRoute
   '/seguranca': typeof SegurancaRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/permissoes': typeof PermissoesRoute
+  '/por-dia': typeof PorDiaRoute
   '/registrar': typeof RegistrarRoute
   '/relatorio': typeof RelatorioRoute
   '/seguranca': typeof SegurancaRoute
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/fornecedores'
     | '/funcionarios'
     | '/permissoes'
+    | '/por-dia'
     | '/registrar'
     | '/relatorio'
     | '/seguranca'
@@ -139,6 +149,7 @@ export interface FileRouteTypes {
     | '/fornecedores'
     | '/funcionarios'
     | '/permissoes'
+    | '/por-dia'
     | '/registrar'
     | '/relatorio'
     | '/seguranca'
@@ -152,6 +163,7 @@ export interface FileRouteTypes {
     | '/fornecedores'
     | '/funcionarios'
     | '/permissoes'
+    | '/por-dia'
     | '/registrar'
     | '/relatorio'
     | '/seguranca'
@@ -166,6 +178,7 @@ export interface RootRouteChildren {
   FornecedoresRoute: typeof FornecedoresRoute
   FuncionariosRoute: typeof FuncionariosRouteWithChildren
   PermissoesRoute: typeof PermissoesRoute
+  PorDiaRoute: typeof PorDiaRoute
   RegistrarRoute: typeof RegistrarRoute
   RelatorioRoute: typeof RelatorioRoute
   SegurancaRoute: typeof SegurancaRoute
@@ -200,6 +213,13 @@ declare module '@tanstack/react-router' {
       path: '/registrar'
       fullPath: '/registrar'
       preLoaderRoute: typeof RegistrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/por-dia': {
+      id: '/por-dia'
+      path: '/por-dia'
+      fullPath: '/por-dia'
+      preLoaderRoute: typeof PorDiaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/permissoes': {
@@ -273,6 +293,7 @@ const rootRouteChildren: RootRouteChildren = {
   FornecedoresRoute: FornecedoresRoute,
   FuncionariosRoute: FuncionariosRouteWithChildren,
   PermissoesRoute: PermissoesRoute,
+  PorDiaRoute: PorDiaRoute,
   RegistrarRoute: RegistrarRoute,
   RelatorioRoute: RelatorioRoute,
   SegurancaRoute: SegurancaRoute,
