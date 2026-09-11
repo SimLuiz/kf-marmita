@@ -55,16 +55,15 @@ export function LoginScreen() {
   const locked = lockMs > 0;
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="grid min-h-screen place-items-center bg-background px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
+        <div className="mb-7 text-center">
           <div
-            className="mx-auto mb-4 h-16 w-16 rounded-2xl flex items-center justify-center text-primary-foreground"
-            style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-soft)" }}
+            className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm"
           >
-            <UtensilsCrossed className="h-8 w-8" />
+            <UtensilsCrossed className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold">Marmita Control</h1>
+          <h1 className="font-display text-2xl font-bold">Marmita Control</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Acesso restrito · entre com seu usuário
           </p>
@@ -72,8 +71,7 @@ export function LoginScreen() {
 
         <form
           onSubmit={submit}
-          className="bg-card rounded-2xl p-6 space-y-4"
-          style={{ boxShadow: "var(--shadow-card)" }}
+          className="space-y-5 rounded-lg border border-border bg-card p-6 shadow-sm"
         >
           {locked && (
             <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">

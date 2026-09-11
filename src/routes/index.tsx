@@ -3,9 +3,19 @@ import { useEffect, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { Users, Pen, FileText, Utensils } from "lucide-react";
+import { Users, PenLine, FileText, Utensils, ArrowRight, CalendarDays } from "lucide-react";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Início | Marmita Control" },
+      { name: "description", content: "Resumo diário de retiradas de marmitas e funcionários." },
+      { property: "og:title", content: "Início | Marmita Control" },
+      { property: "og:description", content: "Resumo diário de retiradas de marmitas e funcionários." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Dashboard />
@@ -42,62 +52,70 @@ function Dashboard() {
   }, [user]);
 
   const cards = [
-    { label: "Funcionários", value: stats.employees, icon: Users },
-    { label: "Hoje", value: stats.today, icon: Utensils },
-    { label: "Este mês", value: stats.month, icon: FileText },
+    { label: "Funcionários ativos", value: stats.employees, icon: Users, detail: "Cadastrados no sistema" },
+    { label: "Retiradas hoje", value: stats.today, icon: Utensils, detail: "Registradas até agora" },
+    { label: "Retiradas no mês", value: stats.month, icon: CalendarDays, detail: "Desde o primeiro dia" },
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Olá! 👋</h2>
-        <p className="text-muted-foreground text-sm">Resumo de retiradas</p>
+    <div className="space-y-8">
+      <div className="page-header">
+        <div>
+          <p className="page-eyebrow">Visão geral</p>
+          <h1 className="page-title">Controle de marmitas</h1>
+          <p className="page-description">Acompanhe os números e acesse as tarefas mais usadas.</p>
+        </div>
+        <Link to="/registrar" className="hidden items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 sm:flex">
+          <PenLine className="h-4 w-4" />
+          Registrar retirada
+        </Link>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <section className="grid gap-3 sm:grid-cols-3" aria-label="Resumo">
         {cards.map((c) => (
-          <div
-            key={c.label}
-            className="bg-card rounded-2xl p-4 text-center"
-            style={{ boxShadow: "var(--shadow-card)" }}
-          >
-            <c.icon className="h-5 w-5 mx-auto text-primary mb-2" />
-            <div className="text-2xl font-bold">{c.value}</div>
-            <div className="text-xs text-muted-foreground">{c.label}</div>
+          <div key={c.label} className="metric-card">
+            <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
+              <c.icon className="h-4 w-4" />
+            </div>
+            <div className="mt-5 text-3xl font-bold tabular-nums">{c.value}</div>
+            <div className="mt-1 text-sm font-semibold">{c.label}</div>
+            <div className="mt-1 text-xs text-muted-foreground">{c.detail}</div>
           </div>
         ))}
-      </div>
+      </section>
 
       <Link
         to="/registrar"
-        className="block rounded-2xl p-6 text-primary-foreground text-center"
-        style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-soft)" }}
+        className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 rounded-lg bg-primary p-5 text-primary-foreground shadow-sm transition-transform active:scale-[0.99] sm:hidden"
       >
-        <Pen className="h-8 w-8 mx-auto mb-2" />
-        <div className="text-lg font-bold">Registrar retirada</div>
-        <div className="text-sm opacity-90">Assinar retirada</div>
+        <span className="grid h-11 w-11 place-items-center rounded-lg bg-primary-foreground/15"><PenLine className="h-5 w-5" /></span>
+        <span className="min-w-0"><span className="block font-bold">Registrar retirada</span><span className="block text-sm opacity-85">Selecionar marmita e coletar assinatura</span></span>
+        <ArrowRight className="h-5 w-5 shrink-0" />
       </Link>
 
-      <div className="grid grid-cols-2 gap-3">
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-lg font-bold">Acessos rápidos</h2>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
         <Link
           to="/funcionarios"
-          className="bg-card rounded-2xl p-5"
-          style={{ boxShadow: "var(--shadow-card)" }}
+          className="action-card"
         >
-          <Users className="h-6 w-6 text-primary mb-2" />
-          <div className="font-semibold">Funcionários</div>
-          <div className="text-xs text-muted-foreground">Cadastrar e gerenciar</div>
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Users className="h-5 w-5" /></span>
+          <span className="min-w-0"><span className="block font-semibold">Funcionários</span><span className="block text-sm text-muted-foreground">Cadastros e históricos</span></span>
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         </Link>
         <Link
           to="/relatorio"
-          className="bg-card rounded-2xl p-5"
-          style={{ boxShadow: "var(--shadow-card)" }}
+          className="action-card"
         >
-          <FileText className="h-6 w-6 text-primary mb-2" />
-          <div className="font-semibold">Relatório</div>
-          <div className="text-xs text-muted-foreground">Fechamento mensal</div>
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><FileText className="h-5 w-5" /></span>
+          <span className="min-w-0"><span className="block font-semibold">Relatórios</span><span className="block text-sm text-muted-foreground">Períodos e exportações</span></span>
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         </Link>
+        </div>
+      </section>
       </div>
-    </div>
   );
 }
