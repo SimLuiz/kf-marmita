@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Users, Pen, FileText, LogOut, Truck, ShieldCheck, ScrollText, ShieldAlert, HardDrive, SlidersHorizontal } from "lucide-react";
+import { Home, Users, Pen, FileText, LogOut, Truck, ShieldCheck, ScrollText, ShieldAlert, HardDrive, SlidersHorizontal, CalendarDays } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
@@ -8,6 +8,7 @@ const baseItems = [
   { to: "/funcionarios", label: "Funcion.", icon: Users },
   { to: "/fornecedores", label: "Fornec.", icon: Truck },
   { to: "/registrar", label: "Registrar", icon: Pen },
+  { to: "/por-dia", label: "Por dia", icon: CalendarDays },
   { to: "/relatorio", label: "Relat.", icon: FileText },
 ] as const;
 
