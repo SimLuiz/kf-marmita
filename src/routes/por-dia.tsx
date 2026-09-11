@@ -21,6 +21,8 @@ interface Rec {
   employee_id: string;
   meal_type_id: string | null;
   taken_at: string;
+  unit_price: number | null;
+  company_unit_price: number | null;
   employees: { name: string } | null;
   meal_types: { name: string; price: number; company_price: number } | null;
 }
@@ -55,7 +57,7 @@ function Page() {
       const { data, error } = await fetchAllRows<Rec>((a, b) =>
         supabase
           .from("meal_records")
-          .select("id, employee_id, meal_type_id, taken_at, employees(name), meal_types(name, price, company_price)")
+          .select("id, employee_id, meal_type_id, taken_at, unit_price, company_unit_price, employees(name), meal_types(name, price, company_price)")
           .gte("taken_at", from.toISOString())
           .lte("taken_at", to.toISOString())
           .order("taken_at", { ascending: true })
@@ -81,8 +83,8 @@ function Page() {
       const name = r.meal_types?.name ?? "Não informada";
       const cur = map.get(key) ?? { name, qty: 0, employee: 0, company: 0 };
       cur.qty += 1;
-      cur.employee += r.meal_types?.price ?? 0;
-      cur.company += r.meal_types?.company_price ?? 0;
+      cur.employee += r.unit_price ?? r.meal_types?.price ?? 0;
+      cur.company += r.company_unit_price ?? r.meal_types?.company_price ?? 0;
       map.set(key, cur);
     }
     return [...map.values()].sort((a, b) => b.qty - a.qty);
