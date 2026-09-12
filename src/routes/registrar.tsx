@@ -214,7 +214,7 @@ function Page() {
   });
 
   const save = async () => {
-    if (!selected || !selectedType || !sigBlob || !user) return;
+    if (!selected || !selectedType || !sigBlob || !user || saving) return;
     setSaving(true);
     try {
       const path = `${user.id}/${Date.now()}-${selected.id}.png`;
