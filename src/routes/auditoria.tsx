@@ -12,6 +12,16 @@ import { listAuditLogs } from "@/lib/audit.functions";
 import { toUserMessage } from "@/lib/safe-error";
 
 export const Route = createFileRoute("/auditoria")({
+  head: () => ({
+    meta: [
+      { title: "Auditoria | Marmita Control" },
+      { name: "description", content: "Consulte o histórico de alterações feitas no controle de marmitas." },
+      { property: "og:title", content: "Auditoria | Marmita Control" },
+      { property: "og:description", content: "Consulte o histórico de alterações feitas no controle de marmitas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Page />

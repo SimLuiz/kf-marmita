@@ -20,6 +20,16 @@ import { getSecurityMetrics, type SecurityMetrics } from "@/lib/security-metrics
 import { toUserMessage } from "@/lib/safe-error";
 
 export const Route = createFileRoute("/seguranca")({
+  head: () => ({
+    meta: [
+      { title: "Segurança | Marmita Control" },
+      { name: "description", content: "Acompanhe indicadores de segurança e acessos do controle de marmitas." },
+      { property: "og:title", content: "Segurança | Marmita Control" },
+      { property: "og:description", content: "Acompanhe indicadores de segurança e acessos do controle de marmitas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Page />

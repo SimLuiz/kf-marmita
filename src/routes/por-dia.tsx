@@ -9,6 +9,16 @@ import { ChevronLeft, ChevronRight, Utensils, Users, Search } from "lucide-react
 import { fetchAllRows } from "@/lib/fetch-all";
 
 export const Route = createFileRoute("/por-dia")({
+  head: () => ({
+    meta: [
+      { title: "Marmitas por dia | Marmita Control" },
+      { name: "description", content: "Acompanhe o total diário de marmitas por tipo e por funcionário." },
+      { property: "og:title", content: "Marmitas por dia | Marmita Control" },
+      { property: "og:description", content: "Acompanhe o total diário de marmitas por tipo e por funcionário." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Page />

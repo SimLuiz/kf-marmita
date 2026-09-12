@@ -20,6 +20,16 @@ import { PASSWORD_POLICY_HINT, validatePassword } from "@/lib/password-policy";
 import { toUserMessage } from "@/lib/safe-error";
 
 export const Route = createFileRoute("/usuarios")({
+  head: () => ({
+    meta: [
+      { title: "Usuários do sistema | Marmita Control" },
+      { name: "description", content: "Crie, bloqueie e remova contas de acesso ao controle de marmitas." },
+      { property: "og:title", content: "Usuários do sistema | Marmita Control" },
+      { property: "og:description", content: "Crie, bloqueie e remova contas de acesso ao controle de marmitas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Page />

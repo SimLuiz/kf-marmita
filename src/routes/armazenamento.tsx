@@ -19,6 +19,16 @@ import {
 import { toUserMessage } from "@/lib/safe-error";
 
 export const Route = createFileRoute("/armazenamento")({
+  head: () => ({
+    meta: [
+      { title: "Armazenamento | Marmita Control" },
+      { name: "description", content: "Monitore o espaço usado por registros e assinaturas e limpe dados antigos." },
+      { property: "og:title", content: "Armazenamento | Marmita Control" },
+      { property: "og:description", content: "Monitore o espaço usado por registros e assinaturas e limpe dados antigos." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Page />

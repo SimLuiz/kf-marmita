@@ -32,6 +32,16 @@ interface Employee {
 }
 
 export const Route = createFileRoute("/funcionarios")({
+  head: () => ({
+    meta: [
+      { title: "Funcionários | Marmita Control" },
+      { name: "description", content: "Cadastre, edite e pesquise funcionários por nome ou CPF no controle de marmitas." },
+      { property: "og:title", content: "Funcionários | Marmita Control" },
+      { property: "og:description", content: "Cadastre, edite e pesquise funcionários por nome ou CPF no controle de marmitas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Page />

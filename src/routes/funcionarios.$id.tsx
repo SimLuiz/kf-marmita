@@ -62,6 +62,16 @@ interface RecordWithUrl extends Record {
 }
 
 export const Route = createFileRoute("/funcionarios/$id")({
+  head: () => ({
+    meta: [
+      { title: "Histórico do funcionário | Marmita Control" },
+      { name: "description", content: "Veja as marmitas retiradas por dia, fornecedor, valores e assinaturas do funcionário." },
+      { property: "og:title", content: "Histórico do funcionário | Marmita Control" },
+      { property: "og:description", content: "Veja as marmitas retiradas por dia, fornecedor, valores e assinaturas do funcionário." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Page />

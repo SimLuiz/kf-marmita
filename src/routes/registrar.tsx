@@ -26,6 +26,16 @@ interface MealType {
 }
 
 export const Route = createFileRoute("/registrar")({
+  head: () => ({
+    meta: [
+      { title: "Registrar retirada de marmita | Marmita Control" },
+      { name: "description", content: "Registre a retirada da marmita com assinatura do funcionário, fornecedor e valor." },
+      { property: "og:title", content: "Registrar retirada de marmita | Marmita Control" },
+      { property: "og:description", content: "Registre a retirada da marmita com assinatura do funcionário, fornecedor e valor." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Page />

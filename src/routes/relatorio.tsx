@@ -10,6 +10,16 @@ import { toast } from "sonner";
 import { fetchAllRows } from "@/lib/fetch-all";
 
 export const Route = createFileRoute("/relatorio")({
+  head: () => ({
+    meta: [
+      { title: "Relatórios de marmitas | Marmita Control" },
+      { name: "description", content: "Gere relatórios por período e exporte em Excel e PDF com setor, fornecedor e valores." },
+      { property: "og:title", content: "Relatórios de marmitas | Marmita Control" },
+      { property: "og:description", content: "Gere relatórios por período e exporte em Excel e PDF com setor, fornecedor e valores." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Page />

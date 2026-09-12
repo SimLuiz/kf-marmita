@@ -13,6 +13,16 @@ import { Plus, Trash2, Truck, Utensils, Pencil, Check, X } from "lucide-react";
 import { toUserMessage } from "@/lib/safe-error";
 
 export const Route = createFileRoute("/fornecedores")({
+  head: () => ({
+    meta: [
+      { title: "Fornecedores e marmitas | Marmita Control" },
+      { name: "description", content: "Gerencie fornecedores, tipos de marmita e os valores pagos pela empresa e pelo funcionário." },
+      { property: "og:title", content: "Fornecedores e marmitas | Marmita Control" },
+      { property: "og:description", content: "Gerencie fornecedores, tipos de marmita e os valores pagos pela empresa e pelo funcionário." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Page />
