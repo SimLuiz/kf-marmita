@@ -8,9 +8,9 @@ const SUPABASE_WS = "wss://fumbcjoeylgizrzagnff.supabase.co";
 const CSP = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'`,
-  `style-src 'self' 'unsafe-inline'`,
+  `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
   `img-src 'self' data: blob: https:`,
-  `font-src 'self' data:`,
+  `font-src 'self' data: https://fonts.gstatic.com`,
   `connect-src 'self' ${SUPABASE_HOST} ${SUPABASE_WS}`,
   `frame-ancestors 'self' https://*.lovable.app https://lovable.dev`,
   `base-uri 'self'`,
