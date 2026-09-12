@@ -375,7 +375,7 @@ ${rows
       </div>
 
       <div
-        className="bg-card rounded-2xl p-3 space-y-3"
+        className="bg-card rounded-lg p-3 space-y-3"
         style={{ boxShadow: "var(--shadow-card)" }}
       >
         <div className="grid grid-cols-2 gap-2">
@@ -453,21 +453,21 @@ ${rows
 
       <div className="grid grid-cols-3 gap-3">
         <div
-          className="bg-card rounded-2xl p-4 text-center"
+          className="bg-card rounded-lg p-4 text-center"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Marmitas</div>
           <div className="text-3xl font-bold text-primary">{totalCount}</div>
         </div>
         <div
-          className="bg-card rounded-2xl p-4 text-center"
+          className="bg-card rounded-lg p-4 text-center"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Funcionário paga</div>
           <div className="text-xl font-bold text-primary">{brl(totalValue)}</div>
         </div>
         <div
-          className="bg-card rounded-2xl p-4 text-center"
+          className="bg-card rounded-lg p-4 text-center"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Empresa paga</div>
@@ -495,7 +495,7 @@ ${rows
           byEmployee.map((g) => (
             <div
               key={g.row.employee_id}
-              className="bg-card rounded-2xl p-4 space-y-2"
+              className="bg-card rounded-lg p-4 space-y-2"
               style={{ boxShadow: "var(--shadow-card)" }}
             >
               <div className="flex items-center justify-between gap-3">

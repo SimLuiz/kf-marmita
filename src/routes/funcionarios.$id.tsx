@@ -197,7 +197,7 @@ function Page() {
       </div>
 
       <div
-        className="bg-card rounded-2xl p-4 space-y-2"
+        className="bg-card rounded-lg p-4 space-y-2"
         style={{ boxShadow: "var(--shadow-card)" }}
       >
         <div className="flex items-center gap-3">
@@ -228,7 +228,7 @@ function Page() {
       </div>
 
       <div
-        className="bg-card rounded-2xl p-3 flex items-center justify-between"
+        className="bg-card rounded-lg p-3 flex items-center justify-between"
         style={{ boxShadow: "var(--shadow-card)" }}
       >
         <Button
@@ -266,7 +266,7 @@ function Page() {
           v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         return (
           <div
-            className="bg-card rounded-2xl p-5 grid grid-cols-2 gap-3 text-center"
+            className="bg-card rounded-lg p-5 grid grid-cols-2 gap-3 text-center"
             style={{ boxShadow: "var(--shadow-card)" }}
           >
             <div>
@@ -340,7 +340,7 @@ function Page() {
                         return (
                           <div
                             key={rec.id}
-                            className="bg-card rounded-xl p-3 flex items-center gap-3"
+                            className="bg-card rounded-lg p-3 flex items-center gap-3"
                             style={{ boxShadow: "var(--shadow-card)" }}
                           >
                             {rec.photoUrl ? (
@@ -446,7 +446,7 @@ function Page() {
           <img
             src={lightbox}
             alt="Foto da marmita"
-            className="max-h-full max-w-full rounded-xl"
+            className="max-h-full max-w-full rounded-lg"
           />
         </button>
       )}

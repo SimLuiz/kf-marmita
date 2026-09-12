@@ -121,7 +121,7 @@ function Page() {
       {data && (
         <>
           <div
-            className="rounded-xl border bg-card p-4 space-y-3"
+            className="rounded-lg border bg-card p-4 space-y-3"
             style={{ boxShadow: "var(--shadow-card)" }}
           >
             <div className="flex items-center justify-between">
@@ -157,7 +157,7 @@ function Page() {
           </div>
 
           <div
-            className="rounded-xl border bg-card p-4"
+            className="rounded-lg border bg-card p-4"
             style={{ boxShadow: "var(--shadow-card)" }}
           >
             <p className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -192,7 +192,7 @@ function Page() {
 
           {/* Limpeza de dados por período */}
           <div
-            className="rounded-xl border border-destructive/30 bg-card p-4 space-y-3"
+            className="rounded-lg border border-destructive/30 bg-card p-4 space-y-3"
             style={{ boxShadow: "var(--shadow-card)" }}
           >
             <div className="flex items-center gap-2">

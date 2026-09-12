@@ -52,7 +52,7 @@ function MetricCard({
 }) {
   return (
     <div
-      className="rounded-xl border bg-card p-4"
+      className="rounded-lg border bg-card p-4"
       style={{ boxShadow: "var(--shadow-card)" }}
     >
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -123,7 +123,7 @@ function Page() {
           {data.alerts.map((a, i) => (
             <div
               key={i}
-              className={`flex items-start gap-2 rounded-xl border p-3 text-sm ${
+              className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${
                 a.level === "critical"
                   ? "border-destructive/30 bg-destructive/10 text-destructive"
                   : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
@@ -144,7 +144,7 @@ function Page() {
       )}
 
       {data && data.alerts.length === 0 && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
           <ShieldCheck className="h-4 w-4" />
           Nenhuma atividade suspeita nas últimas 24h.
         </div>
@@ -170,7 +170,7 @@ function Page() {
 
       {/* Top IPs */}
       {data && data.topIps.length > 0 && (
-        <div className="rounded-xl border bg-card p-4" style={{ boxShadow: "var(--shadow-card)" }}>
+        <div className="rounded-lg border bg-card p-4" style={{ boxShadow: "var(--shadow-card)" }}>
           <p className="text-sm font-semibold mb-2">IPs mais ativos (24h)</p>
           <div className="space-y-1">
             {data.topIps.map((t) => (
@@ -184,7 +184,7 @@ function Page() {
       )}
 
       {/* Ações críticas recentes */}
-      <div className="rounded-xl border bg-card p-4" style={{ boxShadow: "var(--shadow-card)" }}>
+      <div className="rounded-lg border bg-card p-4" style={{ boxShadow: "var(--shadow-card)" }}>
         <p className="text-sm font-semibold mb-3">Ações críticas recentes</p>
         {data && data.recentCritical.length === 0 && (
           <p className="text-xs text-muted-foreground">Nenhuma nas últimas 24h.</p>

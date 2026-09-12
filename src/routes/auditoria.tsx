@@ -143,7 +143,7 @@ function Page() {
           return (
             <div
               key={l.id}
-              className="rounded-xl border bg-card p-3 text-sm"
+              className="rounded-lg border bg-card p-3 text-sm"
               style={{ boxShadow: "var(--shadow-card)" }}
             >
               <div className="flex items-start justify-between gap-2">

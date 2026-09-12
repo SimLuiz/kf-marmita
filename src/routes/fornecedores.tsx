@@ -148,7 +148,7 @@ function Page() {
       {canManage && (
         <form
           onSubmit={addSupplier}
-          className="bg-card rounded-2xl p-4 space-y-3"
+          className="bg-card rounded-lg p-4 space-y-3"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
           <div className="space-y-1.5">
@@ -179,7 +179,7 @@ function Page() {
             return (
               <div
                 key={s.id}
-                className="bg-card rounded-2xl p-4 space-y-3"
+                className="bg-card rounded-lg p-4 space-y-3"
                 style={{ boxShadow: "var(--shadow-card)" }}
               >
                 <div className="flex items-center gap-2">

@@ -123,7 +123,7 @@ function SignaturePad({
   return (
     <div className="space-y-2">
       <div
-        className="rounded-2xl overflow-hidden bg-white border border-border"
+        className="rounded-lg overflow-hidden bg-white border border-border"
         style={{ boxShadow: "var(--shadow-card)" }}
       >
         <canvas
@@ -298,7 +298,7 @@ function Page() {
                 <button
                   key={emp.id}
                   onClick={() => setSelected(emp)}
-                  className="w-full bg-card rounded-xl p-4 flex items-center gap-3 text-left hover:bg-accent transition-colors"
+                  className="w-full bg-card rounded-lg p-4 flex items-center gap-3 text-left hover:bg-accent transition-colors"
                   style={{ boxShadow: "var(--shadow-card)" }}
                 >
                   <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold shrink-0">
@@ -321,7 +321,7 @@ function Page() {
 
       {step >= 2 && selected && (
         <div
-          className="bg-card rounded-xl p-3 flex items-center justify-between"
+          className="bg-card rounded-lg p-3 flex items-center justify-between"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
           <div className="flex items-center gap-3 min-w-0">
@@ -344,7 +344,7 @@ function Page() {
             return (
               <div
                 key={sup.id}
-                className="bg-card rounded-2xl p-4 space-y-2"
+                className="bg-card rounded-lg p-4 space-y-2"
                 style={{ boxShadow: "var(--shadow-card)" }}
               >
                 <div className="flex items-center gap-2 text-sm font-semibold">
@@ -372,7 +372,7 @@ function Page() {
       {step === 3 && selectedType && (
         <div className="space-y-4">
           <div
-            className="bg-card rounded-xl p-3 flex items-center justify-between"
+            className="bg-card rounded-lg p-3 flex items-center justify-between"
             style={{ boxShadow: "var(--shadow-card)" }}
           >
             <div className="min-w-0">
@@ -394,7 +394,7 @@ function Page() {
 
           {(isAdmin || can("can_backdate_records")) && (
             <div
-              className="bg-card rounded-xl p-3 space-y-1.5"
+              className="bg-card rounded-lg p-3 space-y-1.5"
               style={{ boxShadow: "var(--shadow-card)" }}
             >
               <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
