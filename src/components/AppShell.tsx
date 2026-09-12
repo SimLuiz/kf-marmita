@@ -159,7 +159,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             return (
               <Link key={it.to} to={it.to} className={`mobile-nav-item ${active ? "text-primary" : "text-muted-foreground"}`}>
                 <Icon className="h-5 w-5 shrink-0" />
-                Por dia
+                <span className="w-full truncate text-center">{it.label}</span>
               </Link>
             );
           })}

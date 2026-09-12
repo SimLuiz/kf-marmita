@@ -32,6 +32,16 @@ interface Employee {
 }
 
 export const Route = createFileRoute("/funcionarios")({
+  head: () => ({
+    meta: [
+      { title: "Funcionários | Marmita Control" },
+      { name: "description", content: "Cadastre, edite e pesquise funcionários por nome ou CPF no controle de marmitas." },
+      { property: "og:title", content: "Funcionários | Marmita Control" },
+      { property: "og:description", content: "Cadastre, edite e pesquise funcionários por nome ou CPF no controle de marmitas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Page />
@@ -155,7 +165,7 @@ function FuncionariosList() {
       {can("can_create_employees") && (
       <form
         onSubmit={add}
-        className="bg-card rounded-2xl p-4 space-y-3"
+        className="bg-card rounded-lg p-4 space-y-3"
         style={{ boxShadow: "var(--shadow-card)" }}
       >
         <div className="space-y-1.5">
@@ -245,7 +255,7 @@ function FuncionariosList() {
                 navigate({ to: "/funcionarios/$id", params: { id: emp.id } });
               }
             }}
-            className="w-full bg-card rounded-xl p-4 flex items-center gap-3 text-left hover:bg-accent/40 transition-colors cursor-pointer"
+            className="w-full bg-card rounded-lg p-4 flex items-center gap-3 text-left hover:bg-accent/40 transition-colors cursor-pointer"
             style={{ boxShadow: "var(--shadow-card)" }}
           >
             <div className="h-10 w-10 shrink-0 rounded-full bg-accent flex items-center justify-center font-semibold text-accent-foreground">

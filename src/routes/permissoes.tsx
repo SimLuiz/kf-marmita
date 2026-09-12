@@ -88,7 +88,7 @@ function Page() {
           {PERMISSION_LABELS.map(({ key, label, help }) => (
             <div
               key={key}
-              className="bg-card rounded-xl p-4 flex items-start gap-3"
+              className="bg-card rounded-lg p-4 flex items-start gap-3"
               style={{ boxShadow: "var(--shadow-card)" }}
             >
               <div className="flex-1 min-w-0">

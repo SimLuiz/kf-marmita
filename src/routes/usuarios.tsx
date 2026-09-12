@@ -20,6 +20,16 @@ import { PASSWORD_POLICY_HINT, validatePassword } from "@/lib/password-policy";
 import { toUserMessage } from "@/lib/safe-error";
 
 export const Route = createFileRoute("/usuarios")({
+  head: () => ({
+    meta: [
+      { title: "Usuários do sistema | Marmita Control" },
+      { name: "description", content: "Crie, bloqueie e remova contas de acesso ao controle de marmitas." },
+      { property: "og:title", content: "Usuários do sistema | Marmita Control" },
+      { property: "og:description", content: "Crie, bloqueie e remova contas de acesso ao controle de marmitas." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: () => (
     <ProtectedShell>
       <Page />
@@ -127,7 +137,7 @@ function Page() {
 
       <form
         onSubmit={add}
-        className="bg-card rounded-2xl p-4 space-y-3"
+        className="bg-card rounded-lg p-4 space-y-3"
         style={{ boxShadow: "var(--shadow-card)" }}
       >
         <div className="space-y-1.5">
@@ -170,7 +180,7 @@ function Page() {
           return (
             <div
               key={u.id}
-              className={`bg-card rounded-xl p-4 flex items-center gap-3 ${u.blocked ? "opacity-70" : ""}`}
+              className={`bg-card rounded-lg p-4 flex items-center gap-3 ${u.blocked ? "opacity-70" : ""}`}
               style={{ boxShadow: "var(--shadow-card)" }}
             >
               <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center">
@@ -272,7 +282,7 @@ function Page() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <form
             onSubmit={doReset}
-            className="bg-card rounded-2xl p-5 w-full max-w-sm space-y-3"
+            className="bg-card rounded-lg p-5 w-full max-w-sm space-y-3"
             style={{ boxShadow: "var(--shadow-card)" }}
           >
             <h3 className="font-semibold">Nova senha para {resetFor.username}</h3>
