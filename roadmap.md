@@ -5,4 +5,4 @@
 - [x] Reorganizar tela inicial e login
 - [x] Padronizar telas internas e corrigir bugs encontrados
 - [x] Completar metadados das páginas
-- [ ] Validar celular, tablet, navegação e erros
+- [x] Validar celular, tablet, navegação e erros
