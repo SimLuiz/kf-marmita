@@ -145,7 +145,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className={`mobile-nav-item ${active ? "text-primary" : "text-muted-foreground"}`}
               >
                 <Icon className="h-5 w-5 shrink-0" />
-                {it.label}
+                <span className="w-full truncate text-center">{shortLabel(it.to, it.label)}</span>
               </Link>
             );
           })}
