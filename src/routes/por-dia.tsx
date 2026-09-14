@@ -140,7 +140,7 @@ function Page() {
         </Button>
       </div>
 
-      <p className="text-sm text-muted-foreground capitalize">{dayLabel}</p>
+      <p className="text-sm text-muted-foreground first-cap">{dayLabel}</p>
 
       <div className="bg-card rounded-lg p-4 flex items-center justify-between" style={{ boxShadow: "var(--shadow-card)" }}>
         <div className="flex items-center gap-2">

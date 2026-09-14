@@ -419,7 +419,7 @@ ${rows
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
-            <div className="font-semibold capitalize">{periodLabel}</div>
+            <div className="font-semibold first-cap">{periodLabel}</div>
             <Button
               variant="ghost"
               size="icon"

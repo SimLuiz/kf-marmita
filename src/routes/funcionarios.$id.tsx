@@ -253,7 +253,7 @@ function Page() {
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <div className="font-semibold capitalize">{monthName}</div>
+        <div className="font-semibold first-cap">{monthName}</div>
         <Button
           variant="ghost"
           size="icon"
@@ -330,7 +330,7 @@ function Page() {
                   return (
                     <div key={day} className="space-y-2">
                       <div className="flex items-center justify-between px-1">
-                        <div className="text-sm font-semibold capitalize">
+                        <div className="text-sm font-semibold first-cap">
                           {dayDate.toLocaleDateString("pt-BR", {
                             weekday: "long",
                             day: "2-digit",
