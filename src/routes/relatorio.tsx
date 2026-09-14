@@ -419,7 +419,7 @@ ${rows
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
-            <div className="font-semibold capitalize">{periodLabel}</div>
+            <div className="font-semibold first-cap">{periodLabel}</div>
             <Button
               variant="ghost"
               size="icon"
@@ -461,7 +461,7 @@ ${rows
       </div>
 
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div
           className="bg-card rounded-lg p-4 text-center"
           style={{ boxShadow: "var(--shadow-card)" }}
@@ -474,14 +474,14 @@ ${rows
           style={{ boxShadow: "var(--shadow-card)" }}
         >
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Funcionário paga</div>
-          <div className="text-xl font-bold text-primary">{brl(totalValue)}</div>
+          <div className="text-xl font-bold text-primary tabular-nums break-words">{brl(totalValue)}</div>
         </div>
         <div
           className="bg-card rounded-lg p-4 text-center"
           style={{ boxShadow: "var(--shadow-card)" }}
         >
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Empresa paga</div>
-          <div className="text-xl font-bold text-primary">{brl(totalCompany)}</div>
+          <div className="text-xl font-bold text-primary tabular-nums break-words">{brl(totalCompany)}</div>
         </div>
       </div>
 

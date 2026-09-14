@@ -28,6 +28,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const items = isAdmin ? [...baseItems, ...adminItems] : baseItems;
   const mobileItems = [baseItems[0], baseItems[2], baseItems[1], baseItems[4]];
+  const shortLabel = (to: string, label: string) =>
+    to === "/por-dia" ? "Por dia" : to === "/funcionarios" ? "Equipe" : label;
   const secondaryItems = items.filter((item) => !mobileItems.some((mobile) => mobile.to === item.to));
   const activeFor = (path: string) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
@@ -143,7 +145,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className={`mobile-nav-item ${active ? "text-primary" : "text-muted-foreground"}`}
               >
                 <Icon className="h-5 w-5 shrink-0" />
-                {it.label}
+                <span className="w-full truncate text-center">{shortLabel(it.to, it.label)}</span>
               </Link>
             );
           })}
@@ -159,7 +161,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             return (
               <Link key={it.to} to={it.to} className={`mobile-nav-item ${active ? "text-primary" : "text-muted-foreground"}`}>
                 <Icon className="h-5 w-5 shrink-0" />
-                <span className="w-full truncate text-center">{it.label}</span>
+                <span className="w-full truncate text-center">{shortLabel(it.to, it.label)}</span>
               </Link>
             );
           })}
