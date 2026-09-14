@@ -28,6 +28,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const items = isAdmin ? [...baseItems, ...adminItems] : baseItems;
   const mobileItems = [baseItems[0], baseItems[2], baseItems[1], baseItems[4]];
+  const shortLabel = (to: string, label: string) =>
+    to === "/por-dia" ? "Por dia" : to === "/funcionarios" ? "Equipe" : label;
   const secondaryItems = items.filter((item) => !mobileItems.some((mobile) => mobile.to === item.to));
   const activeFor = (path: string) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
