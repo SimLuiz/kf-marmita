@@ -118,6 +118,11 @@
 
 @utility font-display { font-family: var(--font-display); }
 
+@utility first-cap {
+  text-transform: lowercase;
+  &::first-letter { text-transform: uppercase; }
+}
+
 @utility nav-item {
   display: flex;
   min-width: 0;
