@@ -474,7 +474,7 @@ ${rows
           style={{ boxShadow: "var(--shadow-card)" }}
         >
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Funcionário paga</div>
-          <div className="text-xl font-bold text-primary">{brl(totalValue)}</div>
+          <div className="text-xl font-bold text-primary tabular-nums break-words">{brl(totalValue)}</div>
         </div>
         <div
           className="bg-card rounded-lg p-4 text-center"
