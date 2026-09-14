@@ -481,7 +481,7 @@ ${rows
           style={{ boxShadow: "var(--shadow-card)" }}
         >
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Empresa paga</div>
-          <div className="text-xl font-bold text-primary">{brl(totalCompany)}</div>
+          <div className="text-xl font-bold text-primary tabular-nums break-words">{brl(totalCompany)}</div>
         </div>
       </div>
 
