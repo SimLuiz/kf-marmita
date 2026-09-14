@@ -72,11 +72,7 @@ export const Route = createFileRoute("/funcionarios/$id")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: () => (
-    <ProtectedShell>
-      <Page />
-    </ProtectedShell>
-  ),
+  component: Page,
 });
 
 
