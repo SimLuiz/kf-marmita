@@ -19,6 +19,7 @@ const adminItems = [
   { to: "/auditoria", label: "Auditoria", icon: ScrollText },
   { to: "/seguranca", label: "Segurança", icon: ShieldAlert },
   { to: "/armazenamento", label: "Armazenamento", icon: HardDrive },
+  { to: "/integracao", label: "Integração RH", icon: Plug },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
