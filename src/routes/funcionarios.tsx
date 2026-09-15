@@ -76,6 +76,7 @@ function FuncionariosList() {
   const [cpf, setCpf] = useState("");
   const [company, setCompany] = useState("");
   const [sector, setSector] = useState("");
+  const [vinculo, setVinculo] = useState("clt");
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Employee | null>(null);
