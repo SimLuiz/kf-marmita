@@ -15,6 +15,7 @@ import { Route as RelatorioRouteImport } from './routes/relatorio'
 import { Route as RegistrarRouteImport } from './routes/registrar'
 import { Route as PorDiaRouteImport } from './routes/por-dia'
 import { Route as PermissoesRouteImport } from './routes/permissoes'
+import { Route as IntegracaoRouteImport } from './routes/integracao'
 import { Route as FuncionariosRouteImport } from './routes/funcionarios'
 import { Route as FornecedoresRouteImport } from './routes/fornecedores'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
@@ -51,6 +52,11 @@ const PorDiaRoute = PorDiaRouteImport.update({
 const PermissoesRoute = PermissoesRouteImport.update({
   id: '/permissoes',
   path: '/permissoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegracaoRoute = IntegracaoRouteImport.update({
+  id: '/integracao',
+  path: '/integracao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FuncionariosRoute = FuncionariosRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/auditoria': typeof AuditoriaRoute
   '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
+  '/integracao': typeof IntegracaoRoute
   '/permissoes': typeof PermissoesRoute
   '/por-dia': typeof PorDiaRoute
   '/registrar': typeof RegistrarRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/auditoria': typeof AuditoriaRoute
   '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
+  '/integracao': typeof IntegracaoRoute
   '/permissoes': typeof PermissoesRoute
   '/por-dia': typeof PorDiaRoute
   '/registrar': typeof RegistrarRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/auditoria': typeof AuditoriaRoute
   '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
+  '/integracao': typeof IntegracaoRoute
   '/permissoes': typeof PermissoesRoute
   '/por-dia': typeof PorDiaRoute
   '/registrar': typeof RegistrarRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/fornecedores'
     | '/funcionarios'
+    | '/integracao'
     | '/permissoes'
     | '/por-dia'
     | '/registrar'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/fornecedores'
     | '/funcionarios'
+    | '/integracao'
     | '/permissoes'
     | '/por-dia'
     | '/registrar'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/fornecedores'
     | '/funcionarios'
+    | '/integracao'
     | '/permissoes'
     | '/por-dia'
     | '/registrar'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   AuditoriaRoute: typeof AuditoriaRoute
   FornecedoresRoute: typeof FornecedoresRoute
   FuncionariosRoute: typeof FuncionariosRouteWithChildren
+  IntegracaoRoute: typeof IntegracaoRoute
   PermissoesRoute: typeof PermissoesRoute
   PorDiaRoute: typeof PorDiaRoute
   RegistrarRoute: typeof RegistrarRoute
@@ -240,6 +253,13 @@ declare module '@tanstack/react-router' {
       path: '/permissoes'
       fullPath: '/permissoes'
       preLoaderRoute: typeof PermissoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integracao': {
+      id: '/integracao'
+      path: '/integracao'
+      fullPath: '/integracao'
+      preLoaderRoute: typeof IntegracaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/funcionarios': {
@@ -312,6 +332,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuditoriaRoute: AuditoriaRoute,
   FornecedoresRoute: FornecedoresRoute,
   FuncionariosRoute: FuncionariosRouteWithChildren,
+  IntegracaoRoute: IntegracaoRoute,
   PermissoesRoute: PermissoesRoute,
   PorDiaRoute: PorDiaRoute,
   RegistrarRoute: RegistrarRoute,

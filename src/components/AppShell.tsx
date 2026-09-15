@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useState } from "react";
-import { Home, Users, PenLine, FileText, LogOut, Truck, ShieldCheck, ScrollText, ShieldAlert, HardDrive, SlidersHorizontal, CalendarDays, UtensilsCrossed, Menu, X } from "lucide-react";
+import { Home, Users, PenLine, FileText, LogOut, Truck, ShieldCheck, ScrollText, ShieldAlert, HardDrive, SlidersHorizontal, CalendarDays, UtensilsCrossed, Menu, X, Plug } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
