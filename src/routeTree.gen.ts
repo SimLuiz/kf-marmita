@@ -21,6 +21,7 @@ import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as ArmazenamentoRouteImport } from './routes/armazenamento'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FuncionariosIdRouteImport } from './routes/funcionarios.$id'
+import { Route as ApiPublicRhMarmitasRouteImport } from './routes/api/public/rh/marmitas'
 
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
@@ -82,6 +83,11 @@ const FuncionariosIdRoute = FuncionariosIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => FuncionariosRoute,
 } as any)
+const ApiPublicRhMarmitasRoute = ApiPublicRhMarmitasRouteImport.update({
+  id: '/api/public/rh/marmitas',
+  path: '/api/public/rh/marmitas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/seguranca': typeof SegurancaRoute
   '/usuarios': typeof UsuariosRoute
   '/funcionarios/$id': typeof FuncionariosIdRoute
+  '/api/public/rh/marmitas': typeof ApiPublicRhMarmitasRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/seguranca': typeof SegurancaRoute
   '/usuarios': typeof UsuariosRoute
   '/funcionarios/$id': typeof FuncionariosIdRoute
+  '/api/public/rh/marmitas': typeof ApiPublicRhMarmitasRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/seguranca': typeof SegurancaRoute
   '/usuarios': typeof UsuariosRoute
   '/funcionarios/$id': typeof FuncionariosIdRoute
+  '/api/public/rh/marmitas': typeof ApiPublicRhMarmitasRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/seguranca'
     | '/usuarios'
     | '/funcionarios/$id'
+    | '/api/public/rh/marmitas'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/seguranca'
     | '/usuarios'
     | '/funcionarios/$id'
+    | '/api/public/rh/marmitas'
   id:
     | '__root__'
     | '/'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/seguranca'
     | '/usuarios'
     | '/funcionarios/$id'
+    | '/api/public/rh/marmitas'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   RelatorioRoute: typeof RelatorioRoute
   SegurancaRoute: typeof SegurancaRoute
   UsuariosRoute: typeof UsuariosRoute
+  ApiPublicRhMarmitasRoute: typeof ApiPublicRhMarmitasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -271,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FuncionariosIdRouteImport
       parentRoute: typeof FuncionariosRoute
     }
+    '/api/public/rh/marmitas': {
+      id: '/api/public/rh/marmitas'
+      path: '/api/public/rh/marmitas'
+      fullPath: '/api/public/rh/marmitas'
+      preLoaderRoute: typeof ApiPublicRhMarmitasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -298,6 +318,7 @@ const rootRouteChildren: RootRouteChildren = {
   RelatorioRoute: RelatorioRoute,
   SegurancaRoute: SegurancaRoute,
   UsuariosRoute: UsuariosRoute,
+  ApiPublicRhMarmitasRoute: ApiPublicRhMarmitasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
