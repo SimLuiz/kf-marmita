@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useState } from "react";
-import { Home, Users, PenLine, FileText, LogOut, Truck, ShieldCheck, ScrollText, ShieldAlert, HardDrive, SlidersHorizontal, CalendarDays, UtensilsCrossed, Menu, X } from "lucide-react";
+import { Home, Users, PenLine, FileText, LogOut, Truck, ShieldCheck, ScrollText, ShieldAlert, HardDrive, SlidersHorizontal, CalendarDays, UtensilsCrossed, Menu, X, Plug } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +19,7 @@ const adminItems = [
   { to: "/auditoria", label: "Auditoria", icon: ScrollText },
   { to: "/seguranca", label: "Segurança", icon: ShieldAlert },
   { to: "/armazenamento", label: "Armazenamento", icon: HardDrive },
+  { to: "/integracao", label: "Integração RH", icon: Plug },
 ] as const;
 
 export function AppShell({ children }: { children: React.ReactNode }) {

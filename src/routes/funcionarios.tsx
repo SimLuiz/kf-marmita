@@ -76,6 +76,7 @@ function FuncionariosList() {
   const [cpf, setCpf] = useState("");
   const [company, setCompany] = useState("");
   const [sector, setSector] = useState("");
+  const [vinculo, setVinculo] = useState("clt");
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Employee | null>(null);
@@ -213,6 +214,20 @@ function FuncionariosList() {
               required
             />
           </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="vinculo">Vínculo *</Label>
+          <select
+            id="vinculo"
+            value={vinculo}
+            onChange={(e) => setVinculo(e.target.value)}
+            className="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+          >
+            <option value="clt">CLT</option>
+            <option value="pj">PJ</option>
+            <option value="visitante">Visitante</option>
+            <option value="aniversariante">Aniversariante</option>
+          </select>
         </div>
         <Button type="submit" className="w-full" disabled={loading || !formValid}>
           <UserPlus className="h-4 w-4 mr-1" /> Cadastrar funcionário
