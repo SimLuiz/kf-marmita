@@ -103,6 +103,7 @@ export type Database = {
           name: string
           owner_id: string
           sector: string | null
+          vinculo: string
         }
         Insert: {
           archived_at?: string | null
@@ -114,6 +115,7 @@ export type Database = {
           name: string
           owner_id: string
           sector?: string | null
+          vinculo?: string
         }
         Update: {
           archived_at?: string | null
@@ -125,6 +127,7 @@ export type Database = {
           name?: string
           owner_id?: string
           sector?: string | null
+          vinculo?: string
         }
         Relationships: []
       }
@@ -219,6 +222,7 @@ export type Database = {
           company_price: number
           created_at: string
           id: string
+          key: string | null
           name: string
           owner_id: string
           price: number
@@ -229,6 +233,7 @@ export type Database = {
           company_price?: number
           created_at?: string
           id?: string
+          key?: string | null
           name: string
           owner_id: string
           price?: number
@@ -239,6 +244,7 @@ export type Database = {
           company_price?: number
           created_at?: string
           id?: string
+          key?: string | null
           name?: string
           owner_id?: string
           price?: number
@@ -329,6 +335,7 @@ export type Database = {
           name: string | null
           owner_id: string | null
           sector: string | null
+          vinculo: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -339,6 +346,7 @@ export type Database = {
           name?: string | null
           owner_id?: string | null
           sector?: string | null
+          vinculo?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -349,6 +357,7 @@ export type Database = {
           name?: string | null
           owner_id?: string | null
           sector?: string | null
+          vinculo?: string | null
         }
         Relationships: []
       }
