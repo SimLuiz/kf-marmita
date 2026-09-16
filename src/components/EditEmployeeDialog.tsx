@@ -19,6 +19,7 @@ interface Employee {
   cpf: string | null;
   company: string | null;
   sector: string | null;
+  vinculo?: string | null;
 }
 
 function formatCPF(v: string) {
@@ -41,6 +42,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
   const [cpf, setCpf] = useState("");
   const [company, setCompany] = useState("");
   const [sector, setSector] = useState("");
+  const [vinculo, setVinculo] = useState("clt");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -49,6 +51,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
       setCpf(employee.cpf ?? "");
       setCompany(employee.company ?? "");
       setSector(employee.sector ?? "");
+      setVinculo(employee.vinculo ?? "clt");
     }
   }, [employee]);
 
@@ -60,13 +63,14 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
       return toast.error("CPF deve ter 11 dígitos");
     }
     setSaving(true);
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("employees")
       .update({
         name: name.trim(),
         cpf: cpfDigits ? formatCPF(cpfDigits) : null,
         company: company.trim() || null,
         sector: sector.trim() || null,
+        vinculo,
       })
       .eq("id", employee.id);
     setSaving(false);
@@ -126,6 +130,20 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
               onChange={(e) => setSector(e.target.value)}
               maxLength={100}
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-vinculo">Vínculo</Label>
+            <select
+              id="edit-vinculo"
+              value={vinculo}
+              onChange={(e) => setVinculo(e.target.value)}
+              className="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <option value="clt">CLT</option>
+              <option value="pj">PJ</option>
+              <option value="visitante">Visitante</option>
+              <option value="aniversariante">Aniversariante</option>
+            </select>
           </div>
           <DialogFooter className="gap-2">
             <Button

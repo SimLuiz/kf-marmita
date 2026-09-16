@@ -124,11 +124,12 @@ function FuncionariosList() {
       return toast.error("CPF deve ter 11 dígitos");
     }
     setLoading(true);
-    const { error } = await supabase.from("employees").insert({
+    const { error } = await (supabase as any).from("employees").insert({
       name: name.trim(),
       cpf: formatCPF(cpfDigits),
       company: company.trim(),
       sector: sector.trim(),
+      vinculo,
       owner_id: user.id,
     });
     setLoading(false);
@@ -140,6 +141,7 @@ function FuncionariosList() {
     setCpf("");
     setCompany("");
     setSector("");
+    setVinculo("clt");
     toast.success("Funcionário cadastrado");
     load();
   };

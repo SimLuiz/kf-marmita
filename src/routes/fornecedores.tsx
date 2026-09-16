@@ -40,10 +40,21 @@ interface MealType {
   name: string;
   price: number;
   company_price: number;
+  key: string | null;
 }
 
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Gera uma chave estável (sem acentos, minúscula, com underscore) a partir do nome */
+const slugKey = (v: string) =>
+  v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
 
 function Page() {
   const { user, isAdmin } = useAuth();
@@ -54,10 +65,10 @@ function Page() {
   const [newSupplier, setNewSupplier] = useState("");
   const [editingSup, setEditingSup] = useState<{ id: string; name: string } | null>(null);
   const [typeForms, setTypeForms] = useState<
-    Record<string, { name: string; price: string; company_price: string }>
+    Record<string, { name: string; price: string; company_price: string; key: string }>
   >({});
   const [editingType, setEditingType] = useState<
-    { id: string; name: string; price: string; company_price: string } | null
+    { id: string; name: string; price: string; company_price: string; key: string } | null
   >(null);
   const [pendingSup, setPendingSup] = useState<Supplier | null>(null);
   const [pendingType, setPendingType] = useState<MealType | null>(null);
@@ -67,7 +78,7 @@ function Page() {
       supabase.from("suppliers").select("id,name").order("name"),
       (supabase as any)
         .from("meal_types")
-        .select("id,supplier_id,name,price,company_price")
+        .select("id,supplier_id,name,price,company_price,key")
         .is("archived_at", null)
         .order("name"),
     ]);
@@ -117,15 +128,25 @@ function Page() {
     if (!f?.name.trim() || !user) return;
     const price = parseFloat((f.price || "0").replace(",", ".")) || 0;
     const company_price = parseFloat((f.company_price || "0").replace(",", ".")) || 0;
+    const key = slugKey(f.key?.trim() || f.name);
     const { error } = await (supabase as any).from("meal_types").insert({
       owner_id: user.id,
       supplier_id: supplierId,
       name: f.name.trim(),
       price,
       company_price,
+      key: key || null,
     });
-    if (error) return toast.error(toUserMessage(error));
-    setTypeForms({ ...typeForms, [supplierId]: { name: "", price: "", company_price: "" } });
+    if (error)
+      return toast.error(
+        error.code === "23505"
+          ? "Já existe uma marmita com essa chave de integração"
+          : toUserMessage(error)
+      );
+    setTypeForms({
+      ...typeForms,
+      [supplierId]: { name: "", price: "", company_price: "", key: "" },
+    });
     toast.success("Tipo de marmita cadastrado");
     load();
   };
@@ -136,15 +157,22 @@ function Page() {
     if (!editingType || !editingType.name.trim()) return;
     const price = parseFloat((editingType.price || "0").replace(",", ".")) || 0;
     const company_price = parseFloat((editingType.company_price || "0").replace(",", ".")) || 0;
+    const key = slugKey(editingType.key?.trim() || editingType.name);
     const { error } = await (supabase as any)
       .from("meal_types")
-      .update({ name: editingType.name.trim(), price, company_price })
+      .update({ name: editingType.name.trim(), price, company_price, key: key || null })
       .eq("id", editingType.id);
-    if (error) return toast.error(toUserMessage(error));
+    if (error)
+      return toast.error(
+        error.code === "23505"
+          ? "Já existe uma marmita com essa chave de integração"
+          : toUserMessage(error)
+      );
     setEditingType(null);
     toast.success("Atualizado");
     load();
   };
+
 
   return (
     <div className="space-y-6">
@@ -185,7 +213,7 @@ function Page() {
         <div className="space-y-4">
           {suppliers.map((s) => {
             const sTypes = types.filter((t) => t.supplier_id === s.id);
-            const f = typeForms[s.id] ?? { name: "", price: "", company_price: "" };
+            const f = typeForms[s.id] ?? { name: "", price: "", company_price: "", key: "" };
             return (
               <div
                 key={s.id}
@@ -275,6 +303,18 @@ function Page() {
                             />
                           </div>
                         </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground">
+                            Chave para o RH
+                          </Label>
+                          <Input
+                            value={editingType.key}
+                            onChange={(e) =>
+                              setEditingType({ ...editingType, key: e.target.value })
+                            }
+                            placeholder="normal"
+                          />
+                        </div>
                         <div className="flex justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => setEditingType(null)}>
                             <X className="h-4 w-4" />
@@ -290,7 +330,14 @@ function Page() {
                         className="flex items-center gap-2 bg-accent/40 rounded-lg px-3 py-2"
                       >
                         <Utensils className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="flex-1 truncate text-sm">{t.name}</span>
+                        <span className="flex-1 truncate text-sm">
+                          {t.name}
+                          {t.key && (
+                            <span className="ml-1 text-[10px] text-muted-foreground">
+                              ({t.key})
+                            </span>
+                          )}
+                        </span>
                         <div className="text-right leading-tight">
                           <div className="text-sm font-semibold text-primary">
                             {brl(t.price)}
@@ -310,6 +357,7 @@ function Page() {
                                   name: t.name,
                                   price: String(t.price).replace(".", ","),
                                   company_price: String(t.company_price).replace(".", ","),
+                                  key: t.key ?? "",
                                 })
                               }
                             >
@@ -372,6 +420,21 @@ function Page() {
                           }
                         />
                       </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">
+                        Chave para o RH (opcional)
+                      </Label>
+                      <Input
+                        placeholder="gerada a partir do nome"
+                        value={f.key}
+                        onChange={(e) =>
+                          setTypeForms({
+                            ...typeForms,
+                            [s.id]: { ...f, key: e.target.value },
+                          })
+                        }
+                      />
                     </div>
                     <Button
                       onClick={() => addType(s.id)}
