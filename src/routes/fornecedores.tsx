@@ -65,10 +65,10 @@ function Page() {
   const [newSupplier, setNewSupplier] = useState("");
   const [editingSup, setEditingSup] = useState<{ id: string; name: string } | null>(null);
   const [typeForms, setTypeForms] = useState<
-    Record<string, { name: string; price: string; company_price: string }>
+    Record<string, { name: string; price: string; company_price: string; key: string }>
   >({});
   const [editingType, setEditingType] = useState<
-    { id: string; name: string; price: string; company_price: string } | null
+    { id: string; name: string; price: string; company_price: string; key: string } | null
   >(null);
   const [pendingSup, setPendingSup] = useState<Supplier | null>(null);
   const [pendingType, setPendingType] = useState<MealType | null>(null);
@@ -78,7 +78,7 @@ function Page() {
       supabase.from("suppliers").select("id,name").order("name"),
       (supabase as any)
         .from("meal_types")
-        .select("id,supplier_id,name,price,company_price")
+        .select("id,supplier_id,name,price,company_price,key")
         .is("archived_at", null)
         .order("name"),
     ]);
