@@ -357,6 +357,7 @@ function Page() {
                                   name: t.name,
                                   price: String(t.price).replace(".", ","),
                                   company_price: String(t.company_price).replace(".", ","),
+                                  key: t.key ?? "",
                                 })
                               }
                             >
