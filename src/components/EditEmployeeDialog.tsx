@@ -131,6 +131,20 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
               maxLength={100}
             />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-vinculo">Vínculo</Label>
+            <select
+              id="edit-vinculo"
+              value={vinculo}
+              onChange={(e) => setVinculo(e.target.value)}
+              className="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-10 w-full rounded-lg border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+            >
+              <option value="clt">CLT</option>
+              <option value="pj">PJ</option>
+              <option value="visitante">Visitante</option>
+              <option value="aniversariante">Aniversariante</option>
+            </select>
+          </div>
           <DialogFooter className="gap-2">
             <Button
               type="button"
