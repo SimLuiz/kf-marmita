@@ -213,7 +213,7 @@ function Page() {
         <div className="space-y-4">
           {suppliers.map((s) => {
             const sTypes = types.filter((t) => t.supplier_id === s.id);
-            const f = typeForms[s.id] ?? { name: "", price: "", company_price: "" };
+            const f = typeForms[s.id] ?? { name: "", price: "", company_price: "", key: "" };
             return (
               <div
                 key={s.id}
