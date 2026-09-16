@@ -42,6 +42,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
   const [cpf, setCpf] = useState("");
   const [company, setCompany] = useState("");
   const [sector, setSector] = useState("");
+  const [vinculo, setVinculo] = useState("clt");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
       setCpf(employee.cpf ?? "");
       setCompany(employee.company ?? "");
       setSector(employee.sector ?? "");
+      setVinculo(employee.vinculo ?? "clt");
     }
   }, [employee]);
 
@@ -61,13 +63,14 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
       return toast.error("CPF deve ter 11 dígitos");
     }
     setSaving(true);
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from("employees")
       .update({
         name: name.trim(),
         cpf: cpfDigits ? formatCPF(cpfDigits) : null,
         company: company.trim() || null,
         sector: sector.trim() || null,
+        vinculo,
       })
       .eq("id", employee.id);
     setSaving(false);
