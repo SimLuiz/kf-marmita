@@ -40,10 +40,21 @@ interface MealType {
   name: string;
   price: number;
   company_price: number;
+  key: string | null;
 }
 
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Gera uma chave estável (sem acentos, minúscula, com underscore) a partir do nome */
+const slugKey = (v: string) =>
+  v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
 
 function Page() {
   const { user, isAdmin } = useAuth();
