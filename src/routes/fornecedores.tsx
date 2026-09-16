@@ -128,15 +128,25 @@ function Page() {
     if (!f?.name.trim() || !user) return;
     const price = parseFloat((f.price || "0").replace(",", ".")) || 0;
     const company_price = parseFloat((f.company_price || "0").replace(",", ".")) || 0;
+    const key = slugKey(f.key?.trim() || f.name);
     const { error } = await (supabase as any).from("meal_types").insert({
       owner_id: user.id,
       supplier_id: supplierId,
       name: f.name.trim(),
       price,
       company_price,
+      key: key || null,
     });
-    if (error) return toast.error(toUserMessage(error));
-    setTypeForms({ ...typeForms, [supplierId]: { name: "", price: "", company_price: "" } });
+    if (error)
+      return toast.error(
+        error.code === "23505"
+          ? "Já existe uma marmita com essa chave de integração"
+          : toUserMessage(error)
+      );
+    setTypeForms({
+      ...typeForms,
+      [supplierId]: { name: "", price: "", company_price: "", key: "" },
+    });
     toast.success("Tipo de marmita cadastrado");
     load();
   };
@@ -147,15 +157,22 @@ function Page() {
     if (!editingType || !editingType.name.trim()) return;
     const price = parseFloat((editingType.price || "0").replace(",", ".")) || 0;
     const company_price = parseFloat((editingType.company_price || "0").replace(",", ".")) || 0;
+    const key = slugKey(editingType.key?.trim() || editingType.name);
     const { error } = await (supabase as any)
       .from("meal_types")
-      .update({ name: editingType.name.trim(), price, company_price })
+      .update({ name: editingType.name.trim(), price, company_price, key: key || null })
       .eq("id", editingType.id);
-    if (error) return toast.error(toUserMessage(error));
+    if (error)
+      return toast.error(
+        error.code === "23505"
+          ? "Já existe uma marmita com essa chave de integração"
+          : toUserMessage(error)
+      );
     setEditingType(null);
     toast.success("Atualizado");
     load();
   };
+
 
   return (
     <div className="space-y-6">
