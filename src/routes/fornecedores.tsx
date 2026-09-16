@@ -330,7 +330,14 @@ function Page() {
                         className="flex items-center gap-2 bg-accent/40 rounded-lg px-3 py-2"
                       >
                         <Utensils className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="flex-1 truncate text-sm">{t.name}</span>
+                        <span className="flex-1 truncate text-sm">
+                          {t.name}
+                          {t.key && (
+                            <span className="ml-1 text-[10px] text-muted-foreground">
+                              ({t.key})
+                            </span>
+                          )}
+                        </span>
                         <div className="text-right leading-tight">
                           <div className="text-sm font-semibold text-primary">
                             {brl(t.price)}
