@@ -303,6 +303,18 @@ function Page() {
                             />
                           </div>
                         </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px] uppercase text-muted-foreground">
+                            Chave para o RH
+                          </Label>
+                          <Input
+                            value={editingType.key}
+                            onChange={(e) =>
+                              setEditingType({ ...editingType, key: e.target.value })
+                            }
+                            placeholder="normal"
+                          />
+                        </div>
                         <div className="flex justify-end gap-1">
                           <Button size="sm" variant="ghost" onClick={() => setEditingType(null)}>
                             <X className="h-4 w-4" />
