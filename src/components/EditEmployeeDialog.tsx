@@ -19,6 +19,7 @@ interface Employee {
   cpf: string | null;
   company: string | null;
   sector: string | null;
+  vinculo?: string | null;
 }
 
 function formatCPF(v: string) {
