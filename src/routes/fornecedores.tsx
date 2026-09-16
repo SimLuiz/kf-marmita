@@ -421,6 +421,21 @@ function Page() {
                         />
                       </div>
                     </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase text-muted-foreground">
+                        Chave para o RH (opcional)
+                      </Label>
+                      <Input
+                        placeholder="gerada a partir do nome"
+                        value={f.key}
+                        onChange={(e) =>
+                          setTypeForms({
+                            ...typeForms,
+                            [s.id]: { ...f, key: e.target.value },
+                          })
+                        }
+                      />
+                    </div>
                     <Button
                       onClick={() => addType(s.id)}
                       disabled={!f.name.trim()}
