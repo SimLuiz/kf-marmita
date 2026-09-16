@@ -141,6 +141,7 @@ function FuncionariosList() {
     setCpf("");
     setCompany("");
     setSector("");
+    setVinculo("clt");
     toast.success("Funcionário cadastrado");
     load();
   };
