@@ -9,69 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UsuariosRouteImport } from './routes/usuarios'
-import { Route as SegurancaRouteImport } from './routes/seguranca'
-import { Route as RelatorioRouteImport } from './routes/relatorio'
-import { Route as RegistrarRouteImport } from './routes/registrar'
-import { Route as PorDiaRouteImport } from './routes/por-dia'
-import { Route as PermissoesRouteImport } from './routes/permissoes'
-import { Route as IntegracaoRouteImport } from './routes/integracao'
-import { Route as FuncionariosRouteImport } from './routes/funcionarios'
-import { Route as FornecedoresRouteImport } from './routes/fornecedores'
-import { Route as AuditoriaRouteImport } from './routes/auditoria'
-import { Route as ArmazenamentoRouteImport } from './routes/armazenamento'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ArmazenamentoRouteImport } from './routes/armazenamento'
+import { Route as AuditoriaRouteImport } from './routes/auditoria'
+import { Route as FornecedoresRouteImport } from './routes/fornecedores'
+import { Route as FuncionariosRouteImport } from './routes/funcionarios'
+import { Route as IntegracaoRouteImport } from './routes/integracao'
+import { Route as PermissoesRouteImport } from './routes/permissoes'
+import { Route as PorDiaRouteImport } from './routes/por-dia'
+import { Route as RegistrarRouteImport } from './routes/registrar'
+import { Route as RelatorioRouteImport } from './routes/relatorio'
+import { Route as SegurancaRouteImport } from './routes/seguranca'
+import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as FuncionariosIdRouteImport } from './routes/funcionarios.$id'
 import { Route as ApiPublicRhMarmitasRouteImport } from './routes/api/public/rh/marmitas'
 
-const UsuariosRoute = UsuariosRouteImport.update({
-  id: '/usuarios',
-  path: '/usuarios',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SegurancaRoute = SegurancaRouteImport.update({
-  id: '/seguranca',
-  path: '/seguranca',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RelatorioRoute = RelatorioRouteImport.update({
-  id: '/relatorio',
-  path: '/relatorio',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RegistrarRoute = RegistrarRouteImport.update({
-  id: '/registrar',
-  path: '/registrar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PorDiaRoute = PorDiaRouteImport.update({
-  id: '/por-dia',
-  path: '/por-dia',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PermissoesRoute = PermissoesRouteImport.update({
-  id: '/permissoes',
-  path: '/permissoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IntegracaoRoute = IntegracaoRouteImport.update({
-  id: '/integracao',
-  path: '/integracao',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FuncionariosRoute = FuncionariosRouteImport.update({
-  id: '/funcionarios',
-  path: '/funcionarios',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FornecedoresRoute = FornecedoresRouteImport.update({
-  id: '/fornecedores',
-  path: '/fornecedores',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuditoriaRoute = AuditoriaRouteImport.update({
-  id: '/auditoria',
-  path: '/auditoria',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArmazenamentoRoute = ArmazenamentoRouteImport.update({
@@ -79,9 +34,54 @@ const ArmazenamentoRoute = ArmazenamentoRouteImport.update({
   path: '/armazenamento',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuditoriaRoute = AuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FornecedoresRoute = FornecedoresRouteImport.update({
+  id: '/fornecedores',
+  path: '/fornecedores',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FuncionariosRoute = FuncionariosRouteImport.update({
+  id: '/funcionarios',
+  path: '/funcionarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegracaoRoute = IntegracaoRouteImport.update({
+  id: '/integracao',
+  path: '/integracao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PermissoesRoute = PermissoesRouteImport.update({
+  id: '/permissoes',
+  path: '/permissoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PorDiaRoute = PorDiaRouteImport.update({
+  id: '/por-dia',
+  path: '/por-dia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegistrarRoute = RegistrarRouteImport.update({
+  id: '/registrar',
+  path: '/registrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RelatorioRoute = RelatorioRouteImport.update({
+  id: '/relatorio',
+  path: '/relatorio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SegurancaRoute = SegurancaRouteImport.update({
+  id: '/seguranca',
+  path: '/seguranca',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsuariosRoute = UsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FuncionariosIdRoute = FuncionariosIdRouteImport.update({
@@ -213,74 +213,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/usuarios': {
-      id: '/usuarios'
-      path: '/usuarios'
-      fullPath: '/usuarios'
-      preLoaderRoute: typeof UsuariosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/seguranca': {
-      id: '/seguranca'
-      path: '/seguranca'
-      fullPath: '/seguranca'
-      preLoaderRoute: typeof SegurancaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/relatorio': {
-      id: '/relatorio'
-      path: '/relatorio'
-      fullPath: '/relatorio'
-      preLoaderRoute: typeof RelatorioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/registrar': {
-      id: '/registrar'
-      path: '/registrar'
-      fullPath: '/registrar'
-      preLoaderRoute: typeof RegistrarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/por-dia': {
-      id: '/por-dia'
-      path: '/por-dia'
-      fullPath: '/por-dia'
-      preLoaderRoute: typeof PorDiaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/permissoes': {
-      id: '/permissoes'
-      path: '/permissoes'
-      fullPath: '/permissoes'
-      preLoaderRoute: typeof PermissoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/integracao': {
-      id: '/integracao'
-      path: '/integracao'
-      fullPath: '/integracao'
-      preLoaderRoute: typeof IntegracaoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/funcionarios': {
-      id: '/funcionarios'
-      path: '/funcionarios'
-      fullPath: '/funcionarios'
-      preLoaderRoute: typeof FuncionariosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/fornecedores': {
-      id: '/fornecedores'
-      path: '/fornecedores'
-      fullPath: '/fornecedores'
-      preLoaderRoute: typeof FornecedoresRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auditoria': {
-      id: '/auditoria'
-      path: '/auditoria'
-      fullPath: '/auditoria'
-      preLoaderRoute: typeof AuditoriaRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/armazenamento': {
@@ -290,11 +227,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArmazenamentoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auditoria': {
+      id: '/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuditoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fornecedores': {
+      id: '/fornecedores'
+      path: '/fornecedores'
+      fullPath: '/fornecedores'
+      preLoaderRoute: typeof FornecedoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/funcionarios': {
+      id: '/funcionarios'
+      path: '/funcionarios'
+      fullPath: '/funcionarios'
+      preLoaderRoute: typeof FuncionariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integracao': {
+      id: '/integracao'
+      path: '/integracao'
+      fullPath: '/integracao'
+      preLoaderRoute: typeof IntegracaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/permissoes': {
+      id: '/permissoes'
+      path: '/permissoes'
+      fullPath: '/permissoes'
+      preLoaderRoute: typeof PermissoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/por-dia': {
+      id: '/por-dia'
+      path: '/por-dia'
+      fullPath: '/por-dia'
+      preLoaderRoute: typeof PorDiaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/registrar': {
+      id: '/registrar'
+      path: '/registrar'
+      fullPath: '/registrar'
+      preLoaderRoute: typeof RegistrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/relatorio': {
+      id: '/relatorio'
+      path: '/relatorio'
+      fullPath: '/relatorio'
+      preLoaderRoute: typeof RelatorioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/seguranca': {
+      id: '/seguranca'
+      path: '/seguranca'
+      fullPath: '/seguranca'
+      preLoaderRoute: typeof SegurancaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/usuarios': {
+      id: '/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof UsuariosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/funcionarios/$id': {

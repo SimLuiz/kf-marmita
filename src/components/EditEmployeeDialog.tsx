@@ -155,7 +155,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={saving || !name.trim() || !company.trim() || !sector.trim() || cpf.replace(/D/g, "").length !== 11}>
+            <Button type="submit" disabled={saving || !name.trim() || !company.trim() || !sector.trim() || cpf.replace(/\D/g, "").length !== 11}>
               {saving ? "Salvando..." : "Salvar alterações"}
             </Button>
           </DialogFooter>

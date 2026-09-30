@@ -51,6 +51,17 @@ interface MealType {
   key: string | null;
 }
 
+// Lê valor digitado em reais: "9,50", "R$ 9,50", "1.234,56", "9.5". Vazio = 0.
+// Antes, "R$ 9,00" virava 0 sem aviso (e o lançamento ia para o RH a zero) e
+// "1.234,56" virava 1,234. Inválido devolve NaN para a tela recusar.
+function lerValor(v: string): number {
+  let t = (v || "").replace(/R\$/i, "").replace(/\s/g, "");
+  if (!t) return 0;
+  if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
+  if (!/^\d+(\.\d{1,2})?$/.test(t)) return NaN;
+  return Number(t);
+}
+
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -126,8 +137,9 @@ function Page() {
   const addType = async (supplierId: string) => {
     const f = typeForms[supplierId];
     if (!f?.name.trim() || !user) return;
-    const price = parseFloat((f.price || "0").replace(",", ".")) || 0;
-    const company_price = parseFloat((f.company_price || "0").replace(",", ".")) || 0;
+    const price = lerValor(f.price);
+    const company_price = lerValor(f.company_price);
+    if (Number.isNaN(price) || Number.isNaN(company_price)) return toast.error("Valor inválido. Use o formato 9,50");
     const key = slugKey(f.key?.trim() || f.name);
     try {
       await criarTipo({ data: { supplier_id: supplierId, name: f.name.trim(), price, company_price, key: key || undefined } });
@@ -146,8 +158,9 @@ function Page() {
 
   const saveType = async () => {
     if (!editingType || !editingType.name.trim()) return;
-    const price = parseFloat((editingType.price || "0").replace(",", ".")) || 0;
-    const company_price = parseFloat((editingType.company_price || "0").replace(",", ".")) || 0;
+    const price = lerValor(editingType.price);
+    const company_price = lerValor(editingType.company_price);
+    if (Number.isNaN(price) || Number.isNaN(company_price)) return toast.error("Valor inválido. Use o formato 9,50");
     const key = slugKey(editingType.key?.trim() || editingType.name);
     try {
       await editarTipo({ data: { id: editingType.id, name: editingType.name.trim(), price, company_price, key: key || undefined } });

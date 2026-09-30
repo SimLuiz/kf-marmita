@@ -81,6 +81,11 @@ export const Route = createFileRoute("/funcionarios/$id")({
 });
 
 
+// Data LOCAL (Brasília) em AAAA-MM-DD. toISOString() dá a data em UTC: depois
+// das 21h ela já é "amanhã".
+const diaLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 const monthLabel = (d: Date) =>
   d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
@@ -296,7 +301,7 @@ function Page() {
               v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
             const groups = new Map<string, RecordWithUrl[]>();
             for (const r of records) {
-              const key = new Date(r.taken_at).toISOString().slice(0, 10);
+              const key = diaLocal(new Date(r.taken_at));
               if (!groups.has(key)) groups.set(key, []);
               groups.get(key)!.push(r);
             }

@@ -27,10 +27,15 @@ export const Route = createFileRoute("/integracao")({
   ),
 });
 
+// Data LOCAL (Brasília) em AAAA-MM-DD. toISOString() dá a data em UTC: depois
+// das 21h ela já é "amanhã".
+const diaLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 function firstDayOfMonth() {
   const d = new Date();
   d.setDate(1);
-  return d.toISOString().slice(0, 10);
+  return diaLocal(d);
 }
 
 function Page() {
@@ -51,7 +56,7 @@ function Page() {
   }, [loading, isAdmin, navigate]);
 
   const endpoint = `${origin}/api/public/rh/marmitas`;
-  const exemplo = `${endpoint}?inicio=${firstDayOfMonth()}&fim=${new Date().toISOString().slice(0, 10)}`;
+  const exemplo = `${endpoint}?inicio=${firstDayOfMonth()}&fim=${diaLocal(new Date())}`;
 
   const reveal = async () => {
     if (key) return setShow((s) => !s);

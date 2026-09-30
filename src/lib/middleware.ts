@@ -12,6 +12,13 @@ import { createMiddleware, createServerOnlyFn } from "@tanstack/react-start";
 import type { Usuario } from "@/server/sessao";
 
 export const SESSAO_EXPIRADA = "sessao_expirada";
+
+// Erro do banco NÃO vai cru para a tela: a mensagem do PostgREST traz nome de
+// tabela, coluna e restrição. O detalhe fica no log do Worker (observability).
+export function falhaDoBanco(error: any): never {
+  console.error("[banco]", error?.code, error?.message, error?.details);
+  throw new Error("Não foi possível salvar/consultar os dados. Tente de novo.");
+}
 export const SO_ADMIN = "Acesso negado: somente admin";
 
 export const comSessao = createMiddleware({ type: "function" }).server(async ({ next }) => {

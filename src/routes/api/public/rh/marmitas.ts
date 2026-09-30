@@ -112,8 +112,16 @@ export const Route = createFileRoute("/api/public/rh/marmitas")({
           .limit(PAGE_SIZE);
 
         if (cursor) {
-          const [cTaken, cId] = cursor.split("|");
-          if (!cTaken || !cId) return json({ erro: "cursor_invalido" }, 400);
+          const [cTaken, cId, ...resto] = cursor.split("|");
+          // 🔴 Os dois pedaços entram DENTRO do filtro `.or(...)` do PostgREST:
+          // sem validar o formato, um cursor como "x,id.gt.0|…" reescreveria o
+          // filtro. Só passa o que o próprio servidor gera em `proxima_pagina`
+          // (timestamp do Postgres + uuid).
+          const TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+00:00|Z)$/;
+          const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (!cTaken || !cId || resto.length || !TS.test(cTaken) || !UUID.test(cId)) {
+            return json({ erro: "cursor_invalido" }, 400);
+          }
           query = query.or(`taken_at.gt.${cTaken},and(taken_at.eq.${cTaken},id.gt.${cId})`);
         }
 

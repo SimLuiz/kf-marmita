@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { soAdmin } from "./middleware";
+import { exigirSenhaAdmin, soAdmin, falhaDoBanco } from "./middleware";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 
 export type PurgeTarget = "meal_records" | "audit_logs" | "login_attempts";
@@ -20,8 +20,8 @@ const TARGET_LABEL: Record<PurgeTarget, string> = {
 const rangeSchema = z
   .object({
     targets: z.array(z.enum(["meal_records", "audit_logs", "login_attempts"])).min(1),
-    from: z.string().min(10),
-    to: z.string().min(10),
+    from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
+    to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
   })
   .refine((v) => new Date(v.from).getTime() <= new Date(v.to).getTime(), {
     message: "Data inicial deve ser anterior à final",
@@ -33,8 +33,8 @@ export const previewPurge = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     // Conexão com o autor nos cabeçalhos: a auditoria registra quem apagou.
     const supabaseAdmin = context.db;
-    const fromIso = new Date(`${data.from}T00:00:00`).toISOString();
-    const toIso = new Date(`${data.to}T23:59:59.999`).toISOString();
+    const fromIso = new Date(`${data.from}T00:00:00-03:00`).toISOString();
+    const toIso = new Date(`${data.to}T23:59:59.999-03:00`).toISOString();
     const result: { target: PurgeTarget; label: string; count: number }[] = [];
     for (const t of data.targets) {
       const col = TARGET_COLUMN[t];
@@ -42,20 +42,26 @@ export const previewPurge = createServerFn({ method: "POST" })
         .select("id", { count: "exact", head: true })
         .gte(col, fromIso)
         .lte(col, toIso);
-      if (error) throw new Error(error.message);
+      if (error) falhaDoBanco(error);
       result.push({ target: t, label: TARGET_LABEL[t], count: count ?? 0 });
     }
     return { from: fromIso, to: toIso, items: result };
   });
 
+// 🔴 Exclusão em massa e PERMANENTE: exige a senha de quem está logado,
+// conferida aqui — a tela pedir a senha não protege nada se o servidor não
+// conferir (era o caso até 30/09).
 export const executePurge = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => rangeSchema.parse(i))
+  .inputValidator((i) =>
+    rangeSchema.and(z.object({ senha: z.string().min(1).max(200) })).parse(i),
+  )
   .handler(async ({ context, data }) => {
+    await exigirSenhaAdmin(context.usuario, data.senha);
     // Conexão com o autor nos cabeçalhos: a auditoria registra quem apagou.
     const supabaseAdmin = context.db;
-    const fromIso = new Date(`${data.from}T00:00:00`).toISOString();
-    const toIso = new Date(`${data.to}T23:59:59.999`).toISOString();
+    const fromIso = new Date(`${data.from}T00:00:00-03:00`).toISOString();
+    const toIso = new Date(`${data.to}T23:59:59.999-03:00`).toISOString();
 
     const deleted: { target: PurgeTarget; label: string; count: number }[] = [];
     let photosRemoved = 0;
@@ -70,7 +76,7 @@ export const executePurge = createServerFn({ method: "POST" })
           .select("id, photo_path")
           .gte(col, fromIso)
           .lte(col, toIso);
-        if (selErr) throw new Error(selErr.message);
+        if (selErr) falhaDoBanco(selErr);
         const paths = (rows ?? []).map((r: any) => r.photo_path).filter(Boolean);
         // Remove em lotes de 100
         for (let i = 0; i < paths.length; i += 100) {
@@ -96,7 +102,7 @@ export const executePurge = createServerFn({ method: "POST" })
         .delete({ count: "exact" })
         .gte(col, fromIso)
         .lte(col, toIso);
-      if (error) throw new Error(error.message);
+      if (error) falhaDoBanco(error);
       deleted.push({ target: t, label: TARGET_LABEL[t], count: count ?? 0 });
     }
 

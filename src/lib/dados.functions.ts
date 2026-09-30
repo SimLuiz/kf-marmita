@@ -13,7 +13,7 @@
 // ============================================================================
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { comSessao, soAdmin, exigirPermissao, exigirSenhaAdmin, temPermissao } from "./middleware";
+import { comSessao, soAdmin, exigirPermissao, exigirSenhaAdmin, temPermissao, falhaDoBanco } from "./middleware";
 
 const BUCKET = "meal-photos";
 const VALIDADE_URL_S = 60 * 60;
@@ -27,7 +27,7 @@ async function todas<T = any>(consulta: (de: number, ate: number) => any): Promi
   const saida: T[] = [];
   for (let de = 0; ; de += 1000) {
     const { data, error } = await consulta(de, de + 999);
-    if (error) throw new Error(error.message);
+    if (error) falhaDoBanco(error);
     saida.push(...((data ?? []) as T[]));
     if (!data || data.length < 1000 || de > 200000) return saida;
   }
@@ -41,7 +41,7 @@ function erroDeCPF(error: any): never {
   if (error?.code === "23505" || String(error?.message).includes("cpf_duplicado")) {
     throw new Error("Já existe um funcionário com esse CPF");
   }
-  throw new Error(error?.message ?? "Erro ao salvar");
+  falhaDoBanco(error);
 }
 
 async function urlsAssinadas(db: any, caminhos: string[]): Promise<Record<string, string>> {
@@ -87,7 +87,7 @@ export const salvarPermissao = createServerFn({ method: "POST" })
   .inputValidator((i) => z.object({ chave: z.enum(CHAVES_PERMISSAO), valor: z.boolean() }).parse(i))
   .handler(async ({ context: { db }, data }) => {
     const { error } = await db.from("app_permissions").update({ [data.chave]: data.valor }).eq("singleton", true);
-    if (error) throw new Error(error.message);
+    if (error) falhaDoBanco(error);
     return { ok: true };
   });
 
@@ -116,7 +116,7 @@ export const obterFuncionario = createServerFn({ method: "GET" })
       .select("id,name,cpf,company,sector,vinculo")
       .eq("id", data.id)
       .maybeSingle();
-    if (error) throw new Error(error.message);
+    if (error) falhaDoBanco(error);
     return f ?? null;
   });
 
@@ -164,7 +164,7 @@ export const arquivarFuncionario = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await exigirSenhaAdmin(context.usuario, data.senha);
     const { error } = await context.db.from("employees").update({ archived_at: new Date().toISOString() }).eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) falhaDoBanco(error);
     return { ok: true };
   });
 
@@ -197,7 +197,7 @@ export const criarFornecedor = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await exigirPermissao(context, "can_manage_suppliers");
     const { error } = await context.db.from("suppliers").insert({ name: data.name, owner_id: context.usuario.id });
-    if (error) throw new Error(error.message);
+    if (error) falhaDoBanco(error);
     return { ok: true };
   });
 
@@ -207,7 +207,7 @@ export const editarFornecedor = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await exigirPermissao(context, "can_manage_suppliers");
     const { error } = await context.db.from("suppliers").update({ name: data.name }).eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) falhaDoBanco(error);
     return { ok: true };
   });
 
@@ -222,7 +222,7 @@ export const excluirFornecedor = createServerFn({ method: "POST" })
       if (String(error.message).includes("tipos de marmita")) {
         throw new Error("Este fornecedor tem tipos de marmita. Arquive os tipos antes de excluir.");
       }
-      throw new Error(error.message);
+      falhaDoBanco(error);
     }
     return { ok: true };
   });
@@ -240,7 +240,7 @@ const chaveDe = (nome: string) =>
 
 function erroDeChave(error: any): never {
   if (error?.code === "23505") throw new Error("Já existe uma marmita com essa chave de integração");
-  throw new Error(error?.message ?? "Erro ao salvar");
+  falhaDoBanco(error);
 }
 
 export const criarTipo = createServerFn({ method: "POST" })
@@ -279,7 +279,7 @@ export const arquivarTipo = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await exigirSenhaAdmin(context.usuario, data.senha);
     const { error } = await context.db.from("meal_types").update({ archived_at: new Date().toISOString() }).eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) falhaDoBanco(error);
     return { ok: true };
   });
 
@@ -332,7 +332,7 @@ export const registrarRetirada = createServerFn({ method: "POST" })
     });
     if (error) {
       await db.storage.from(BUCKET).remove([caminho]);
-      throw new Error(error.message);
+      falhaDoBanco(error);
     }
     return { ok: true };
   });
@@ -378,7 +378,7 @@ export const editarLancamento = createServerFn({ method: "POST" })
         ...(data.taken_at ? { taken_at: data.taken_at } : {}),
       })
       .eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) falhaDoBanco(error);
     return { ok: true };
   });
 
@@ -388,7 +388,7 @@ export const excluirLancamento = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await exigirSenhaAdmin(context.usuario, data.senha);
     const { data: apagados, error } = await context.db.from("meal_records").delete().eq("id", data.id).select("photo_path");
-    if (error) throw new Error(error.message);
+    if (error) falhaDoBanco(error);
     const caminho = apagados?.[0]?.photo_path;
     if (caminho) await context.db.storage.from(BUCKET).remove([caminho]);
     return { ok: true };

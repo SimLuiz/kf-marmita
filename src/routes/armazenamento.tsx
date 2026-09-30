@@ -48,6 +48,11 @@ function fmtBytes(n: number) {
   return `${v.toFixed(v >= 100 || i === 0 ? 0 : v >= 10 ? 1 : 2)} ${units[i]}`;
 }
 
+// Data LOCAL (Brasília) em AAAA-MM-DD. toISOString() dá a data em UTC: depois
+// das 21h ela já é "amanhã".
+const diaLocal = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 function Page() {
   const { isAdmin, loading } = useAuth();
   const navigate = useNavigate();
@@ -58,8 +63,8 @@ function Page() {
   const [busy, setBusy] = useState(false);
 
   // Purge state
-  const today = new Date().toISOString().slice(0, 10);
-  const monthAgo = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
+  const today = diaLocal(new Date());
+  const monthAgo = diaLocal(new Date(Date.now() - 30 * 86400_000));
   const [from, setFrom] = useState(monthAgo);
   const [to, setTo] = useState(today);
   const [targets, setTargets] = useState<Record<PurgeTarget, boolean>>({
@@ -342,12 +347,14 @@ function Page() {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Confirmar limpeza de dados"
-        description={`Isso vai excluir permanentemente os registros selecionados entre ${from} e ${to}. Digite a senha do admin para confirmar.`}
-        onConfirmed={async () => {
+        description={`Isso vai excluir permanentemente os registros selecionados entre ${from} e ${to}. Digite a sua senha para confirmar.`}
+        confirmLabel="Excluir permanentemente"
+        onConfirmed={async (senha) => {
           setPurging(true);
           try {
+            // A senha é conferida no SERVIDOR (executePurge → exigirSenhaAdmin).
             const r = (await doExecute({
-              data: { targets: selectedTargets, from, to },
+              data: { targets: selectedTargets, from, to, senha },
             })) as {
               deleted: { label: string; count: number }[];
               photosRemoved: number;

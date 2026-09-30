@@ -1,7 +1,7 @@
 // Usuários do sistema — só admin. Cada ação vai para logs_acesso como admin_*.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { comSessao, soAdmin, exigirSenhaAdmin } from "./middleware";
+import { comSessao, soAdmin, exigirSenhaAdmin, falhaDoBanco } from "./middleware";
 
 const uuid = z.string().uuid();
 const nomeUsuario = z
@@ -41,7 +41,7 @@ export const listarUsuarios = createServerFn({ method: "GET" })
         .order("usuario"),
       db.from("sessoes").select("usuario_id").eq("ativo", true).gt("expira_em", new Date().toISOString()),
     ]);
-    if (error) throw new Error(error.message);
+    if (error) falhaDoBanco(error);
     const abertas = new Map<string, number>();
     for (const s of sessoes ?? []) abertas.set(s.usuario_id, (abertas.get(s.usuario_id) ?? 0) + 1);
     return (usuarios ?? []).map((u: any) => ({ ...u, sessoes_abertas: abertas.get(u.id) ?? 0 }));
@@ -71,7 +71,7 @@ export const criarUsuario = createServerFn({ method: "POST" })
       admin: data.admin,
       exige_2fa: data.admin || data.exige_2fa,
     });
-    if (error) throw new Error(error.code === "23505" ? "Já existe um usuário com esse nome" : error.message);
+    if (error) { if (error.code === "23505") throw new Error("Já existe um usuário com esse nome"); falhaDoBanco(error); }
     await registrar(context, "admin_usuario_criado", data.usuario, data.admin ? "administrador" : undefined);
     return { ok: true };
   });
@@ -86,7 +86,7 @@ export const alterarSenhaDeUsuario = createServerFn({ method: "POST" })
     const problema = problemaSenha(data.senha, alvo);
     if (problema) throw new Error(problema);
     const { error } = await context.db.from("usuarios").update({ senha_hash: await hashSenha(data.senha) }).eq("id", data.id);
-    if (error) throw new Error(error.message);
+    if (error) falhaDoBanco(error);
     if (data.id !== context.usuario.id) await encerrarSessoes(context.db, data.id);
     await registrar(context, "admin_senha_alterada", alvo.usuario);
     return { ok: true };
@@ -136,7 +136,7 @@ export const excluirUsuario = createServerFn({ method: "POST" })
     const { error } = await context.db.from("usuarios").delete().eq("id", data.id);
     if (error) {
       if (error.code === "23503") throw new Error("Este usuário já registrou lançamentos ou cadastros. Desative em vez de excluir.");
-      throw new Error(error.message);
+      falhaDoBanco(error);
     }
     await registrar(context, "admin_usuario_excluido", alvo.usuario);
     return { ok: true };

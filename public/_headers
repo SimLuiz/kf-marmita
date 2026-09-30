@@ -1,0 +1,13 @@
+# Cabeçalhos dos arquivos ESTÁTICOS (logo, fonte, ícones), que a Cloudflare
+# serve direto, sem passar pelo código — os das páginas vêm de src/start.ts.
+# O build (nitro) acrescenta ao fim deste arquivo a regra de cache de /assets/*.
+/*
+  X-Content-Type-Options: nosniff
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+
+# A URL da fonte leva o hash do arquivo (?v=3100e775): pode ficar em cache
+# para sempre — trocar a fonte exige trocar o ?v= (kf-tokens.css e __root.tsx).
+/fonte/*
+  Cache-Control: public, max-age=31536000, immutable

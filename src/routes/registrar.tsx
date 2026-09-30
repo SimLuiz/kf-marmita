@@ -171,15 +171,21 @@ function Page() {
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [customDate, setCustomDate] = useState<string>("");
-
+  const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [emps, cad] = await Promise.all([listarFuncionarios(), cadastroMarmitas()]);
-      setEmployees(emps as Employee[]);
-      setSuppliers(cad.fornecedores as Supplier[]);
-      setMealTypes(cad.tipos as MealType[]);
+      try {
+        const [emps, cad] = await Promise.all([listarFuncionarios(), cadastroMarmitas()]);
+        setEmployees(emps as Employee[]);
+        setSuppliers(cad.fornecedores as Supplier[]);
+        setMealTypes(cad.tipos as MealType[]);
+      } catch (e) {
+        toast.error(toUserMessage(e, "Não foi possível carregar os funcionários"));
+      } finally {
+        setCarregando(false);
+      }
     })();
   }, [user]);
 
@@ -228,6 +234,15 @@ function Page() {
       setSaving(false);
     }
   };
+
+  // Sem isto, a mensagem "cadastre funcionários" piscava enquanto carregava.
+  if (carregando) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   if (employees.length === 0) {
     return (
