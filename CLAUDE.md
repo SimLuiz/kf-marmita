@@ -49,6 +49,10 @@ tudo com a chave pública, pulando as regras da tela.
   **2FA:** admin sempre; demais conforme `usuarios.exige_2fa` — o `operador`
   fica sem (pedido do usuário, acesso rápido no balcão). Inatividade: admin 20
   min, demais 60 min.
+  **Senha:** só o admin troca senha — a dos demais pela tela Usuários, a
+  própria pelo "Trocar minha senha" (que só aparece para admin; o servidor
+  recusa os demais). Usuário comum não escolhe a própria senha (pedido do
+  usuário: evitar senha fácil).
 - **Auditoria:** o gatilho `log_table_change` lê o autor de `x-kf-usuario`/
   `x-kf-ip`, que `banco()` (`src/server/banco.ts`) manda em toda chamada. Usar
   `banco()` SEM o usuário numa gravação = alteração sem autor na trilha.

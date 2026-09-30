@@ -145,9 +145,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <small>{isAdmin ? "Administrador" : "Usuário"}</small>
             </div>
           </div>
-          <button type="button" className="btn-kf" onClick={() => setTrocarSenha(true)}>
-            <KeyRound className="h-3.5 w-3.5" /> Trocar minha senha
-          </button>
+          {/* Só o admin troca a própria senha; a dos demais é definida pelo
+              admin na tela Usuários (pedido do usuário, 30/09). */}
+          {isAdmin && (
+            <button type="button" className="btn-kf" onClick={() => setTrocarSenha(true)}>
+              <KeyRound className="h-3.5 w-3.5" /> Trocar minha senha
+            </button>
+          )}
         </div>
       </aside>
 
@@ -210,16 +214,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </Link>
                 );
               })}
-              <button
-                type="button"
-                onClick={() => {
-                  setMaisAberto(false);
-                  setTrocarSenha(true);
-                }}
-                className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-muted-foreground hover:bg-muted"
-              >
-                <KeyRound className="h-4 w-4 shrink-0" /> Trocar minha senha
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMaisAberto(false);
+                    setTrocarSenha(true);
+                  }}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-muted-foreground hover:bg-muted"
+                >
+                  <KeyRound className="h-4 w-4 shrink-0" /> Trocar minha senha
+                </button>
+              )}
             </div>
           </div>
         </div>

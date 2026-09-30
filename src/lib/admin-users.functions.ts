@@ -1,7 +1,7 @@
 // Usuários do sistema — só admin. Cada ação vai para logs_acesso como admin_*.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { comSessao, soAdmin, exigirSenhaAdmin, falhaDoBanco } from "./middleware";
+import { soAdmin, exigirSenhaAdmin, falhaDoBanco } from "./middleware";
 
 const uuid = z.string().uuid();
 const nomeUsuario = z
@@ -92,9 +92,13 @@ export const alterarSenhaDeUsuario = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Qualquer usuário troca a PRÓPRIA senha, confirmando a atual.
+// Só o ADMIN troca a própria senha por aqui (confirmando a atual). Decisão do
+// usuário (30/09): usuário comum NÃO troca a própria senha — escolheria senha
+// fácil. A senha dele é definida pelo admin na tela Usuários
+// (alterarSenhaDeUsuario). O botão some da tela para quem não é admin, e esta
+// barreira no servidor vale para quem chamar a função direto.
 export const trocarMinhaSenha = createServerFn({ method: "POST" })
-  .middleware([comSessao])
+  .middleware([soAdmin])
   .inputValidator((i) => z.object({ atual: z.string().min(1).max(200), nova: z.string().min(1).max(200) }).parse(i))
   .handler(async ({ context, data }) => {
     const { problemaSenha, hashSenha } = await import("@/server/sessao");
