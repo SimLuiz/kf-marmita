@@ -1,0 +1,331 @@
+/* ⚠️ CÓPIA VERBATIM de kf-dashboard/src-shared/tokens.css (30/09/2026).
+   🔴 O ORIGINAL É LÁ — mesmo acordo do kf-garantia: os sistemas são repositórios
+   e deploys separados, então a única forma de usar o mesmo design é copiar.
+   Ao mexer no design de lá, copie de novo. NÃO editar aqui: o que é específico
+   deste sistema vive em src/styles.css. */
+
+/* ============================================================
+   KF BATERIAS — DESIGN TOKENS COMPARTILHADOS (Dashboard + CRM)
+   ============================================================
+   Fonte ÚNICA da paleta e da forma dos dois front-ends.
+   Injetado pelos dois builds ANTES do CSS de cada SPA:
+     scripts/build-dashboard.js  →  antes de src-dashboard/styles.css
+     scripts/build-crm.js        →  antes do <style> de src-crm/head.html
+
+   Os dois sistemas continuam SEPARADOS — build próprio, chave própria no KV
+   (dashboard_html × crm_html) e gate de papel próprio. O que passa a ser
+   comum é só a camada visual.
+
+   ============================================================
+   PALETA KF (2026-08-05) — bordô + ouro da marca
+   ============================================================
+   Origem: `crm_design_novo.html`, conceito aprovado pelo usuário, com a
+   instrução de manter o design IDÊNTICO. Substituiu o cromo grafite neutro de
+   2026-07-30.
+
+   ⚠️ POR QUE OS NOMES DO CONCEITO VIRARAM TOKEN AQUI (--bordo, --ouro,
+   --verde-bg, --sidebar, --topo…): assim o CSS daquele arquivo é aproveitado
+   praticamente VERBATIM nos dois fronts, em vez de traduzido à mão seletor por
+   seletor — tradução manual é onde a fidelidade se perde e o "idêntico" vira
+   "parecido". Definir aqui e não no head.html do CRM também é o que o
+   `test:crm` exige (variável compartilhada redefinida localmente venceria o
+   tokens.css e os dois fronts divergiriam em silêncio).
+
+   ⚠️ ATRIBUTO DE TEMA: aqui é `data-theme="dark"`, NÃO o `data-tema="escuro"`
+   do arquivo de conceito. O sistema inteiro depende do primeiro (toggle,
+   `localStorage.kfTema`, a11y, o remendo de impressão do romaneio) — trocar o
+   nome quebraria o tema nos dois fronts sem erro de sintaxe.
+
+   COMO USAR
+   - Token novo: criar como --kf-* aqui e referenciar pelos nomes curtos.
+   - Os nomes legados (--panel/--card, --border/--borda, --txt/--texto…)
+     continuam existindo como ALIAS: nenhum CSS existente precisou mudar.
+   ============================================================ */
+
+/* ============================================================
+   FONTE DA INTERFACE — Inter (2026-09-23)
+   ============================================================
+   Pedido do usuário: "uma fonte boa para sistema web, que a maioria dos
+   sistemas usa, agradável de ver". Inter foi desenhada para TELA (GitHub,
+   Linear, Figma e boa parte dos painéis web usam) e tem algarismos de largura
+   igual, o que alinha coluna de número em tabela.
+   Antes os dois fronts tinham fontes DIFERENTES: Calibri (fonte do Office) no
+   Dashboard e Segoe UI no CRM — e no Mac, sem Calibri para o navegador, o
+   Dashboard caía para Tahoma.
+   ⚠️ SERVIDA PELO PRÓPRIO WORKER (/fonte/inter.woff2, ver src/fonte.js), não
+   pelo Google Fonts: a CSP só aceita fonte do próprio domínio e não depende
+   de serviço externo para a tela abrir. O ?v= é o hash do arquivo — há guarda
+   no test:backend; trocar a fonte sem trocar o hash não chega a quem já visitou.
+   ⚠️ Um arquivo só cobre os pesos 100–900 (fonte variável). Itálico não vem:
+   o navegador inclina a normal, o que basta para os poucos textos em itálico.
+   ⚠️ Conjunto LATINO (cobre todo acento do português). Caractere fora dele
+   (setas, ▲▼) cai sozinho na próxima fonte da lista, sem quadradinho. */
+@font-face{
+  font-family:"Inter";
+  src:url("/fonte/inter.woff2?v=3100e775") format("woff2");
+  font-weight:100 900;
+  font-style:normal;
+  font-display:swap;
+}
+:root{
+  /* ---------- fonte ----------
+     Fonte única dos dois sistemas. Os gráficos (canvas) leem esta mesma
+     variável — canvas não herda a fonte da página. */
+  --kf-fonte:"Inter","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+
+  /* ---------- marca ---------- */
+  --kf-bordo:#8E171A;        /* ação primária, item de menu ativo, links */
+  --kf-bordo-2:#6E1215;      /* hover da ação primária */
+  --kf-bordo-suave:#F7E9E9;  /* fundo do item ativo e do chip selecionado */
+  --kf-ouro:#FFCB05;         /* destaque de marca (topo do KPI, avatar) */
+  --kf-ouro-2:#C99A00;       /* o mesmo ouro quando precisa contrastar */
+
+  /* ---------- superfícies ---------- */
+  --kf-bg:#FAFAFA;
+  --kf-surface:#FFFFFF;
+  --kf-surface-2:#FAFAFA;    /* th, coluna de kanban, item de lista */
+  --kf-border:#E9E9EA;
+  --kf-sidebar:#FFFFFF;
+  --kf-sidebar-borda:#EFEFEF;
+  --kf-topo:#FFFFFF;
+
+  /* ---------- texto ---------- */
+  --kf-text:#202124;
+  /* #70737A (era #767980, 2026-09-23): o antigo dava 4,2–4,4:1 sobre o fundo e
+     o card — abaixo dos 4,5:1 que texto pequeno pede, e este é o cinza de
+     TODO rótulo, cabeçalho de tabela e subtítulo. 5% mais escuro passa (4,55
+     sobre #FAFAFA) sem mudar a cara. */
+  --kf-text-dim:#70737A;
+
+  /* ---------- semânticas ----------
+     STATUS continua carregando significado e NÃO foi neutralizado: verde =
+     valor/positivo, vermelho = vencido/inadimplência. Cada uma tem o par
+     fundo-claro + texto, porque trocar só o fundo deixaria texto escuro sobre
+     fundo escuro no tema noturno. */
+  --kf-green:#1B7E37;        /* era #1E8E3E: 3,75:1 no selo verde; agora 4,6 (2026-09-23) */
+  --kf-green-soft:#E9F5EC;
+  --kf-red:#C42B20;
+  --kf-red-soft:#FBEAE8;
+  --kf-blue:#2563EB;
+  --kf-blue-soft:#EAF1FD;
+  --kf-accent:#C99A00;       /* preenchimento/borda âmbar */
+  --kf-accent-soft:#FBF3DD;  /* fundo do aviso âmbar */
+  /* Texto sobre os fundos "soft" acima. Na paleta nova as cores cheias já são
+     escuras o bastante para servir de texto sobre o próprio fundo claro — só o
+     âmbar precisa de um tom próprio (o ouro puro é ilegível em branco). */
+  --kf-sobre-accent:#8E6A00;  /* era #9A7300: 3,9:1 no selo âmbar; agora 4,5 */
+  --kf-sobre-blue:#2563EB;
+  --kf-sobre-green:#1B7E37;
+  --kf-sobre-red:#C42B20;
+  /* TEXTO sobre as cores CHEIAS de ação (botão primário, chip ativo, selo do
+     sino, botão Sair). No claro é branco; no ESCURO o bordô e o vermelho
+     clareiam para aparecer sobre o fundo preto, e branco por cima deles dava
+     2,9:1 — ilegível. Por isso é token, e não `color:#fff` escrito no CSS:
+     quem pinta fundo com var(--kf-bordo) usa var(--kf-sobre-bordo) no texto. */
+  --kf-sobre-bordo:#FFFFFF;
+  --kf-sobre-red-cheio:#FFFFFF;
+
+  /* ---------- forma ----------
+     O conceito é FLAT: profundidade vem da borda de 1px, não de sombra. Manter
+     `--kf-shadow:none` é o que faz card, painel, KPI e modal terem o mesmo peso
+     visual nos dois fronts. */
+  --kf-radius:10px;
+  --kf-shadow:none;
+
+  /* ---------- cromo da navegação ----------
+     A sidebar passou de grafite escuro (2026-07-30) para CLARA. Estes tokens
+     são a fonte única: mexer aqui muda os dois fronts.
+     ⚠️ `--kf-nav-hover` era `rgba(255,255,255,.08)` — véu branco desenhado para
+     sidebar ESCURA. Sobre a sidebar branca de agora ele é invisível: o hover
+     precisa ser uma superfície sólida, não uma transparência clara sobre claro.
+     Mesma armadilha em `--kf-nav-linha`. */
+  --kf-nav-topo:var(--kf-sidebar);        /* o gradiente virou cor chapada */
+  --kf-nav-base:var(--kf-sidebar);
+  --kf-nav-txt:var(--kf-text-dim);        /* item não selecionado */
+  --kf-nav-txt-forte:var(--kf-text);      /* item sob o cursor */
+  --kf-nav-suave:var(--kf-text-dim);      /* rótulo de módulo */
+  --kf-nav-hover:var(--kf-bg);
+  --kf-nav-linha:var(--kf-sidebar-borda);
+  --kf-nav-ativo-bg:var(--kf-bordo-suave);
+  --kf-nav-ativo-txt:var(--kf-bordo);
+  --kf-nav-campo:var(--kf-surface);
+
+  /* ---------- séries de gráfico ----------
+     ⚠️ O sistema por FUNÇÃO foi PRESERVADO na repintura, e isso é deliberado.
+     • ORDINAL (anos, etapas do funil, temperatura) → um tom só, claro→escuro.
+     • CATEGÓRICA (moto × automotiva, meta × realizado, novos × convertidos) →
+       2 slots fixos.
+     • REFERÊNCIA (barra de meta, "restante") → neutro, não é identidade.
+     • STATUS → --kf-green / --kf-red, intocados.
+
+     ⚠️ CATEGÓRICA MUDOU DE COR em 2026-08-06 (pedido do usuário): a 1ª versão
+     usava azul/magenta (#2563EB/#B0248F), as mesmas cores literais do
+     `crm_design_novo.html` nesses gráficos específicos — mas o restante do
+     conceito é quase todo bordô+ouro, e ter azul/magenta só nesses gráficos
+     destoava ("muito colorido" foi a queixa). Os slots agora SÃO os próprios
+     tokens de marca (`var(--kf-bordo)`/`var(--kf-ouro-2)`), não cópias — muda
+     o tom da marca e as séries acompanham sozinhas, nos dois temas, sem
+     redeclarar nada no bloco escuro abaixo (resolução de `var()` é em cascata,
+     não na definição). `--kf-serie-1-suave` (área sob a linha) não dá pra
+     derivar por `var()` — precisa do próprio alpha — por isso seguem como
+     rgba literal, um por tema, na cor do bordô.
+     Ordinal e status não mudaram: a rampa ordinal já era bordô; status
+     carrega significado (verde/vermelho) e não é decoração. */
+  --kf-serie-1:var(--kf-bordo);
+  --kf-serie-2:var(--kf-ouro-2);
+  --kf-serie-1-suave:rgba(142,23,26,.10); /* área sob a linha da série 1 */
+  /* Par da série 2 (ouro). Existe porque valor × QUANTIDADE é um par
+     CATEGÓRICO — o gráfico de baterias/mês do CRM (2026-08-25) fica logo
+     abaixo do de faturamento, e repetir o bordô faria os dois parecerem a
+     mesma medida em escalas diferentes. Alpha não é derivável por var(). */
+  --kf-serie-2-suave:rgba(201,154,0,.12);
+  --kf-serie-ref:#9AA1AC;
+  --kf-ord-1:#d4a7a8;
+  --kf-ord-2:#c78b8d;
+  --kf-ord-3:#b46668;
+  --kf-ord-4:#a74a4c;
+  --kf-ord-5:#8e171a;
+
+  /* ---------- TEMPERATURA DO CLIENTE (2026-08-14, pedido do usuário) --------
+     Escala SEMÂNTICA, e por isso NÃO é a rampa ordinal. A regra da casa manda
+     usar ORDINAL para dado com ordem, e temperatura tem ordem — mas aqui a cor
+     não serve só para ordenar: quente/frio já É a metáfora do dado, e todo
+     mundo lê vermelho como quente e azul como frio sem legenda. Cinco degraus
+     do mesmo bordô obrigam a consultar a legenda para saber qual é qual.
+
+     ⚠️ Isto NÃO reabre a "colorização" que a padronização de 2026-07-30 tirou
+     do sistema. É um caso só, com significado próprio, do mesmo tipo que já
+     justifica verde/vermelho em STATUS. Não usar esta escala para outra coisa.
+
+     ⚠️ Estes tokens são de PREENCHIMENTO (fatia de gráfico), não de texto.
+     O "Congelado" é quase branco de propósito — gelo — e como TEXTO seria
+     ilegível sobre superfície clara; por isso o badge `.t-congelado` continua
+     em `--texto-2`. Fundo e texto pedem valores diferentes no degrau mais
+     pálido: é a mesma armadilha dos pares fundo+texto do tema escuro.
+
+     ⚠️ Valores literais em vez de `var(--kf-bordo)` etc.: a escala precisa de
+     uma PROGRESSÃO DE MATIZ própria (vermelho→laranja→ouro→azul→gelo). Amarrar
+     ao tom da marca faria a rampa quebrar no dia em que o bordô mudar. */
+  --kf-temp-mq:#8E171A;    /* Muito Quente */
+  --kf-temp-q:#C74B2A;     /* Quente  — avermelhado, não âmbar */
+  --kf-temp-m:#C99A00;     /* Morno   — ouro */
+  --kf-temp-f:#2563EB;     /* Frio    — azul */
+  --kf-temp-cong:#C6CCD6;  /* Congelado — gelo (ver aviso acima: fundo, não texto) */
+
+  /* ============ ALIASES — Dashboard ============ */
+  --bg:var(--kf-bg);
+  --panel:var(--kf-surface);
+  --panel2:var(--kf-surface-2);
+  --border:var(--kf-border);
+  --txt:var(--kf-text);
+  --txt-dim:var(--kf-text-dim);
+  --green:var(--kf-green);
+  --green-soft:var(--kf-green-soft);
+  --blue:var(--kf-blue);
+  --red:var(--kf-red);
+  --red-soft:var(--kf-red-soft);
+  --accent:var(--kf-accent);
+  --accent-soft:var(--kf-accent-soft);
+  --blue-soft:var(--kf-blue-soft);
+  --sobre-accent:var(--kf-sobre-accent);
+  --sobre-blue:var(--kf-sobre-blue);
+  --sobre-green:var(--kf-sobre-green);
+  --sobre-red:var(--kf-sobre-red);
+
+  /* ============ ALIASES — CRM / conceito ============
+     Os nomes que `crm_design_novo.html` usa, para o CSS de lá valer verbatim
+     nos dois fronts. */
+  --card:var(--kf-surface);
+  --card2:var(--kf-surface-2);
+  --borda:var(--kf-border);
+  --texto:var(--kf-text);
+  --texto-2:var(--kf-text-dim);
+  --sidebar:var(--kf-sidebar);
+  --sidebar-borda:var(--kf-sidebar-borda);
+  --topo:var(--kf-topo);
+  --bordo:var(--kf-bordo);
+  --bordo-2:var(--kf-bordo-2);
+  --bordo-suave:var(--kf-bordo-suave);
+  --ouro:var(--kf-ouro);
+  --ouro-2:var(--kf-ouro-2);
+  --verde:var(--kf-green);
+  --verde-bg:var(--kf-green-soft);
+  --vermelho:var(--kf-red);
+  --vermelho-bg:var(--kf-red-soft);
+  --azul:var(--kf-blue);
+  --azul-bg:var(--kf-blue-soft);
+  --amber:var(--kf-sobre-accent);
+  --amber-bg:var(--kf-accent-soft);
+  --sombra:var(--kf-shadow);
+  --raio:var(--kf-radius);
+}
+
+/* ===== TEMA ESCURO =====
+   Valores do bloco `html[data-tema="escuro"]` do conceito, sob o atributo que
+   este sistema usa (`data-theme="dark"` — ver o aviso no topo).
+   Os dois fronts compartilham a chave "kfTema" no localStorage, então trocar o
+   tema num sistema reflete no outro. */
+html[data-theme="dark"]{
+  --kf-bg:#131417;
+  --kf-surface:#1A1C20;
+  --kf-surface-2:#202227;
+  --kf-border:#2A2C31;
+  --kf-sidebar:#17181B;
+  --kf-sidebar-borda:#25272C;
+  --kf-topo:#17181B;
+  --kf-text:#EDEEF0;
+  --kf-text-dim:#93969E;
+
+  /* Marca: o bordô cheio some contra o fundo escuro (1,86:1), então no noturno
+     ele clareia para continuar sendo reconhecível como a cor de ação. O
+     "suave" inverte de tinta clara para um fundo bordô translúcido — pintar o
+     item de menu ativo de #F7E9E9 à noite seria uma mancha branca no canto. */
+  --kf-bordo:#E0797B;
+  --kf-bordo-2:#EC9294;
+  --kf-bordo-suave:rgba(224,121,123,.16);
+  --kf-ouro:#FFD84D;
+  --kf-ouro-2:#E0B430;
+
+  /* Semânticas: mesma família, clareadas para a superfície escura. Os fundos
+     "soft" deixam de ser tinta clara e viram véu translúcido da própria cor —
+     é o que mantém o par fundo+texto legível sem remendo por seletor. */
+  --kf-green:#5BC47A;
+  --kf-green-soft:rgba(91,196,122,.15);
+  --kf-red:#EF6B60;
+  --kf-red-soft:rgba(239,107,96,.15);
+  --kf-blue:#6C9BF5;
+  --kf-blue-soft:rgba(108,155,245,.15);
+  --kf-accent:#E0B430;
+  --kf-accent-soft:rgba(224,180,48,.15);
+  --kf-sobre-accent:#E8C766;
+  --kf-sobre-blue:#6C9BF5;
+  --kf-sobre-green:#5BC47A;
+  --kf-sobre-red:#EF6B60;
+  --kf-sobre-bordo:#131417;      /* 6,3:1 sobre #E0797B (branco dava 2,9) */
+  --kf-sobre-red-cheio:#131417;  /* 6,1:1 sobre #EF6B60 (branco dava 3,0) */
+
+  /* Flat também à noite: no escuro a sombra não é vista, só suja a borda. */
+  --kf-shadow:none;
+
+  /* Séries: --kf-serie-1/2 NÃO são redeclaradas aqui — herdam var(--kf-bordo)/
+     var(--kf-ouro-2) do :root, que este bloco já redefine para o tom claro de
+     noite (linhas acima). Só a área translúcida sob a linha precisa de valor
+     próprio (alpha não é derivável por var()). */
+  --kf-serie-1-suave:rgba(224,121,123,.16);
+  --kf-serie-2-suave:rgba(224,180,48,.16);
+  --kf-serie-ref:#4A4F57;
+  --kf-ord-1:#eedcdd;
+  --kf-ord-2:#e3c5c6;
+  --kf-ord-3:#d4a7a8;
+  --kf-ord-4:#c78b8d;
+  --kf-ord-5:#b96f71;
+  /* Temperatura à noite: mesmos matizes, clareados para sobreviver ao fundo
+     escuro. O "Congelado" pode ir quase ao branco aqui — é sobre superfície
+     escura que ele contrasta melhor, ao contrário do tema claro. */
+  --kf-temp-mq:#D9484C;
+  --kf-temp-q:#EF7F52;
+  --kf-temp-m:#E0B430;
+  --kf-temp-f:#6C9BF5;
+  --kf-temp-cong:#DFE4EC;
+  color-scheme:dark;
+}

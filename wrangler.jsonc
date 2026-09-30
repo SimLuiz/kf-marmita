@@ -6,7 +6,10 @@
   // Os SEGREDOS não ficam aqui — vão para o cofre, um por vez:
   //   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
   //   npx wrangler secret put RH_API_KEY          (o mesmo MARMITAS_TOKEN do kf-rh)
-  // SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY são públicos: ficam em "vars".
+  //   npx wrangler secret put TOTP_ENC_KEY        (cifra o segredo do 2FA no banco)
+  //   npx wrangler secret put TURNSTILE_SECRET    (widget "KF Marmita Login")
+  // SUPABASE_URL é público: fica em "vars". O navegador não fala mais com o
+  // Supabase (migration 002) — não há chave pública no front.
   //
   // ⚠️ O deploy usa o wrangler.json GERADO pelo build (.output/server), que é
   // montado a partir deste arquivo. Rode sempre `npm run deploy` (build + deploy).
@@ -23,8 +26,7 @@
     { "pattern": "marmita.kfsistema.com.br", "custom_domain": true }
   ],
   "vars": {
-    "SUPABASE_URL": "https://uryjwyjswumyqhyqecjn.supabase.co",
-    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_iTXepVOQdZMMWSdG28gAWQ_wnpAVDJM"
+    "SUPABASE_URL": "https://uryjwyjswumyqhyqecjn.supabase.co"
   },
   "observability": { "enabled": true }
 }

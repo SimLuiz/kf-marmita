@@ -1,24 +1,14 @@
 {
-  "name": "Marmita Control",
-  "short_name": "Marmita",
-  "description": "Controle de retirada de marmitas dos funcionários",
+  "name": "KF Marmita",
+  "short_name": "Marmitas",
+  "description": "KF Baterias — controle de retirada de marmitas",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fcfbf8",
-  "theme_color": "#e87a3a",
-  "orientation": "portrait",
+  "background_color": "#FAFAFA",
+  "theme_color": "#8E171A",
+  "orientation": "any",
   "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }

@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { soAdmin } from "./middleware";
 
 export interface TableSize {
   name: string;
@@ -18,17 +18,10 @@ export interface DbStorage {
 const SOFT_LIMIT_BYTES = 2 * 1024 * 1024 * 1024;
 
 export const getDbStorage = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<DbStorage> => {
+  .middleware([soAdmin])
+  .handler(async (): Promise<DbStorage> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: roleRow } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!roleRow) throw new Error("Acesso negado: somente admin");
 
     // Tamanho total do banco
     const { data: dbRow, error: dbErr } = await (supabaseAdmin.rpc as any)(

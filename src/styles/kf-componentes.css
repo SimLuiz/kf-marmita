@@ -1,0 +1,155 @@
+/* ⚠️ CÓPIA VERBATIM de kf-dashboard/src-shared/componentes.css (30/09/2026).
+   🔴 O ORIGINAL É LÁ — mesmo acordo do kf-garantia: os sistemas são repositórios
+   e deploys separados, então a única forma de usar o mesmo design é copiar.
+   Ao mexer no design de lá, copie de novo. NÃO editar aqui: o que é específico
+   deste sistema vive em src/styles.css. */
+
+/* ============================================================
+   KF BATERIAS — COMPONENTES E UTILITÁRIAS COMPARTILHADAS
+   ============================================================
+   Injetado pelos dois builds depois do tokens.css e do a11y.css.
+
+   Por que existe (Fase 3, 2026-07-30): o Dashboard tinha 1.542 atributos
+   `style` inline e o CRM 482. Boa parte não era estilo "de um caso" — eram as
+   MESMAS poucas strings repetidas centenas de vezes (`style="margin:0"` 58×,
+   `style="text-align:right"` 35×…). Repetição assim não é customização, é falta
+   de nome: cada ajuste vira caça a substring pelo projeto inteiro.
+
+   Regra de uso: utilitária só ganha lugar aqui quando a MESMA string inline se
+   repete muitas vezes. Estilo de um caso só continua inline — transformar tudo
+   em classe só troca um inventário por outro.
+   ============================================================ */
+
+/* ---------- SUPERFÍCIE (o "card") ----------
+   O Dashboard chamava de .card e o CRM de .painel, com valores diferentes
+   (raio 14 × 12, sombra só no CRM). Agora a base é uma só; cada front mantém
+   apenas o próprio espaçamento, no seu CSS.
+   Convergência assumida: os cards do Dashboard passam de raio 14px para 12px e
+   ganham a sombra sutil que o CRM já tinha. */
+.kf-superficie,
+.card,
+.painel {
+  background: var(--kf-surface);
+  border: 1px solid var(--kf-border);
+  border-radius: var(--kf-radius);
+  box-shadow: var(--kf-shadow);
+  min-width: 0;
+}
+
+/* ---------- UTILITÁRIAS ----------
+   Nomes curtos e prefixados. Cobrem só as strings que se repetiam muito.
+   ⚠️ `display:none` NÃO virou utilitária de propósito: dezenas de pontos do JS
+   fazem `el.style.display = 'flex' | 'none'` para mostrar/esconder. Uma classe
+   ali criaria dois donos para a mesma decisão e quebraria os toggles. */
+.kf-m0     { margin: 0 }
+.kf-mb14   { margin-bottom: 14px }
+.kf-mb18   { margin-bottom: 18px }
+.kf-dir    { text-align: right }
+.kf-cen    { text-align: center }
+.kf-dim    { color: var(--kf-text-dim) }
+.kf-forte  { font-weight: 700 }
+.kf-neg    { color: var(--kf-red) }     /* valor negativo / vencido */
+.kf-pos    { color: var(--kf-green) }   /* valor positivo / em dia */
+.kf-nota   { font-size: 11px; color: var(--kf-text-dim) }
+.kf-nota12 { font-size: 12px; color: var(--kf-text-dim) }
+.kf-cen-dim{ text-align: center; color: var(--kf-text-dim) }
+
+/* Caixa de gráfico: 11 lugares repetiam exatamente estas três propriedades
+   para dar altura ao <canvas> (Chart.js precisa de contêiner com altura). */
+.kf-graf-box { position: relative; width: 100%; height: 300px }
+
+/* ---------- ÍCONE DE NAVEGAÇÃO (2026-08-05) ----------
+   SVG inline com `stroke:currentColor`: o ícone herda a cor do item de menu, e
+   portanto acompanha tema, hover e estado ativo sem uma linha de JS.
+   Vive AQUI, e não no CSS de cada front, porque os dois passaram a usar a mesma
+   sidebar do conceito — dois donos para o mesmo desenho é como as classes
+   divergiram antes (.grafico-box × .kf-graf-box).
+   ⚠️ `fill:none` é obrigatório: sem ele o navegador preenche o path de preto e
+   o ícone vira uma mancha sólida. */
+svg.icn {
+  width: 16px; height: 16px; flex-shrink: 0;
+  stroke: currentColor; fill: none;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* ---------- CARD DE AÇÃO DO DIA (2026-08-05) ----------
+   O bloco de "o que precisa da minha atenção hoje" no topo do painel. Vive aqui
+   e não no CSS de um front porque os DOIS usam o mesmo card — o CRM no Dashboard
+   Geral, e o Dashboard onde houver a mesma pergunta.
+   Substituiu a faixa `.alerta`, que era uma tira com tarja lateral e o número
+   embutido na frase: cada item virou um alvo de clique com o número em
+   destaque, que é o que essa tela existe para dar.
+   ⚠️ A cor do círculo vem da NATUREZA do item (risco/alerta/ok), não de uma
+   rotação decorativa — é a mesma regra que tirou a barra colorida do KPI. */
+.acoes-dia{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:22px}
+.acao-card{
+  background:var(--kf-surface);border:1px solid var(--kf-border);border-radius:var(--kf-radius);
+  padding:14px 16px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:2px;
+}
+.acao-card:hover{border-color:var(--kf-bordo)}
+.acao-card:focus-visible{border-color:var(--kf-bordo)}
+.acao-card .ic-circ{
+  width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:12.5px;margin-bottom:8px;background:var(--kf-bg);
+}
+/* ⚠️ O tom de atenção NÃO pode se chamar `.alerta`: esse nome já é a faixa de
+   aviso do CRM (.alerta{display:flex;align-items:center;border-left:4px solid}).
+   Um card com class="acao-card alerta" herdava a tarja lateral e a
+   centralização dela — visto na tela, não pego por nenhum teste. */
+.acao-card.risco   .ic-circ{background:var(--kf-red-soft);color:var(--kf-red)}
+.acao-card.atencao .ic-circ{background:var(--kf-accent-soft);color:var(--kf-sobre-accent)}
+.acao-card.ok      .ic-circ{background:var(--kf-green-soft);color:var(--kf-green)}
+.acao-card b.num{font-size:22px;font-weight:700;line-height:1}
+.acao-card .rot{font-size:12.3px;color:var(--kf-text);font-weight:600;margin-top:3px;display:block}
+.acao-card .sub{font-size:11px;color:var(--kf-text-dim);display:block}
+.acao-card .ir{font-size:11px;color:var(--kf-bordo);font-weight:600;margin-top:9px;display:block}
+
+/* ---------- CÉLULA DE TEXTO LIVRE QUE NÃO PODE ESTICAR A TABELA ----------
+   `td{white-space:nowrap}` é o certo para número e data, mas numa coluna de
+   TEXTO LIVRE ele deixa a coluna crescer até caber o maior valor. Na carteira,
+   um nome de cliente de 78 caracteres esticava a coluna para 555px e empurrava
+   a tabela inteira para a rolagem lateral — a largura da tela passava a depender
+   do cliente de nome mais comprido.
+   ⚠️ Sempre acompanhada de `title` com o texto completo: truncar sem dar como
+   ler o resto é esconder dado. */
+.kf-trunc { max-width: 260px; overflow: hidden; text-overflow: ellipsis }
+.kf-trunc-lg { max-width: 340px; overflow: hidden; text-overflow: ellipsis }
+
+/* ---------- ESTADOS DE COMPONENTE (2026-07-30) ----------
+   Duas lacunas achadas em auditoria. São regras GLOBAIS de propósito: cobrem o
+   que existe e o que for criado depois, sem migrar nada e sem custo de
+   renderização (o CSS do sistema tem 188 regras — não é aqui que pesa). */
+
+/* Clicável tem de PARECER clicável. Havia 16 elementos não-botão (div, tr,
+   span, td) com onclick e sem cursor:pointer — o mouse não dava sinal nenhum
+   de que aquilo respondia ao clique. */
+[onclick] { cursor: pointer }
+
+/* Desabilitado tem de PARECER desabilitado. Nenhum dos dois SPAs tinha estilo
+   de :disabled — o botão bloqueado ficava idêntico ao ativo, e a pessoa clica
+   sem entender por que nada acontece. (A tela de login já tinha; os SPAs não.) */
+button:disabled, .btn:disabled,
+input:disabled, select:disabled, textarea:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+/* ---------- PULO DO ÍCONE AO SELECIONAR A ABA (2026-08-20) ----------
+   Pedido do usuário: "um efeito nos ícones quando clica na aba".
+
+   Vive AQUI, e não no CSS de cada front, porque os DOIS usam o mesmo `.ic` com
+   o mesmo desenho — a keyframe é a mesma; só o seletor do estado ativo difere
+   (`.tab.active` no Dashboard, `.nav-item.ativo` no CRM). Dois donos da mesma
+   animação é como as classes de gráfico divergiram antes.
+
+   ⚠️ A animação dispara quando a classe de "ativo" ENTRA no elemento. Como os
+   dois fronts usam `classList.toggle(cls, true)`, reaplicar em quem já está
+   ativo não remove e readiciona a classe — logo não repete o pulo à toa.
+
+   ⚠️ Não precisa de guarda de `prefers-reduced-motion`: o a11y.css já zera
+   animação e transição globalmente com !important nesse modo. */
+@keyframes kf-ic-pop {
+  0%   { transform: scale(.8); }
+  55%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}

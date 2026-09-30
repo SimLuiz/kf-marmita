@@ -5,29 +5,29 @@ import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
 
+// Aplica o tema ANTES da primeira pintura (sem isso a tela pisca clara e
+// depois escurece). Mesma regra dos outros sistemas KF: `kfTema` salvo, ou o
+// tema do sistema operacional quando não há preferência.
+const TEMA_INICIAL = `try{var t=localStorage.getItem("kfTema");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.setAttribute("data-theme","dark")}catch(e){}`;
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { name: "theme-color", content: "#e87a3a" },
-      { title: "Marmita Control" },
-      { name: "description", content: "Controle de retirada de marmitas dos funcionários" },
-      { property: "og:title", content: "Marmita Control" },
-      { name: "twitter:title", content: "Marmita Control" },
-      { property: "og:description", content: "Controle de retirada de marmitas dos funcionários" },
-      { name: "twitter:description", content: "Controle de retirada de marmitas dos funcionários" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { property: "og:type", content: "website" },
+      { name: "theme-color", content: "#8E171A" },
+      { title: "KF Marmita — controle de marmitas" },
+      { name: "description", content: "KF Baterias — controle de retirada de marmitas dos funcionários" },
+      { name: "robots", content: "noindex, nofollow" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Sora:wght@600;700&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" },
       { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "icon", href: "/icon-192.png", type: "image/png" },
-      { rel: "apple-touch-icon", href: "/icon-192.png" },
+      { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -43,8 +43,9 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: TEMA_INICIAL }} />
         <HeadContent />
       </head>
       <body>

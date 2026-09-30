@@ -1,20 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
-import { supabase } from "@/integrations/supabase/client";
+import { relatorio, urlsDasAssinaturas } from "@/lib/dados.functions";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Download, FileText, CalendarRange } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { fetchAllRows } from "@/lib/fetch-all";
 
 export const Route = createFileRoute("/relatorio")({
   head: () => ({
     meta: [
-      { title: "Relatórios de marmitas | Marmita Control" },
+      { title: "Relatórios de marmitas | KF Marmita" },
       { name: "description", content: "Gere relatórios por período e exporte em Excel e PDF com setor, fornecedor e valores." },
-      { property: "og:title", content: "Relatórios de marmitas | Marmita Control" },
+      { property: "og:title", content: "Relatórios de marmitas | KF Marmita" },
       { property: "og:description", content: "Gere relatórios por período e exporte em Excel e PDF com setor, fornecedor e valores." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -118,83 +117,18 @@ function Page() {
     if (!user) return;
     setLoading(true);
     (async () => {
-      const [emps, sups, mts, recs] = await Promise.all([
-        fetchAllRows((f, t) =>
-          (supabase as any).from("employees_view").select("id,name,cpf,company,sector").range(f, t)
-        ),
-        fetchAllRows((f, t) => supabase.from("suppliers").select("id,name").range(f, t)),
-        fetchAllRows((f, t) =>
-          (supabase as any).from("meal_types").select("id,supplier_id,name,price,company_price").range(f, t)
-        ),
-        fetchAllRows((f, t) =>
-          (supabase as any)
-            .from("meal_records")
-            .select("id,employee_id,meal_type_id,photo_path,taken_at,unit_price,company_unit_price")
-            .gte("taken_at", range.start.toISOString())
-            .lt("taken_at", range.end.toISOString())
-            .order("taken_at", { ascending: false })
-            .order("id", { ascending: false })
-            .range(f, t)
-        ),
-      ]);
-
-      const empMap = new Map<string, any>((emps.data ?? []).map((e: any) => [e.id, e]));
-      const supMap = new Map<string, any>((sups.data ?? []).map((s: any) => [s.id, s]));
-      const mtMap = new Map<string, any>(
-        (mts.data ?? []).map((t: any) => [
-          t.id,
-          { ...t, price: Number(t.price), company_price: Number(t.company_price ?? 0) },
-        ])
-      );
-
-      const list: DetailRow[] = [];
-      (recs.data ?? []).forEach((r: any) => {
-        const emp = empMap.get(r.employee_id);
-        if (!emp) return;
-        const mt = r.meal_type_id ? mtMap.get(r.meal_type_id) : null;
-        const sup = mt ? supMap.get(mt.supplier_id) : null;
-        list.push({
-          id: r.id,
-          employee_id: emp.id,
-          name: emp.name,
-          cpf: emp.cpf ?? null,
-          company: emp.company ?? null,
-          sector: emp.sector ?? null,
-          supplier: sup?.name ?? "—",
-          meal: mt?.name ?? "(não informada)",
-          price: r.unit_price != null ? Number(r.unit_price) : mt ? Number(mt.price) : 0,
-          company_price:
-            r.company_unit_price != null
-              ? Number(r.company_unit_price)
-              : mt
-                ? Number(mt.company_price)
-                : 0,
-          taken_at: r.taken_at,
-          photo_path: r.photo_path ?? null,
-        });
-      });
-
-      setAllRows(list);
-
-      // Build signed URLs for the first signature per employee
-      const uniquePaths = new Map<string, string>();
-      list.forEach((r) => {
-        if (r.photo_path && !uniquePaths.has(r.employee_id)) {
-          uniquePaths.set(r.employee_id, r.photo_path);
-        }
-      });
-      const urlMap: Record<string, string> = {};
-      await Promise.all(
-        Array.from(uniquePaths.entries()).map(async ([empId, path]) => {
-          const { data } = await supabase.storage
-            .from("meal-photos")
-            .createSignedUrl(path, 60 * 60 * 24);
-          if (data?.signedUrl) urlMap[empId] = data.signedUrl;
-        })
-      );
-      setSigUrls(urlMap);
-
-      setLoading(false);
+      try {
+        // A junção (funcionário, tipo, fornecedor) e as URLs das assinaturas
+        // saem prontas do servidor.
+        const r = await relatorio({ data: { inicio: range.start.toISOString(), fim: range.end.toISOString() } });
+        setAllRows(r.linhas as DetailRow[]);
+        setSigUrls(r.assinaturas);
+      } catch (e) {
+        toast.error("Não foi possível carregar o relatório");
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [user, range.start, range.end]);
 
@@ -257,12 +191,13 @@ function Page() {
       // Preload signed URLs and image bytes for every row that has a photo_path
       const uniquePaths = Array.from(new Set(rows.map((r) => r.photo_path).filter(Boolean) as string[]));
       const pathToBuf = new Map<string, { buf: ArrayBuffer; ext: "png" | "jpeg" }>();
+      const urls = await urlsDasAssinaturas({ data: { caminhos: uniquePaths } });
       await Promise.all(
         uniquePaths.map(async (p) => {
-          const { data } = await supabase.storage.from("meal-photos").createSignedUrl(p, 60 * 60);
-          if (!data?.signedUrl) return;
+          const url = urls[p];
+          if (!url) return;
           try {
-            const res = await fetch(data.signedUrl);
+            const res = await fetch(url);
             const buf = await res.arrayBuffer();
             const ext: "png" | "jpeg" = p.toLowerCase().endsWith(".jpg") || p.toLowerCase().endsWith(".jpeg") ? "jpeg" : "png";
             pathToBuf.set(p, { buf, ext });
@@ -339,7 +274,7 @@ tr.total td{font-weight:bold;border-top:2px solid #222;border-bottom:none;backgr
 td.num,th.num{text-align:right}
 @media print{button{display:none}}
 </style></head><body>
-<h1>Relatório de Marmitas</h1>
+<h1>KF Baterias — Relatório de Marmitas</h1>
 <div class="sub">${periodLabel}</div>
 <h2 style="font-size:15px;margin:0 0 8px">Resumo por funcionário</h2>
 <table style="margin-bottom:28px"><thead><tr>
@@ -379,11 +314,6 @@ ${rows
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Relatório mensal</h2>
-        <p className="text-sm text-muted-foreground">Fechamento por funcionário e marmita</p>
-      </div>
-
       <div
         className="bg-card rounded-lg p-3 space-y-3"
         style={{ boxShadow: "var(--shadow-card)" }}

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { obterPermissoes } from "@/lib/dados.functions";
 
 export interface AppPermissions {
   id: string;
@@ -53,6 +53,7 @@ interface Ctx {
   permissions: AppPermissions | null;
   loading: boolean;
   reload: () => Promise<void>;
+  /** Só decide o que MOSTRAR — quem barra de verdade é o servidor. */
   can: (key: PermissionKey) => boolean;
 }
 
@@ -69,12 +70,11 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       return;
     }
-    const { data } = await (supabase as any)
-      .from("app_permissions")
-      .select("*")
-      .limit(1)
-      .maybeSingle();
-    setPermissions((data as AppPermissions) ?? null);
+    try {
+      setPermissions(((await obterPermissoes()) as AppPermissions) ?? null);
+    } catch {
+      setPermissions(null);
+    }
     setLoading(false);
   }, [user]);
 
@@ -88,12 +88,10 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       const source = permissions ?? DEFAULTS;
       return !!source[key];
     },
-    [isAdmin, permissions]
+    [isAdmin, permissions],
   );
 
-  return (
-    <PermCtx.Provider value={{ permissions, loading, reload, can }}>{children}</PermCtx.Provider>
-  );
+  return <PermCtx.Provider value={{ permissions, loading, reload, can }}>{children}</PermCtx.Provider>;
 }
 
 export function usePermissions() {

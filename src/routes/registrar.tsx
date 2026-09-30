@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
-import { supabase } from "@/integrations/supabase/client";
+import { cadastroMarmitas, listarFuncionarios, registrarRetirada } from "@/lib/dados.functions";
 import { useAuth } from "@/lib/auth";
 import { usePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
@@ -28,9 +28,9 @@ interface MealType {
 export const Route = createFileRoute("/registrar")({
   head: () => ({
     meta: [
-      { title: "Registrar retirada de marmita | Marmita Control" },
+      { title: "Registrar retirada de marmita | KF Marmita" },
       { name: "description", content: "Registre a retirada da marmita com assinatura do funcionário, fornecedor e valor." },
-      { property: "og:title", content: "Registrar retirada de marmita | Marmita Control" },
+      { property: "og:title", content: "Registrar retirada de marmita | KF Marmita" },
       { property: "og:description", content: "Registre a retirada da marmita com assinatura do funcionário, fornecedor e valor." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -176,29 +176,10 @@ function Page() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [emps, sups, mts] = await Promise.all([
-        (supabase as any)
-          .from("employees_view")
-          .select("id,name,cpf,company")
-          .is("archived_at", null)
-          .order("name"),
-        supabase.from("suppliers").select("id,name").order("name"),
-        (supabase as any)
-          .from("meal_types")
-          .select("id,supplier_id,name,price,company_price")
-          .is("archived_at", null)
-          .order("name"),
-      ]);
-
-      setEmployees((emps.data as Employee[]) ?? []);
-      setSuppliers((sups.data as Supplier[]) ?? []);
-      setMealTypes(
-        ((mts.data as any[]) ?? []).map((t) => ({
-          ...t,
-          price: Number(t.price),
-          company_price: Number(t.company_price ?? 0),
-        }))
-      );
+      const [emps, cad] = await Promise.all([listarFuncionarios(), cadastroMarmitas()]);
+      setEmployees(emps as Employee[]);
+      setSuppliers(cad.fornecedores as Supplier[]);
+      setMealTypes(cad.tipos as MealType[]);
     })();
   }, [user]);
 
@@ -217,26 +198,24 @@ function Page() {
     if (!selected || !selectedType || !sigBlob || !user || saving) return;
     setSaving(true);
     try {
-      const path = `${user.id}/${Date.now()}-${selected.id}.png`;
-      const { error: upErr } = await supabase.storage
-        .from("meal-photos")
-        .upload(path, sigBlob, { contentType: "image/png" });
-      if (upErr) throw upErr;
-
-      const insertPayload: any = {
-        owner_id: user.id,
-        employee_id: selected.id,
-        meal_type_id: selectedType.id,
-        photo_path: path,
-        unit_price: selectedType.price,
-        company_unit_price: selectedType.company_price,
-      };
-      if ((isAdmin || can("can_backdate_records")) && customDate) {
-        insertPayload.taken_at = new Date(customDate).toISOString();
-      }
-      const { error: insErr } = await (supabase as any).from("meal_records").insert(insertPayload);
-
-      if (insErr) throw insErr;
+      // A assinatura vai como PNG em base64; o servidor grava no Storage e cria
+      // o lançamento com o preço do tipo de marmita (não o que a tela mostra).
+      const assinatura = await new Promise<string>((resolve, reject) => {
+        const leitor = new FileReader();
+        leitor.onload = () => resolve(String(leitor.result));
+        leitor.onerror = () => reject(new Error("Falha ao ler a assinatura"));
+        leitor.readAsDataURL(sigBlob);
+      });
+      await registrarRetirada({
+        data: {
+          employee_id: selected.id,
+          meal_type_id: selectedType.id,
+          assinatura,
+          ...((isAdmin || can("can_backdate_records")) && customDate
+            ? { taken_at: new Date(customDate).toISOString() }
+            : {}),
+        },
+      });
 
       toast.success(`Marmita registrada para ${selected.name}`);
       setSigBlob(null);
@@ -279,8 +258,7 @@ function Page() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Registrar retirada</h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm font-semibold text-muted-foreground">
           {step === 1 && "1. Escolha o funcionário"}
           {step === 2 && "2. Escolha a marmita"}
           {step === 3 && "3. Colete a assinatura"}

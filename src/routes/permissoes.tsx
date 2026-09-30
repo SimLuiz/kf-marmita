@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
-import { supabase } from "@/integrations/supabase/client";
+import { salvarPermissao } from "@/lib/dados.functions";
 import { useAuth } from "@/lib/auth";
 import { PERMISSION_LABELS, usePermissions, type PermissionKey } from "@/lib/permissions";
 import { Switch } from "@/components/ui/switch";
@@ -12,12 +12,12 @@ import { SlidersHorizontal } from "lucide-react";
 export const Route = createFileRoute("/permissoes")({
   head: () => ({
     meta: [
-      { title: "Permissões do usuário | Marmita Control" },
+      { title: "Permissões do usuário | KF Marmita" },
       {
         name: "description",
         content: "Defina o que os usuários comuns podem editar dentro do controle de marmitas.",
       },
-      { property: "og:title", content: "Permissões do usuário | Marmita Control" },
+      { property: "og:title", content: "Permissões do usuário | KF Marmita" },
       {
         property: "og:description",
         content: "Defina o que os usuários comuns podem editar dentro do controle de marmitas.",
@@ -57,15 +57,14 @@ function Page() {
     if (!permissions) return;
     setLocal((p) => ({ ...p, [key]: value }));
     setSaving(key);
-    const { error } = await (supabase as any)
-      .from("app_permissions")
-      .update({ [key]: value })
-      .eq("id", permissions.id);
-    setSaving(null);
-    if (error) {
+    try {
+      await salvarPermissao({ data: { chave: key, valor: value } });
+    } catch (e) {
+      setSaving(null);
       setLocal((p) => ({ ...p, [key]: !value }));
-      return toast.error(toUserMessage(error));
+      return toast.error(toUserMessage(e));
     }
+    setSaving(null);
     toast.success("Permissão atualizada");
     reload();
   };
@@ -73,9 +72,6 @@ function Page() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <SlidersHorizontal className="h-6 w-6 text-primary" /> Permissões
-        </h2>
         <p className="text-sm text-muted-foreground">
           Escolha o que o usuário comum pode fazer no aplicativo. O admin sempre tem acesso total.
         </p>

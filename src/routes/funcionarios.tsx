@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
 import { EditEmployeeDialog } from "@/components/EditEmployeeDialog";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
-import { supabase } from "@/integrations/supabase/client";
+import { arquivarFuncionario, criarFuncionario, listarFuncionarios } from "@/lib/dados.functions";
 import { useAuth } from "@/lib/auth";
 import { usePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
@@ -34,9 +34,9 @@ interface Employee {
 export const Route = createFileRoute("/funcionarios")({
   head: () => ({
     meta: [
-      { title: "Funcionários | Marmita Control" },
+      { title: "Funcionários | KF Marmita" },
       { name: "description", content: "Cadastre, edite e pesquise funcionários por nome ou CPF no controle de marmitas." },
-      { property: "og:title", content: "Funcionários | Marmita Control" },
+      { property: "og:title", content: "Funcionários | KF Marmita" },
       { property: "og:description", content: "Cadastre, edite e pesquise funcionários por nome ou CPF no controle de marmitas." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -84,13 +84,11 @@ function FuncionariosList() {
 
 
   const load = async () => {
-    const { data, error } = await (supabase as any)
-      .from("employees_view")
-      .select("*")
-      .is("archived_at", null)
-      .order("name");
-    if (error) toast.error(toUserMessage(error));
-    else setList((data as Employee[]) ?? []);
+    try {
+      setList((await listarFuncionarios()) as Employee[]);
+    } catch (e) {
+      toast.error(toUserMessage(e));
+    }
   };
 
 
@@ -124,19 +122,15 @@ function FuncionariosList() {
       return toast.error("CPF deve ter 11 dígitos");
     }
     setLoading(true);
-    const { error } = await (supabase as any).from("employees").insert({
-      name: name.trim(),
-      cpf: formatCPF(cpfDigits),
-      company: company.trim(),
-      sector: sector.trim(),
-      vinculo,
-      owner_id: user.id,
-    });
+    try {
+      await criarFuncionario({
+        data: { name: name.trim(), cpf: cpfDigits, company: company.trim(), sector: sector.trim(), vinculo: vinculo as any },
+      });
+    } catch (e) {
+      setLoading(false);
+      return toast.error(toUserMessage(e));
+    }
     setLoading(false);
-    if (error)
-      return toast.error(
-        error.code === "23505" ? "Já existe um funcionário com esse CPF" : toUserMessage(error)
-      );
     setName("");
     setCpf("");
     setCompany("");
@@ -159,7 +153,6 @@ function FuncionariosList() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Funcionários</h2>
         <p className="text-sm text-muted-foreground">
           {list.length} cadastrados · toque em um nome para ver as marmitas
         </p>
@@ -338,14 +331,11 @@ function FuncionariosList() {
         open={!!pendingDelete}
         onOpenChange={(o) => !o && setPendingDelete(null)}
         title="Arquivar funcionário"
-        description={`Digite a senha do admin para arquivar "${pendingDelete?.name ?? ""}". Os registros de marmitas dele serão preservados no histórico.`}
-        onConfirmed={async () => {
+        description={`Digite a sua senha para arquivar "${pendingDelete?.name ?? ""}". Os registros de marmitas dele serão preservados no histórico.`}
+        confirmLabel="Arquivar"
+        onConfirmed={async (senha) => {
           if (!pendingDelete) return;
-          const { error } = await supabase
-            .from("employees")
-            .update({ archived_at: new Date().toISOString() })
-            .eq("id", pendingDelete.id);
-          if (error) throw new Error(error.message);
+          await arquivarFuncionario({ data: { id: pendingDelete.id, senha } });
           toast.success("Funcionário arquivado");
           setPendingDelete(null);
           load();

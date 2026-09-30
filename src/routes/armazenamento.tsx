@@ -21,9 +21,9 @@ import { toUserMessage } from "@/lib/safe-error";
 export const Route = createFileRoute("/armazenamento")({
   head: () => ({
     meta: [
-      { title: "Armazenamento | Marmita Control" },
+      { title: "Armazenamento | KF Marmita" },
       { name: "description", content: "Monitore o espaço usado por registros e assinaturas e limpe dados antigos." },
-      { property: "og:title", content: "Armazenamento | Marmita Control" },
+      { property: "og:title", content: "Armazenamento | KF Marmita" },
       { property: "og:description", content: "Monitore o espaço usado por registros e assinaturas e limpe dados antigos." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -115,10 +115,6 @@ function Page() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <HardDrive className="h-6 w-6 text-primary" />
-            Armazenamento
-          </h1>
           <p className="text-xs text-muted-foreground">
             Uso do disco do banco de dados · capacidade 2 GB
           </p>

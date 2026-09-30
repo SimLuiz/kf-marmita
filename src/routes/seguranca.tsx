@@ -22,9 +22,9 @@ import { toUserMessage } from "@/lib/safe-error";
 export const Route = createFileRoute("/seguranca")({
   head: () => ({
     meta: [
-      { title: "Segurança | Marmita Control" },
+      { title: "Segurança | KF Marmita" },
       { name: "description", content: "Acompanhe indicadores de segurança e acessos do controle de marmitas." },
-      { property: "og:title", content: "Segurança | Marmita Control" },
+      { property: "og:title", content: "Segurança | KF Marmita" },
       { property: "og:description", content: "Acompanhe indicadores de segurança e acessos do controle de marmitas." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -114,10 +114,6 @@ function Page() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6 text-primary" />
-            Segurança
-          </h1>
           <p className="text-xs text-muted-foreground">
             Monitoramento em tempo real · atualiza a cada 30s
           </p>
@@ -162,7 +158,7 @@ function Page() {
 
       {/* Métricas */}
       <div className="grid grid-cols-2 gap-3">
-        <MetricCard icon={Activity} label="Sessões ativas (5min)" value={data?.activeSessions ?? "—"} />
+        <MetricCard icon={Activity} label="Sessões ativas (1h)" value={data?.activeSessions ?? "—"} />
         <MetricCard icon={LogIn} label="Logins (24h)" value={data?.logins24h ?? "—"} />
         <MetricCard
           icon={XCircle}

@@ -1,10 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
-import { fetchAllRows } from "@/lib/fetch-all";
 import { EditEmployeeDialog } from "@/components/EditEmployeeDialog";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  cadastroMarmitas,
+  editarLancamento,
+  excluirLancamento,
+  lancamentosDoFuncionario,
+  obterFuncionario,
+} from "@/lib/dados.functions";
 import { useAuth } from "@/lib/auth";
 import { usePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
@@ -64,9 +69,9 @@ interface RecordWithUrl extends Record {
 export const Route = createFileRoute("/funcionarios/$id")({
   head: () => ({
     meta: [
-      { title: "Histórico do funcionário | Marmita Control" },
+      { title: "Histórico do funcionário | KF Marmita" },
       { name: "description", content: "Veja as marmitas retiradas por dia, fornecedor, valores e assinaturas do funcionário." },
-      { property: "og:title", content: "Histórico do funcionário | Marmita Control" },
+      { property: "og:title", content: "Histórico do funcionário | KF Marmita" },
       { property: "og:description", content: "Veja as marmitas retiradas por dia, fornecedor, valores e assinaturas do funcionário." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -108,12 +113,12 @@ function Page() {
   }, [cursor]);
 
   const loadEmployee = async () => {
-    const { data, error } = await (supabase as any)
-      .from("employees_view")
-      .select("id,name,cpf,company,sector")
-      .eq("id", id)
-      .maybeSingle();
-    if (error) return toast.error(toUserMessage(error));
+    let data: Employee | null;
+    try {
+      data = (await obterFuncionario({ data: { id } })) as Employee | null;
+    } catch (e) {
+      return toast.error(toUserMessage(e));
+    }
     if (!data) {
       toast.error("Funcionário não encontrado");
       navigate({ to: "/funcionarios" });
@@ -125,31 +130,15 @@ function Page() {
   const loadRecords = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await fetchAllRows((f, t) =>
-      supabase
-        .from("meal_records")
-        .select("id,taken_at,photo_path,meal_type_id,unit_price,meal_types(name,price,suppliers(name))")
-        .eq("employee_id", id)
-        .gte("taken_at", range.start.toISOString())
-        .lt("taken_at", range.end.toISOString())
-        .order("taken_at", { ascending: false })
-        .range(f, t)
-    );
-    if (error) {
-      toast.error(toUserMessage(error));
-      setLoading(false);
-      return;
+    try {
+      // O servidor já devolve cada lançamento com a URL assinada da assinatura.
+      const lista = await lancamentosDoFuncionario({
+        data: { id, inicio: range.start.toISOString(), fim: range.end.toISOString() },
+      });
+      setRecords(lista as RecordWithUrl[]);
+    } catch (e) {
+      toast.error(toUserMessage(e));
     }
-    const list = (data ?? []) as Record[];
-    const withUrls = await Promise.all(
-      list.map(async (r) => {
-        const { data: signed } = await supabase.storage
-          .from("meal-photos")
-          .createSignedUrl(r.photo_path, 60 * 60);
-        return { ...r, photoUrl: signed?.signedUrl ?? null };
-      })
-    );
-    setRecords(withUrls);
     setLoading(false);
   };
 
@@ -164,12 +153,11 @@ function Page() {
   useEffect(() => {
     if (!isAdmin && !can("can_edit_records")) return;
     (async () => {
-      const { data } = await (supabase as any)
-        .from("meal_types")
-        .select("id,name,price,company_price,supplier_id,suppliers(name)")
-        .is("archived_at", null)
-        .order("name");
-      setMealTypes((data as MealTypeOpt[]) ?? []);
+      const cad = await cadastroMarmitas();
+      const nomeFornecedor = new Map(cad.fornecedores.map((f: any) => [f.id, f.name]));
+      setMealTypes(
+        cad.tipos.map((t: any) => ({ ...t, suppliers: { name: nomeFornecedor.get(t.supplier_id) ?? "" } })) as MealTypeOpt[],
+      );
     })();
   }, [isAdmin]);
 
@@ -294,7 +282,7 @@ function Page() {
 
       <div>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-          Dias e fotos
+          Dias e assinaturas
         </h3>
         {loading ? (
           <p className="text-center text-muted-foreground py-8">Carregando...</p>
@@ -357,7 +345,7 @@ function Page() {
                               >
                                 <img
                                   src={rec.photoUrl}
-                                  alt="Marmita"
+                                  alt="Assinatura"
                                   className="h-full w-full object-cover"
                                   loading="lazy"
                                 />
@@ -428,15 +416,11 @@ function Page() {
         open={!!pendingDelete}
         onOpenChange={(o: boolean) => !o && setPendingDelete(null)}
         title="Excluir registro"
-        description="Digite a senha do admin para excluir este registro de marmita."
-        onConfirmed={async () => {
+        description="Digite a sua senha para excluir este registro de marmita. A assinatura também é apagada."
+        confirmLabel="Excluir registro"
+        onConfirmed={async (senha) => {
           if (!pendingDelete) return;
-          const { error } = await supabase
-            .from("meal_records")
-            .delete()
-            .eq("id", pendingDelete.id);
-          if (error) throw new Error(error.message);
-          await supabase.storage.from("meal-photos").remove([pendingDelete.photo_path]);
+          await excluirLancamento({ data: { id: pendingDelete.id, senha } });
           toast.success("Registro removido");
           setPendingDelete(null);
           loadRecords();
@@ -451,7 +435,7 @@ function Page() {
         >
           <img
             src={lightbox}
-            alt="Foto da marmita"
+            alt="Assinatura"
             className="max-h-full max-w-full rounded-lg"
           />
         </button>
@@ -506,17 +490,10 @@ function EditMealTypeDialog({
     }
     setSaving(true);
     try {
-      const payload: any = {
-        meal_type_id: mt.id,
-        unit_price: mt.price,
-        company_unit_price: mt.company_price,
-      };
-      if (taken) payload.taken_at = new Date(taken).toISOString();
-      const { error } = await (supabase as any)
-        .from("meal_records")
-        .update(payload)
-        .eq("id", record.id);
-      if (error) throw error;
+      // O valor é recalculado no servidor a partir do tipo escolhido.
+      await editarLancamento({
+        data: { id: record.id, meal_type_id: mt.id, ...(taken ? { taken_at: new Date(taken).toISOString() } : {}) },
+      });
       toast.success("Registro atualizado");
       onSaved();
     } catch (e: any) {

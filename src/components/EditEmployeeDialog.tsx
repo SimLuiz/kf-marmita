@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { editarFuncionario } from "@/lib/dados.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,27 +57,28 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!employee || !name.trim()) return;
+    if (!employee) return;
+    // Mesmas regras do cadastro: tudo obrigatório e CPF com 11 dígitos.
     const cpfDigits = cpf.replace(/\D/g, "");
-    if (cpfDigits && cpfDigits.length !== 11) {
-      return toast.error("CPF deve ter 11 dígitos");
-    }
+    if (!name.trim() || !company.trim() || !sector.trim()) return toast.error("Preencha todos os campos");
+    if (cpfDigits.length !== 11) return toast.error("CPF deve ter 11 dígitos");
     setSaving(true);
-    const { error } = await (supabase as any)
-      .from("employees")
-      .update({
-        name: name.trim(),
-        cpf: cpfDigits ? formatCPF(cpfDigits) : null,
-        company: company.trim() || null,
-        sector: sector.trim() || null,
-        vinculo,
-      })
-      .eq("id", employee.id);
+    try {
+      await editarFuncionario({
+        data: {
+          id: employee.id,
+          name: name.trim(),
+          cpf: cpfDigits,
+          company: company.trim(),
+          sector: sector.trim(),
+          vinculo: vinculo as "clt" | "pj" | "visitante" | "aniversariante",
+        },
+      });
+    } catch (err) {
+      setSaving(false);
+      return toast.error(toUserMessage(err));
+    }
     setSaving(false);
-    if (error)
-      return toast.error(
-        error.code === "23505" ? "Já existe um funcionário com esse CPF" : toUserMessage(error)
-      );
     toast.success("Cadastro atualizado");
     onSaved();
     onOpenChange(false);
@@ -102,7 +103,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="edit-cpf">CPF</Label>
+              <Label htmlFor="edit-cpf">CPF *</Label>
               <Input
                 id="edit-cpf"
                 placeholder="000.000.000-00"
@@ -112,7 +113,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-company">Empresa</Label>
+              <Label htmlFor="edit-company">Empresa *</Label>
               <Input
                 id="edit-company"
                 value={company}
@@ -122,7 +123,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="edit-sector">Setor</Label>
+            <Label htmlFor="edit-sector">Setor *</Label>
             <Input
               id="edit-sector"
               placeholder="Setor / departamento"
@@ -132,7 +133,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="edit-vinculo">Vínculo</Label>
+            <Label htmlFor="edit-vinculo">Vínculo *</Label>
             <select
               id="edit-vinculo"
               value={vinculo}
@@ -154,7 +155,7 @@ export function EditEmployeeDialog({ employee, open, onOpenChange, onSaved }: Pr
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={saving || !name.trim()}>
+            <Button type="submit" disabled={saving || !name.trim() || !company.trim() || !sector.trim() || cpf.replace(/D/g, "").length !== 11}>
               {saving ? "Salvando..." : "Salvar alterações"}
             </Button>
           </DialogFooter>

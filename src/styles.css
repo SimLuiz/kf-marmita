@@ -1,12 +1,21 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+/* 🔴 Design system KF — cópias de kf-dashboard/src-shared (ver cabeçalho de
+   cada um). Mesma ordem dos outros sistemas: tokens → a11y → componentes → o
+   CSS deste sistema (este arquivo, abaixo). */
+@import "./styles/kf-tokens.css";
+@import "./styles/kf-a11y.css";
+@import "./styles/kf-componentes.css";
 
-@custom-variant dark (&:is(.dark *));
+/* Tema escuro: MESMO atributo e mesma chave (`kfTema`) do kf-dashboard e do
+   kf-garantia — trocar o tema em um reflete nos outros. Não usar `.dark`. */
+@custom-variant dark (&:is([data-theme="dark"] *));
 
 @theme inline {
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+  /* Inter, a mesma do kf-garantia (com a mesma pilha de reserva). */
+  --font-sans: "Inter", "Segoe UI", Calibri, Tahoma, sans-serif;
+  --font-display: "Inter", "Segoe UI", Calibri, Tahoma, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -35,110 +44,100 @@
   --color-ring: var(--ring);
 }
 
+/* Os nomes do shadcn (que todos os componentes da pasta ui/ usam) passam a
+   APONTAR para os tokens KF, em vez de ter cor própria. Assim cada botão,
+   diálogo e campo herda a paleta bordô/ouro — e acompanha o tema escuro, que
+   o kf-tokens.css já redefine — sem mexer componente por componente. */
 :root {
-  --radius: 0.5rem;
+  --radius: var(--kf-radius);
 
-  --background: oklch(0.985 0.004 250);
-  --foreground: oklch(0.278 0.029 256.8);
+  --background: var(--kf-bg);
+  --foreground: var(--kf-text);
+  --card: var(--kf-surface);
+  --card-foreground: var(--kf-text);
+  --popover: var(--kf-surface);
+  --popover-foreground: var(--kf-text);
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.278 0.029 256.8);
+  --primary: var(--kf-bordo);
+  --primary-foreground: #ffffff;
+  --primary-glow: var(--kf-bordo-2);
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.278 0.029 256.8);
+  --secondary: var(--kf-surface-2);
+  --secondary-foreground: var(--kf-text);
+  --muted: var(--kf-surface-2);
+  --muted-foreground: var(--kf-text-dim);
+  --accent: var(--kf-bordo-suave);
+  --accent-foreground: var(--kf-bordo);
 
-  --primary: oklch(0.623 0.214 259.8);
-  --primary-foreground: oklch(1 0 0);
-  --primary-glow: oklch(0.707 0.165 254.6);
+  --destructive: var(--kf-red);
+  --destructive-foreground: #ffffff;
+  --success: var(--kf-green);
+  --success-foreground: #ffffff;
 
-  --secondary: oklch(0.965 0.008 247.9);
-  --secondary-foreground: oklch(0.278 0.029 256.8);
+  --border: var(--kf-border);
+  --input: var(--kf-border);
+  --ring: var(--kf-bordo);
 
-  --muted: oklch(0.965 0.008 247.9);
-  --muted-foreground: oklch(0.554 0.041 257.4);
-
-  --accent: oklch(0.932 0.032 255.6);
-  --accent-foreground: oklch(0.424 0.199 265.6);
-
-  --destructive: oklch(0.6 0.22 27);
-  --destructive-foreground: oklch(0.99 0.01 90);
-
-  --success: oklch(0.65 0.16 145);
-  --success-foreground: oklch(0.99 0.01 90);
-
-  --border: oklch(0.928 0.013 255.5);
-  --input: oklch(0.928 0.013 255.5);
-  --ring: oklch(0.623 0.214 259.8);
-
-  --gradient-primary: linear-gradient(135deg, var(--primary), var(--primary-glow));
-  --gradient-warm: var(--background);
-  --shadow-soft: 0 8px 24px -12px oklch(0.623 0.214 259.8 / 0.28);
-  --shadow-card: 0 1px 3px oklch(0.278 0.029 256.8 / 0.08);
-}
-
-.dark {
-  --background: oklch(0.18 0.02 50);
-  --foreground: oklch(0.96 0.01 80);
-  --card: oklch(0.23 0.025 50);
-  --card-foreground: oklch(0.96 0.01 80);
-  --popover: oklch(0.23 0.025 50);
-  --popover-foreground: oklch(0.96 0.01 80);
-  --primary: oklch(0.72 0.18 50);
-  --primary-foreground: oklch(0.18 0.02 50);
-  --primary-glow: oklch(0.8 0.16 60);
-  --secondary: oklch(0.28 0.03 50);
-  --secondary-foreground: oklch(0.96 0.01 80);
-  --muted: oklch(0.28 0.03 50);
-  --muted-foreground: oklch(0.7 0.02 70);
-  --accent: oklch(0.32 0.04 60);
-  --accent-foreground: oklch(0.96 0.01 80);
-  --destructive: oklch(0.6 0.22 27);
-  --destructive-foreground: oklch(0.99 0.01 90);
-  --success: oklch(0.65 0.16 145);
-  --success-foreground: oklch(0.99 0.01 90);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.72 0.18 50);
+  /* Flat, como os outros sistemas: profundidade pela borda, não pela sombra. */
+  --shadow-soft: none;
+  --shadow-card: none;
 }
 
 @layer base {
-  * {
-    border-color: var(--color-border);
-  }
+  * { border-color: var(--color-border); }
   body {
     background: var(--color-background);
     color: var(--color-foreground);
     min-height: 100vh;
     font-family: var(--font-sans);
-    letter-spacing: 0;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
   }
-
-  h1, h2, h3 { font-family: var(--font-display); letter-spacing: 0; }
+  h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
+  /* O `hidden` do HTML perde para qualquer `display` escrito depois — mesma
+     armadilha documentada no kf-garantia. */
+  [hidden] { display: none !important; }
 }
 
-@utility font-display { font-family: var(--font-display); }
+/* Cartões: a borda de 1px é o que separa do fundo (sombra é zero). */
+.bg-card { border: 1px solid var(--kf-border); }
 
+@utility font-display { font-family: var(--font-display); }
 @utility first-cap {
   text-transform: lowercase;
   &::first-letter { text-transform: uppercase; }
 }
 
-@utility nav-item {
-  display: flex;
-  min-width: 0;
+@utility page-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 1rem;
+}
+@utility page-eyebrow { color: var(--kf-bordo); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; }
+@utility page-title { margin-top: 0.25rem; font-size: 1.5rem; line-height: 2rem; font-weight: 700; }
+@utility page-description { margin-top: 0.375rem; color: var(--kf-text-dim); font-size: 0.875rem; }
+
+@utility metric-card {
+  border: 1px solid var(--kf-border);
+  border-radius: var(--kf-radius);
+  background: var(--kf-surface);
+  padding: 1rem;
+}
+@utility action-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.75rem;
-  border-radius: var(--radius);
-  padding: 0.625rem 0.75rem;
-  color: var(--color-muted-foreground);
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: color 150ms, background-color 150ms;
-  &:hover { background: var(--color-muted); color: var(--color-foreground); }
+  border: 1px solid var(--kf-border);
+  border-radius: var(--kf-radius);
+  background: var(--kf-surface);
+  padding: 1rem;
+  transition: border-color 150ms, transform 150ms;
+  &:hover { border-color: var(--kf-bordo); }
+  &:active { transform: scale(0.99); }
 }
-
-@utility nav-item-active { background: var(--color-accent); color: var(--color-primary); }
-
 @utility mobile-nav-item {
   display: flex;
   min-width: 0;
@@ -152,39 +151,166 @@
   white-space: nowrap;
 }
 
-@utility page-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 1rem;
+/* ============================================================================
+   SHELL KF — sidebar clara, barra do topo com o ícone da tela
+   ============================================================================
+   Mesmo desenho do kf-garantia/app/css/estilo.css (seções SIDEBAR e
+   CABEÇALHO), com os mesmos nomes de classe e as mesmas medidas. A diferença:
+   aqui a navegação é por <Link> (TanStack Router), não por botão de aba.
+   ============================================================================ */
+.kf-side {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 224px; z-index: 60;
+  background: var(--kf-sidebar); border-right: 1px solid var(--kf-sidebar-borda);
+  color: var(--kf-text);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.kf-side-marca { display: flex; align-items: center; gap: 10px; padding: 18px 18px 14px; }
+.kf-side-marca img { border-radius: 50%; object-fit: cover; flex: 0 0 auto; }
+.kf-side-marca b { font-size: 14.5px; display: block; line-height: 1.15; }
+.kf-side-marca small { color: var(--kf-nav-suave); font-size: 10.5px; }
+.kf-side .tabs { display: flex; flex-direction: column; gap: 1px; padding: 6px 12px 20px; flex: 1; overflow-y: auto; min-height: 0; }
+.kf-grp { display: flex; flex-direction: column; gap: 1px; margin-bottom: 6px; }
+.kf-grp-t { font-size: 10px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--kf-nav-suave); padding: 14px 10px 5px; }
+.kf-side .tab {
+  color: var(--kf-nav-txt); font-size: 13px; font-weight: 600; text-decoration: none;
+  padding: 8px 10px; border-radius: 8px; transition: .15s; display: flex; align-items: center; gap: 10px;
+}
+.kf-side .tab .ic { width: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; opacity: .9; transition: transform .12s ease; }
+.kf-side .tab:active .ic { transform: scale(.86); }
+.kf-side .tab.active .ic { animation: kf-ic-pop .3s ease-out; }
+.kf-side .tab:hover { background: var(--kf-nav-hover); color: var(--kf-nav-txt-forte); }
+.kf-side .tab.active { background: var(--kf-nav-ativo-bg); color: var(--kf-nav-ativo-txt); font-weight: 700; }
+.kf-side-rodape { margin-top: auto; border-top: 1px solid var(--kf-sidebar-borda); padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+.kf-quem { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.kf-quem .avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--kf-ouro); color: #3A2A00; font-size: 12.5px; font-weight: 700;
+}
+.kf-quem b { font-size: 13px; display: block; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kf-quem small { font-size: 11px; color: var(--kf-text-dim); }
+
+.kf-conteudo { padding-left: 224px; min-height: 100vh; }
+
+header.top {
+  position: sticky; top: 0; z-index: 40;
+  background: var(--kf-topo); border-bottom: 1px solid var(--kf-border);
+  padding: 12px 22px;
+  display: flex; align-items: center; gap: 14px;
+}
+.ic-pagina {
+  width: 42px; height: 42px; border-radius: 11px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--kf-bordo-suave); color: var(--kf-bordo);
+}
+header.top h1 { font-size: 21px; margin: 0; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; }
+header.top h1 small { display: block; font-size: 12.5px; color: var(--kf-text-dim); font-weight: 400; margin-top: 2px; }
+header.top .top-acoes { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+
+.btn-kf {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--kf-surface-2); color: var(--kf-text);
+  border: 1px solid var(--kf-border);
+  padding: 8px 14px; border-radius: 8px; cursor: pointer;
+  font-family: inherit; font-size: 14px; transition: .15s; white-space: nowrap;
+}
+.btn-kf:hover { border-color: var(--kf-bordo); }
+/* Único botão colorido além do primário — é o único com consequência. */
+.btn-kf.sair { background: var(--kf-red); border-color: var(--kf-red); color: #fff; font-weight: 600; }
+.btn-kf.sair:hover { filter: brightness(.93); }
+
+.kf-wrap { max-width: 1200px; margin: 0 auto; padding: 22px 22px 40px; }
+
+/* ≤1100px: a coluna vira a navegação de baixo (o operador usa tablet/celular
+   no balcão) — a sidebar sai e o topo fica mais compacto. */
+@media (max-width: 1100px) {
+  .kf-side { display: none; }
+  .kf-conteudo { padding-left: 0; padding-bottom: 88px; }
+  header.top { padding: 10px 14px; }
+  header.top h1 { font-size: 18px; }
+  .kf-wrap { padding: 14px 14px 28px; }
+}
+.kf-nav-baixo { display: none; }
+@media (max-width: 1100px) {
+  .kf-nav-baixo {
+    display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    background: var(--kf-surface); border-top: 1px solid var(--kf-border);
+    padding: 8px 8px max(0.5rem, env(safe-area-inset-bottom));
+  }
+  .kf-nav-baixo a, .kf-nav-baixo button { color: var(--kf-text-dim); }
+  .kf-nav-baixo .ativo { color: var(--kf-bordo); }
 }
 
-@utility page-eyebrow { color: var(--color-primary); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
-@utility page-title { margin-top: 0.25rem; font-size: 1.5rem; line-height: 2rem; font-weight: 700; }
-@utility page-description { margin-top: 0.375rem; color: var(--color-muted-foreground); font-size: 0.875rem; }
-
-@utility metric-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-card);
-  padding: 1rem;
-  box-shadow: var(--shadow-card);
+/* ============================================================================
+   ENTRADA — cópia do login do kf-garantia (que é cópia fiel do kf-dashboard).
+   ============================================================================
+   Mesma arte de fundo, mesmo cartão branco, mesma paleta --l-* própria (o login
+   dos outros sistemas também não usa os tokens --kf-*: ver o comentário em
+   kf-garantia/app/css/estilo.css). Fica sempre claro, mesmo no tema escuro.
+   ============================================================================ */
+:root {
+  --l-fundo: #FAFAFA; --l-card: #FFFFFF; --l-borda: #E9E9EA; --l-borda-forte: #D8D9DB;
+  --l-txt: #202124; --l-txt-dim: #767980;
+  --l-acao: #8E171A; --l-acao-hover: #6E1215;
+  --l-erro-bg: #FBEAE8; --l-erro-bd: #E8A9A3; --l-erro-tx: #A81F16;
+  --l-info-bg: #EAF1FD; --l-info-bd: #A8C4F6; --l-info-tx: #1D4FCB;
 }
-
-@utility action-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-card);
-  padding: 1rem;
-  box-shadow: var(--shadow-card);
-  transition: border-color 150ms, transform 150ms;
-  &:hover { border-color: color-mix(in oklab, var(--color-primary) 35%, var(--color-border)); }
-  &:active { transform: scale(0.99); }
+.entrada {
+  position: fixed; inset: 0; z-index: 100000; overflow-y: auto;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--l-txt); -webkit-font-smoothing: antialiased;
+  background: #860E09 url("/fundo-login.webp") center center / cover no-repeat fixed;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  color-scheme: light;
 }
+/* O operador usa tablet/celular: na tela em retrato a arte (paisagem) viraria
+   só raio esticado — fundo sólido da marca diz mais. Mesmo corte do Dashboard,
+   que também tem uso mobile. */
+@media (max-width: 820px) {
+  .entrada { background: #860E09; background-image: radial-gradient(80% 50% at 50% 0%, #A31C15 0%, rgba(134,14,9,0) 70%); }
+}
+.cartao-entrada {
+  background: var(--l-card); border: 1px solid var(--l-borda); border-radius: 18px;
+  padding: 40px 36px; width: 100%; max-width: 400px;
+  box-shadow: 0 10px 34px rgba(16,24,40,.08), 0 1px 3px rgba(16,24,40,.06);
+}
+@media (max-width: 420px) { .cartao-entrada { padding: 32px 22px; } }
+.entrada .logo-bloco { text-align: center; margin-bottom: 30px; }
+.entrada .logo-bloco img { border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 16px; box-shadow: 0 4px 14px rgba(16,24,40,.14); }
+.entrada .logo-bloco h1 { font-size: 21px; font-weight: 700; color: var(--l-txt); letter-spacing: -.3px; margin: 0; font-family: inherit; }
+.entrada .logo-bloco p { font-size: 13px; color: var(--l-txt-dim); margin: 5px 0 0; }
+.entrada label { display: block; font-size: 12.5px; font-weight: 600; color: var(--l-txt-dim); margin-bottom: 7px; letter-spacing: .2px; }
+.entrada input {
+  display: block; width: 100%; padding: 13px 15px; background: var(--l-fundo);
+  border: 1.5px solid var(--l-borda-forte); border-radius: 10px;
+  color: var(--l-txt); font-size: 15px; font-family: inherit;
+  transition: border-color .15s, box-shadow .15s; margin-bottom: 18px;
+}
+.entrada input::placeholder { color: #A6A9AF; }
+.entrada input:hover { border-color: #BFC1C5; }
+.entrada input:focus { outline: none; border-color: var(--l-acao); box-shadow: 0 0 0 3px rgba(142,23,26,.18); }
+.entrada .campo-codigo { text-align: center; font-size: 26px; letter-spacing: 10px; padding: 14px 10px; font-weight: 700; text-indent: 10px; }
+.entrada .btn-entrar {
+  width: 100%; padding: 13px; background: var(--l-acao); border: none; border-radius: 10px;
+  color: #fff; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer;
+  margin-top: 10px; transition: background .15s, transform .05s;
+}
+.entrada .btn-entrar:hover { background: var(--l-acao-hover); }
+.entrada .btn-entrar:active { transform: translateY(1px); }
+.entrada .btn-entrar:focus-visible { outline: 2px solid var(--l-acao); outline-offset: 2px; }
+.entrada .btn-entrar:disabled { background: #E4E5E7; color: #9A9DA3; cursor: not-allowed; transform: none; opacity: 1; }
+.entrada .err { background: var(--l-erro-bg); border: 1px solid var(--l-erro-bd); color: var(--l-erro-tx); padding: 11px 14px; border-radius: 9px; font-size: 13.5px; line-height: 1.45; margin: 0 0 16px; }
+.entrada .info { background: var(--l-info-bg); border: 1px solid var(--l-info-bd); color: var(--l-info-tx); padding: 11px 14px; border-radius: 9px; font-size: 13.5px; line-height: 1.45; margin: 0 0 16px; }
+.entrada .qr-box { background: #fff; border: 1px solid var(--l-borda); padding: 16px; border-radius: 12px; display: flex; justify-content: center; margin-bottom: 18px; }
+.entrada .secret-box { background: var(--l-fundo); border: 1px dashed #C3C5C9; border-radius: 8px; padding: 11px; font-size: 12px; color: var(--l-txt-dim); word-break: break-all; text-align: center; margin: 0 0 18px; font-family: ui-monospace, Consolas, monospace; }
+.entrada .voltar {
+  display: block; width: 100%; text-align: center; margin-top: 16px;
+  background: none; border: none; font-family: inherit;
+  color: var(--l-txt-dim); font-size: 13.5px; cursor: pointer; padding: 8px; border-radius: 8px;
+}
+.entrada .voltar:hover { color: var(--l-txt); background: var(--l-fundo); }
+.entrada .rodape-entrada { margin: 22px 0 0; text-align: center; font-size: 11.5px; color: var(--l-txt-dim); }
+.entrada .turnstile-wrap { display: flex; justify-content: center; margin-top: 4px; min-height: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }

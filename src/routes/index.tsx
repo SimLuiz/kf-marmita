@@ -1,16 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
-import { supabase } from "@/integrations/supabase/client";
+import { resumoInicio } from "@/lib/dados.functions";
 import { useAuth } from "@/lib/auth";
 import { Users, PenLine, FileText, Utensils, ArrowRight, CalendarDays } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Início | Marmita Control" },
+      { title: "Início | KF Marmita" },
       { name: "description", content: "Resumo diário de retiradas de marmitas e funcionários." },
-      { property: "og:title", content: "Início | Marmita Control" },
+      { property: "og:title", content: "Início | KF Marmita" },
       { property: "og:description", content: "Resumo diário de retiradas de marmitas e funcionários." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -36,18 +36,12 @@ function Dashboard() {
       const startDay = new Date();
       startDay.setHours(0, 0, 0, 0);
 
-      const [{ count: emp }, { count: today }, { count: month }] = await Promise.all([
-        supabase.from("employees").select("*", { count: "exact", head: true }).is("archived_at", null),
-        supabase
-          .from("meal_records")
-          .select("*", { count: "exact", head: true })
-          .gte("taken_at", startDay.toISOString()),
-        supabase
-          .from("meal_records")
-          .select("*", { count: "exact", head: true })
-          .gte("taken_at", startMonth.toISOString()),
-      ]);
-      setStats({ employees: emp ?? 0, today: today ?? 0, month: month ?? 0 });
+      // Os limites do dia e do mês vão do NAVEGADOR (horário de Brasília): o
+      // servidor roda em UTC e erraria a virada do dia em 3 horas.
+      const r = await resumoInicio({
+        data: { inicioDia: startDay.toISOString(), inicioMes: startMonth.toISOString() },
+      });
+      setStats({ employees: r.funcionarios, today: r.hoje, month: r.mes });
     })();
   }, [user]);
 
@@ -60,11 +54,7 @@ function Dashboard() {
   return (
     <div className="space-y-8">
       <div className="page-header">
-        <div>
-          <p className="page-eyebrow">Visão geral</p>
-          <h1 className="page-title">Controle de marmitas</h1>
-          <p className="page-description">Acompanhe os números e acesse as tarefas mais usadas.</p>
-        </div>
+        <p className="page-description">Acompanhe os números e acesse as tarefas mais usadas.</p>
         <Link to="/registrar" className="hidden items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 sm:flex">
           <PenLine className="h-4 w-4" />
           Registrar retirada
@@ -95,7 +85,7 @@ function Dashboard() {
 
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-display text-lg font-bold">Acessos rápidos</h2>
+          <h2 className="text-[13px] font-bold uppercase tracking-[.6px]">Acessos rápidos</h2>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
         <Link

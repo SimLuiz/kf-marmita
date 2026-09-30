@@ -1,19 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
-import { supabase } from "@/integrations/supabase/client";
+import { marmitasPorDia } from "@/lib/dados.functions";
 import { useAuth } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Utensils, Users, Search } from "lucide-react";
-import { fetchAllRows } from "@/lib/fetch-all";
 
 export const Route = createFileRoute("/por-dia")({
   head: () => ({
     meta: [
-      { title: "Marmitas por dia | Marmita Control" },
+      { title: "Marmitas por dia | KF Marmita" },
       { name: "description", content: "Acompanhe o total diário de marmitas por tipo e por funcionário." },
-      { property: "og:title", content: "Marmitas por dia | Marmita Control" },
+      { property: "og:title", content: "Marmitas por dia | KF Marmita" },
       { property: "og:description", content: "Acompanhe o total diário de marmitas por tipo e por funcionário." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -64,16 +63,11 @@ function Page() {
       from.setHours(0, 0, 0, 0);
       const to = new Date(day);
       to.setHours(23, 59, 59, 999);
-      const { data, error } = await fetchAllRows<Rec>((a, b) =>
-        supabase
-          .from("meal_records")
-          .select("id, employee_id, meal_type_id, taken_at, unit_price, company_unit_price, employees(name), meal_types(name, price, company_price)")
-          .gte("taken_at", from.toISOString())
-          .lte("taken_at", to.toISOString())
-          .order("taken_at", { ascending: true })
-          .range(a, b)
-      );
-      if (!error) setRecords(data);
+      try {
+        setRecords((await marmitasPorDia({ data: { inicio: from.toISOString(), fim: to.toISOString() } })) as Rec[]);
+      } catch {
+        setRecords([]);
+      }
       setLoading(false);
     })();
   }, [user, day]);
@@ -122,11 +116,6 @@ function Page() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Marmitas por dia</h2>
-        <p className="text-muted-foreground text-sm">Acompanhamento diário</p>
-      </div>
-
       <div className="flex items-center gap-2">
         <Button variant="outline" size="icon" onClick={() => shiftDay(-1)} aria-label="Dia anterior">
           <ChevronLeft className="h-4 w-4" />

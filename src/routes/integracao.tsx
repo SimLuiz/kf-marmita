@@ -12,9 +12,9 @@ import { toUserMessage } from "@/lib/safe-error";
 export const Route = createFileRoute("/integracao")({
   head: () => ({
     meta: [
-      { title: "Integração com o RH | Marmita Control" },
+      { title: "Integração com o RH | KF Marmita" },
       { name: "description", content: "Endereço e chave de acesso para o sistema de RH consultar os lançamentos de marmitas." },
-      { property: "og:title", content: "Integração com o RH | Marmita Control" },
+      { property: "og:title", content: "Integração com o RH | KF Marmita" },
       { property: "og:description", content: "Endereço e chave de acesso para o sistema de RH consultar os lançamentos de marmitas." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -83,8 +83,6 @@ function Page() {
     <div className="space-y-6">
       <div className="page-header">
         <div>
-          <p className="page-eyebrow">Administração</p>
-          <h1 className="page-title">Integração com o RH</h1>
           <p className="page-description">
             O sistema de RH consulta os lançamentos de marmitas por um endereço protegido por chave.
           </p>

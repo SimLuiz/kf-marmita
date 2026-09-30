@@ -1,148 +1,97 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+// Quem está logado, do ponto de vista da tela. A fonte da verdade é o
+// servidor (cookie HttpOnly + tabela `sessoes`): aqui só se guarda o resultado
+// de `eu()` e se reage à sessão vencida.
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { toast } from "sonner";
+import { eu, sair } from "@/lib/sessao.functions";
 
-const ADMIN_DOMAIN = "marmita.local";
-
-export function usernameToEmail(username: string) {
-  return `${username.trim().toLowerCase()}@${ADMIN_DOMAIN}`;
+export interface UsuarioLogado {
+  id: string;
+  nome: string;
+  usuario: string;
+  admin: boolean;
 }
 
 interface AuthCtx {
-  session: Session | null;
-  user: User | null;
+  /** null = mostrar a tela de login */
+  user: UsuarioLogado | null;
   username: string | null;
   isAdmin: boolean;
   loading: boolean;
-  signIn: (username: string, password: string) => Promise<{ error: string | null }>;
+  entrou: (u: UsuarioLogado) => void;
   signOut: () => Promise<void>;
-  verifyAdminPassword: (password: string) => Promise<boolean>;
 }
 
 const Ctx = createContext<AuthCtx | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [username, setUsername] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+// Mesmos limites do servidor (src/server/sessao.ts). O servidor é quem manda —
+// este relógio só fecha a tela na hora certa, em vez de a pessoa só descobrir
+// que a sessão caiu no próximo clique.
+const INATIVIDADE_MIN_ADMIN = 20;
+const INATIVIDADE_MIN_DEMAIS = 60;
+const EVENTOS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"] as const;
 
-  const loadRoleAndProfile = async (s: Session | null) => {
-    if (!s?.user) {
-      setUsername(null);
-      setIsAdmin(false);
-      return;
-    }
-    const [{ data: profile }, { data: roles }] = await Promise.all([
-      supabase.from("profiles").select("username").eq("id", s.user.id).maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", s.user.id),
-    ]);
-    setUsername(profile?.username ?? null);
-    setIsAdmin(!!roles?.some((r) => r.role === "admin"));
-  };
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<UsuarioLogado | null>(null);
+  const [loading, setLoading] = useState(true);
+  const timer = useRef<number | null>(null);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      setTimeout(() => loadRoleAndProfile(s), 0);
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      loadRoleAndProfile(data.session).finally(() => setLoading(false));
-    });
-    return () => sub.subscription.unsubscribe();
+    eu()
+      .then((u) => setUser(u ?? null))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
-  const signIn: AuthCtx["signIn"] = async (uname, password) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: usernameToEmail(uname),
-      password,
-    });
-    if (!error) {
-      try {
-        const { logAuditEvent } = await import("@/lib/audit.functions");
-        await logAuditEvent({ data: { action: "LOGIN" } });
-      } catch {
-        /* noop */
-      }
-      // Registra sucesso no lockout server (zera contagem implícita / histórico)
-      try {
-        const { recordLoginSuccess } = await import("@/lib/session.functions");
-        await recordLoginSuccess({ data: { username: uname.trim() } });
-      } catch {
-        /* noop */
-      }
-    } else {
-      // Falha: registra no lockout server + audit
-      try {
-        const { logFailedLogin } = await import("@/lib/audit.functions");
-        await logFailedLogin({ data: { username: uname } });
-      } catch {
-        /* noop */
-      }
-    }
-    return { error: error?.message ?? null };
-  };
-
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
-      const { logAuditEvent } = await import("@/lib/audit.functions");
-      await logAuditEvent({ data: { action: "LOGOUT" } });
+      await sair();
     } catch {
-      /* noop */
+      /* mesmo sem resposta, a tela volta para o login */
     }
-    await supabase.auth.signOut();
-    try {
-      if (typeof window !== "undefined") {
-        const wipe = (s: Storage) => {
-          const keys: string[] = [];
-          for (let i = 0; i < s.length; i++) {
-            const k = s.key(i);
-            if (!k) continue;
-            if (
-              k.startsWith("sb-") ||
-              k.includes("supabase") ||
-              k.startsWith("auth.") ||
-              k.startsWith("login-attempts:")
-            ) {
-              keys.push(k);
-            }
-          }
-          keys.forEach((k) => s.removeItem(k));
-        };
-        wipe(window.localStorage);
-        wipe(window.sessionStorage);
-      }
-    } catch {
-      /* noop */
-    }
-  };
+    setUser(null);
+  }, []);
 
-  const verifyAdminPassword = async (password: string) => {
-    const { createClient } = await import("@supabase/supabase-js");
-    const url = import.meta.env.VITE_SUPABASE_URL as string;
-    const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-    const tmp = createClient(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
-    });
-    const { error } = await tmp.auth.signInWithPassword({
-      email: usernameToEmail("admin"),
-      password,
-    });
-    return !error;
-  };
+  // Sessão recusada pelo servidor em qualquer chamada → volta ao login.
+  useEffect(() => {
+    const aoExpirar = () => {
+      setUser((atual) => {
+        if (atual) toast.message("Sua sessão expirou. Entre novamente.");
+        return null;
+      });
+    };
+    window.addEventListener("kf:sessao-expirada", aoExpirar);
+    return () => window.removeEventListener("kf:sessao-expirada", aoExpirar);
+  }, []);
+
+  // Inatividade.
+  useEffect(() => {
+    if (!user) return;
+    const limiteMs = (user.admin ? INATIVIDADE_MIN_ADMIN : INATIVIDADE_MIN_DEMAIS) * 60 * 1000;
+    const reiniciar = () => {
+      if (timer.current) window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => {
+        toast.message("Sessão encerrada por inatividade");
+        signOut();
+      }, limiteMs);
+    };
+    EVENTOS.forEach((e) => window.addEventListener(e, reiniciar, { passive: true }));
+    reiniciar();
+    return () => {
+      if (timer.current) window.clearTimeout(timer.current);
+      EVENTOS.forEach((e) => window.removeEventListener(e, reiniciar));
+    };
+  }, [user, signOut]);
 
   return (
     <Ctx.Provider
       value={{
-        session,
-        user: session?.user ?? null,
-        username,
-        isAdmin,
+        user,
+        username: user?.usuario ?? null,
+        isAdmin: !!user?.admin,
         loading,
-        signIn,
+        entrou: setUser,
         signOut,
-        verifyAdminPassword,
       }}
     >
       {children}

@@ -14,9 +14,9 @@ import { toUserMessage } from "@/lib/safe-error";
 export const Route = createFileRoute("/auditoria")({
   head: () => ({
     meta: [
-      { title: "Auditoria | Marmita Control" },
+      { title: "Auditoria | KF Marmita" },
       { name: "description", content: "Consulte o histórico de alterações feitas no controle de marmitas." },
-      { property: "og:title", content: "Auditoria | Marmita Control" },
+      { property: "og:title", content: "Auditoria | KF Marmita" },
       { property: "og:description", content: "Consulte o histórico de alterações feitas no controle de marmitas." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -122,10 +122,6 @@ function Page() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ScrollText className="h-6 w-6 text-primary" />
-            Auditoria
-          </h1>
           <p className="text-xs text-muted-foreground">
             Últimos 500 eventos. Visível somente para administradores.
           </p>

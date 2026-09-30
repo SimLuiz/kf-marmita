@@ -1,19 +1,20 @@
 import { createStart, createMiddleware } from "@tanstack/react-start";
 import { setResponseHeader } from "@tanstack/react-start/server";
-import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
+import { avisoSessaoExpirada } from "@/lib/sessao.functions";
 
-// Supabase kf-marmita. Trocar o projeto exige mudar aqui também, senão o
-// navegador bloqueia as chamadas ao banco (connect-src).
-const SUPABASE_HOST = "https://uryjwyjswumyqhyqecjn.supabase.co";
-const SUPABASE_WS = "wss://uryjwyjswumyqhyqecjn.supabase.co";
-
+// Desde a migration 002 o navegador não fala mais com o Supabase: o banco só é
+// acessado pelo Worker. O que sobra de domínio externo é o Turnstile (script +
+// iframe do anti-robô) e o Google Fonts. As assinaturas abrem por URL assinada
+// do Storage (img-src https:).
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'`,
+  `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com`,
   `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
   `img-src 'self' data: blob: https:`,
   `font-src 'self' data: https://fonts.gstatic.com`,
-  `connect-src 'self' ${SUPABASE_HOST} ${SUPABASE_WS}`,
+  // Storage: o Excel baixa as assinaturas pelas URLs assinadas.
+  `connect-src 'self' https://uryjwyjswumyqhyqecjn.supabase.co`,
+  `frame-src https://challenges.cloudflare.com`,
   `frame-ancestors 'self'`,
   `base-uri 'self'`,
   `form-action 'self'`,
@@ -26,10 +27,7 @@ const securityHeaders = createMiddleware({ type: "request" }).server(async ({ ne
     setResponseHeader("X-Content-Type-Options", "nosniff");
     setResponseHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     setResponseHeader("X-Frame-Options", "SAMEORIGIN");
-    setResponseHeader(
-      "Permissions-Policy",
-      "camera=(self), microphone=(), geolocation=(), payment=()",
-    );
+    setResponseHeader("Permissions-Policy", "camera=(self), microphone=(), geolocation=(), payment=()");
     setResponseHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   } catch {
     /* noop */
@@ -39,5 +37,5 @@ const securityHeaders = createMiddleware({ type: "request" }).server(async ({ ne
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [securityHeaders],
-  functionMiddleware: [attachSupabaseAuth],
+  functionMiddleware: [avisoSessaoExpirada],
 }));

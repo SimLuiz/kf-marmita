@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { soAdmin } from "./middleware";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 
 export type PurgeTarget = "meal_records" | "audit_logs" | "login_attempts";
@@ -17,16 +17,6 @@ const TARGET_LABEL: Record<PurgeTarget, string> = {
   login_attempts: "Tentativas de login",
 };
 
-async function assertAdmin(supabase: any, userId: string) {
-  const { data } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
-  if (!data) throw new Error("Acesso negado: somente admin");
-}
-
 const rangeSchema = z
   .object({
     targets: z.array(z.enum(["meal_records", "audit_logs", "login_attempts"])).min(1),
@@ -38,11 +28,11 @@ const rangeSchema = z
   });
 
 export const previewPurge = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([soAdmin])
   .inputValidator((i) => rangeSchema.parse(i))
   .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Conexão com o autor nos cabeçalhos: a auditoria registra quem apagou.
+    const supabaseAdmin = context.db;
     const fromIso = new Date(`${data.from}T00:00:00`).toISOString();
     const toIso = new Date(`${data.to}T23:59:59.999`).toISOString();
     const result: { target: PurgeTarget; label: string; count: number }[] = [];
@@ -59,11 +49,11 @@ export const previewPurge = createServerFn({ method: "POST" })
   });
 
 export const executePurge = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([soAdmin])
   .inputValidator((i) => rangeSchema.parse(i))
   .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Conexão com o autor nos cabeçalhos: a auditoria registra quem apagou.
+    const supabaseAdmin = context.db;
     const fromIso = new Date(`${data.from}T00:00:00`).toISOString();
     const toIso = new Date(`${data.to}T23:59:59.999`).toISOString();
 
@@ -122,14 +112,9 @@ export const executePurge = createServerFn({ method: "POST" })
     } catch {
       /* noop */
     }
-    const { data: prof } = await supabaseAdmin
-      .from("profiles")
-      .select("username")
-      .eq("id", context.userId)
-      .maybeSingle();
     await (supabaseAdmin.from("audit_logs") as any).insert({
-      user_id: context.userId,
-      username: prof?.username ?? null,
+      user_id: context.usuario.id,
+      username: context.usuario.usuario,
       action: "DATA_PURGED",
       table_name: data.targets.join(","),
       record_id: null,

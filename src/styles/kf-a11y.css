@@ -1,0 +1,88 @@
+/* ⚠️ CÓPIA VERBATIM de kf-dashboard/src-shared/a11y.css (30/09/2026).
+   🔴 O ORIGINAL É LÁ — mesmo acordo do kf-garantia: os sistemas são repositórios
+   e deploys separados, então a única forma de usar o mesmo design é copiar.
+   Ao mexer no design de lá, copie de novo. NÃO editar aqui: o que é específico
+   deste sistema vive em src/styles.css. */
+
+/* ============================================================
+   KF BATERIAS — ACESSIBILIDADE COMPARTILHADA (Dashboard + CRM)
+   ============================================================
+   Injetado pelos dois builds logo depois do tokens.css.
+
+   Por que existe: até 2026-07-30 os dois fronts somavam 5 atributos
+   aria/role/alt e ZERO estilo de foco — quem navega por teclado não conseguia
+   ver onde estava, e quem usa leitor de tela não tinha landmark nenhum. O
+   próprio CLAUDE.md lista acessibilidade como prioridade ao criar componentes,
+   então isto era dívida contra a regra da casa, não capricho.
+   ============================================================ */
+
+/* ---------- Foco visível ----------
+   :focus-visible (e não :focus) para o anel aparecer na navegação por teclado
+   sem poluir o clique de mouse. Dois anéis: o escuro dá contraste sobre
+   superfície clara, o claro sobre a sidebar escura — por isso o box-shadow
+   duplo em vez de uma cor só, que sumiria em metade dos casos. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--kf-blue, #2a78d6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Dentro da sidebar: anel BORDÔ.
+   ⚠️ Até 2026-09-23 era BRANCO, escrito quando a sidebar era escura (grafite,
+   30/07). Na repintura de 05/08 ela ficou branca e o anel virou branco sobre
+   branco — quem navegava por teclado não via em que item do menu estava. Por
+   token, e não cor fixa, para acompanhar a próxima troca de paleta sozinho. */
+.kf-side :focus-visible,
+.sidebar :focus-visible {
+  outline: 2px solid var(--kf-bordo, #8E171A);
+  outline-offset: 2px;
+}
+
+/* ---------- Só para leitor de tela ----------
+   Texto que não aparece na tela mas é lido — usado para dar nome a controle
+   que só tem ícone e para rótulo de tabela. */
+/* Todas as propriedades com !important de propósito: esta folha entra ANTES do
+   CSS de cada front, e regras genéricas como `table{width:100%}` do CRM
+   venceriam por ordem, deixando a tabela de leitura VISÍVEL na tela (foi o que
+   aconteceu na 1ª versão, com width sem !important). */
+.kf-sr {
+  position: absolute !important;
+  width: 1px !important; height: 1px !important;
+  padding: 0 !important; margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* ---------- Pular para o conteúdo ----------
+   Primeiro foco da página. Fica escondido até receber foco pelo teclado; sem
+   ele, quem usa teclado percorre os ~12 itens do menu antes de chegar na tela
+   em TODA navegação. */
+.kf-skip {
+  position: fixed;
+  top: 8px; left: 8px;
+  z-index: 100001;
+  transform: translateY(-200%);
+  background: var(--kf-surface, #fff);
+  color: var(--kf-text, #1f2b38);
+  border: 1px solid var(--kf-border, #e2e6ea);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font: 600 14px/1 inherit;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+}
+.kf-skip:focus { transform: translateY(0); }
+
+/* ---------- Preferência por menos movimento ----------
+   O sistema tem transições em abas, cards e gráficos. Quem marcou "reduzir
+   movimento" no sistema operacional está pedindo para não vê-las. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

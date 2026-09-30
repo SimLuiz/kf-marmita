@@ -1,177 +1,267 @@
+// Moldura do sistema no padrão KF (kf-garantia/kf-dashboard): sidebar clara
+// com a logo e os grupos, barra do topo com o ícone e o nome da tela, tema
+// claro/escuro na mesma chave dos outros sistemas e o "Sair" vermelho.
+// Em tablet/celular (≤1100px) a sidebar dá lugar à navegação de baixo — é onde
+// o operador registra as retiradas.
 import { Link, useLocation } from "@tanstack/react-router";
-import { useState } from "react";
-import { Home, Users, PenLine, FileText, LogOut, Truck, ShieldCheck, ScrollText, ShieldAlert, HardDrive, SlidersHorizontal, CalendarDays, UtensilsCrossed, Menu, X, Plug } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  CalendarDays,
+  FileText,
+  HardDrive,
+  Home,
+  KeyRound,
+  LogOut,
+  Menu,
+  Moon,
+  PenLine,
+  Plug,
+  ScrollText,
+  ShieldAlert,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sun,
+  Truck,
+  Users,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
+import { TrocarSenhaDialog } from "@/components/TrocarSenhaDialog";
 
-const baseItems = [
-  { to: "/", label: "Início", icon: Home },
-  { to: "/registrar", label: "Registrar retirada", icon: PenLine },
-  { to: "/funcionarios", label: "Funcionários", icon: Users },
-  { to: "/fornecedores", label: "Fornecedores", icon: Truck },
-  { to: "/por-dia", label: "Marmitas por dia", icon: CalendarDays },
-  { to: "/relatorio", label: "Relatórios", icon: FileText },
-] as const;
+interface Item {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  sub: string;
+}
 
-const adminItems = [
-  { to: "/usuarios", label: "Usuários", icon: ShieldCheck },
-  { to: "/permissoes", label: "Permissões", icon: SlidersHorizontal },
-  { to: "/auditoria", label: "Auditoria", icon: ScrollText },
-  { to: "/seguranca", label: "Segurança", icon: ShieldAlert },
-  { to: "/armazenamento", label: "Armazenamento", icon: HardDrive },
-  { to: "/integracao", label: "Integração RH", icon: Plug },
-] as const;
+const OPERACAO: Item[] = [
+  { to: "/", label: "Início", icon: Home, sub: "Resumo do dia" },
+  { to: "/registrar", label: "Registrar retirada", icon: PenLine, sub: "Funcionário, marmita e assinatura" },
+  { to: "/funcionarios", label: "Funcionários", icon: Users, sub: "Cadastro e histórico de retiradas" },
+  { to: "/fornecedores", label: "Fornecedores", icon: Truck, sub: "Tipos de marmita e valores" },
+  { to: "/por-dia", label: "Marmitas por dia", icon: CalendarDays, sub: "Totais do dia por tipo e por funcionário" },
+  { to: "/relatorio", label: "Relatórios", icon: FileText, sub: "Fechamento por período · Excel e PDF" },
+];
+
+const ADMINISTRACAO: Item[] = [
+  { to: "/usuarios", label: "Usuários", icon: ShieldCheck, sub: "Acessos e verificação em duas etapas" },
+  { to: "/permissoes", label: "Permissões", icon: SlidersHorizontal, sub: "O que o usuário comum pode fazer" },
+  { to: "/auditoria", label: "Auditoria", icon: ScrollText, sub: "Alterações feitas nos dados" },
+  { to: "/seguranca", label: "Segurança", icon: ShieldAlert, sub: "Acessos, falhas e alertas" },
+  { to: "/armazenamento", label: "Armazenamento", icon: HardDrive, sub: "Espaço do banco e limpeza" },
+  { to: "/integracao", label: "Integração RH", icon: Plug, sub: "Endereço e chave para o kf-rh" },
+];
+
+function useTema() {
+  // O primeiro render acontece no SERVIDOR, que não sabe o tema: o valor real
+  // (aplicado pelo script do __root antes da pintura) é lido depois de montar.
+  const [escuro, setEscuro] = useState(false);
+  useEffect(() => {
+    setEscuro(document.documentElement.getAttribute("data-theme") === "dark");
+  }, []);
+  const alternar = () => {
+    const novo = !escuro;
+    if (novo) document.documentElement.setAttribute("data-theme", "dark");
+    else document.documentElement.removeAttribute("data-theme");
+    try {
+      localStorage.setItem("kfTema", novo ? "dark" : "light");
+    } catch {
+      /* sem armazenamento */
+    }
+    setEscuro(novo);
+  };
+  return { escuro, alternar };
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { signOut, username, isAdmin } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
   const location = useLocation();
-  const [moreOpen, setMoreOpen] = useState(false);
+  const { escuro, alternar } = useTema();
+  const [maisAberto, setMaisAberto] = useState(false);
+  const [trocarSenha, setTrocarSenha] = useState(false);
 
-  const items = isAdmin ? [...baseItems, ...adminItems] : baseItems;
-  const mobileItems = [baseItems[0], baseItems[2], baseItems[1], baseItems[4]];
-  const shortLabel = (to: string, label: string) =>
-    to === "/por-dia" ? "Por dia" : to === "/funcionarios" ? "Equipe" : label;
-  const secondaryItems = items.filter((item) => !mobileItems.some((mobile) => mobile.to === item.to));
-  const activeFor = (path: string) => path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+  const ativo = (to: string) => (to === "/" ? location.pathname === "/" : location.pathname.startsWith(to));
+  const todos = isAdmin ? [...OPERACAO, ...ADMINISTRACAO] : OPERACAO;
+  const atual = todos.find((i) => ativo(i.to)) ?? OPERACAO[0];
+  const subtitulo = location.pathname.startsWith("/funcionarios/") ? "Histórico de retiradas do funcionário" : atual.sub;
+  const Icone = atual.icon;
+
+  const inicial = (user?.nome || user?.usuario || "?").charAt(0).toUpperCase();
+
+  const baixo = [OPERACAO[0], OPERACAO[2], OPERACAO[4]];
+  const noMais = todos.filter((i) => !baixo.includes(i) && i.to !== "/registrar");
+
+  const grupo = (titulo: string, itens: Item[]) => (
+    <div className="kf-grp" role="group" aria-label={titulo}>
+      <span className="kf-grp-t" aria-hidden="true">
+        {titulo}
+      </span>
+      {itens.map((i) => {
+        const I = i.icon;
+        return (
+          <Link
+            key={i.to}
+            to={i.to}
+            className={`tab ${ativo(i.to) ? "active" : ""}`}
+            aria-current={ativo(i.to) ? "page" : undefined}
+          >
+            <span className="ic" aria-hidden="true">
+              <I className="h-4 w-4" strokeWidth={1.8} />
+            </span>
+            {i.label}
+          </Link>
+        );
+      })}
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-background md:grid md:grid-cols-[15rem_minmax(0,1fr)]">
-      <aside className="hidden border-r border-border bg-card md:sticky md:top-0 md:flex md:h-screen md:flex-col">
-        <div className="flex h-20 items-center gap-3 border-b border-border px-5">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
-            <UtensilsCrossed className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="font-display truncate text-base font-bold">Marmita Control</p>
-            <p className="text-xs text-muted-foreground">Gestão de retiradas</p>
+    <>
+      <a href="#kf-conteudo" className="kf-skip">
+        Pular para o conteúdo
+      </a>
+
+      <aside className="kf-side" aria-label="Navegação principal">
+        <div className="kf-side-marca">
+          <img src="/logo.jpg" width={34} height={34} alt="" />
+          <div>
+            <b>KF Baterias</b>
+            <small>Marmitas</small>
           </div>
         </div>
-
-        <nav className="flex-1 overflow-y-auto p-3" aria-label="Navegação principal">
-          <p className="px-3 pb-2 pt-2 text-[11px] font-bold uppercase text-muted-foreground">Operação</p>
-          <div className="space-y-1">
-            {baseItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link key={item.to} to={item.to} className={`nav-item ${activeFor(item.to) ? "nav-item-active" : ""}`}>
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-          {isAdmin && (
-            <>
-              <p className="px-3 pb-2 pt-6 text-[11px] font-bold uppercase text-muted-foreground">Administração</p>
-              <div className="space-y-1">
-                {adminItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link key={item.to} to={item.to} className={`nav-item ${activeFor(item.to) ? "nav-item-active" : ""}`}>
-                      <Icon className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </>
-          )}
+        <nav className="tabs" aria-label="Módulos">
+          {grupo("Operação", OPERACAO)}
+          {isAdmin && grupo("Administração", ADMINISTRACAO)}
         </nav>
-
-        <div className="border-t border-border p-3">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-lg bg-muted p-2">
-            <div className="min-w-0 px-1">
-              <p className="truncate text-sm font-semibold">{username ?? "Carregando"}</p>
-              <p className="text-xs text-muted-foreground">{isAdmin ? "Administrador" : "Usuário"}</p>
+        <div className="kf-side-rodape">
+          <div className="kf-quem">
+            <span className="avatar" aria-hidden="true">
+              {inicial}
+            </span>
+            <div className="min-w-0">
+              <b title={user?.nome}>{user?.nome}</b>
+              <small>{isAdmin ? "Administrador" : "Usuário"}</small>
             </div>
-            <Button variant="ghost" size="icon" onClick={signOut} aria-label="Sair" title="Sair">
-              <LogOut className="h-4 w-4" />
-            </Button>
           </div>
+          <button type="button" className="btn-kf" onClick={() => setTrocarSenha(true)}>
+            <KeyRound className="h-3.5 w-3.5" /> Trocar minha senha
+          </button>
         </div>
       </aside>
 
-      <div className="min-w-0 pb-24 md:pb-0">
-        <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur md:hidden">
-          <div className="grid h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
-                <UtensilsCrossed className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-display truncate text-sm font-bold">Marmita Control</p>
-                <p className="truncate text-xs text-muted-foreground">{username ?? "Carregando"}</p>
-              </div>
-            </div>
-            {isAdmin && <ShieldCheck className="h-4 w-4 shrink-0 text-primary" aria-label="Administrador" />}
+      <div className="kf-conteudo">
+        <header className="top">
+          <div className="ic-pagina" aria-hidden="true">
+            <Icone className="h-5 w-5" strokeWidth={1.8} />
+          </div>
+          <h1 className="min-w-0">
+            {atual.label}
+            <small>{subtitulo}</small>
+          </h1>
+          <div className="top-acoes">
+            <button
+              type="button"
+              className="btn-kf"
+              onClick={alternar}
+              title={escuro ? "Usar tema claro" : "Usar tema escuro"}
+              aria-label={escuro ? "Usar tema claro" : "Usar tema escuro"}
+            >
+              {escuro ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+            <button type="button" className="btn-kf sair" onClick={signOut}>
+              <LogOut className="h-4 w-4 sm:hidden" />
+              <span className="hidden sm:inline">Sair</span>
+            </button>
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 md:py-8 lg:px-10">{children}</main>
+        <main id="kf-conteudo" className="kf-wrap">
+          {children}
+        </main>
       </div>
 
-      {moreOpen && (
-        <div className="fixed inset-0 z-40 bg-foreground/20 md:hidden" onClick={() => setMoreOpen(false)}>
-          <div className="absolute inset-x-3 bottom-20 rounded-lg border border-border bg-card p-3 shadow-lg" onClick={(event) => event.stopPropagation()}>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-2 pb-2">
-              <p className="font-display font-bold">Mais opções</p>
-              <Button variant="ghost" size="icon" onClick={() => setMoreOpen(false)} aria-label="Fechar menu">
+      {maisAberto && (
+        <div className="fixed inset-0 z-[55] bg-black/30" onClick={() => setMaisAberto(false)}>
+          <div
+            className="absolute inset-x-3 bottom-24 rounded-[var(--kf-radius)] border border-border bg-card p-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-2 pb-2">
+              <p className="font-bold">Mais opções</p>
+              <button type="button" className="btn-kf" onClick={() => setMaisAberto(false)} aria-label="Fechar menu">
                 <X className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
             <div className="grid grid-cols-2 gap-1">
-              {secondaryItems.map((item) => {
-                const Icon = item.icon;
+              {noMais.map((i) => {
+                const I = i.icon;
                 return (
-                  <Link key={item.to} to={item.to} onClick={() => setMoreOpen(false)} className={`nav-item ${activeFor(item.to) ? "nav-item-active" : ""}`}>
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{item.label}</span>
+                  <Link
+                    key={i.to}
+                    to={i.to}
+                    onClick={() => setMaisAberto(false)}
+                    className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold ${
+                      ativo(i.to) ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <I className="h-4 w-4 shrink-0" /> <span className="truncate">{i.label}</span>
                   </Link>
                 );
               })}
+              <button
+                type="button"
+                onClick={() => {
+                  setMaisAberto(false);
+                  setTrocarSenha(true);
+                }}
+                className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-muted-foreground hover:bg-muted"
+              >
+                <KeyRound className="h-4 w-4 shrink-0" /> Trocar minha senha
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur md:hidden" aria-label="Navegação móvel">
-        <div className="grid grid-cols-5 items-end px-2">
-          {mobileItems.slice(0, 2).map((it) => {
-            const active = activeFor(it.to);
-            const Icon = it.icon;
+      <nav className="kf-nav-baixo" aria-label="Navegação">
+        <div className="grid grid-cols-5 items-end">
+          {baixo.slice(0, 2).map((i) => {
+            const I = i.icon;
             return (
-              <Link
-                key={it.to}
-                to={it.to}
-                className={`mobile-nav-item ${active ? "text-primary" : "text-muted-foreground"}`}
-              >
-                <Icon className="h-5 w-5 shrink-0" />
-                <span className="w-full truncate text-center">{shortLabel(it.to, it.label)}</span>
+              <Link key={i.to} to={i.to} className={`mobile-nav-item ${ativo(i.to) ? "ativo" : ""}`}>
+                <I className="h-5 w-5" />
+                <span className="w-full truncate text-center">{i.to === "/funcionarios" ? "Equipe" : i.label}</span>
               </Link>
             );
           })}
-          <Link to="/registrar" className="group flex flex-col items-center gap-1 text-[10px] font-semibold text-primary">
-            <span className="grid h-12 w-12 -translate-y-2 place-items-center rounded-full border-4 border-card bg-primary text-primary-foreground shadow-md transition-transform group-active:scale-95">
+          <Link to="/registrar" className="flex flex-col items-center gap-1 text-[10px] font-semibold" style={{ color: "var(--kf-bordo)" }}>
+            <span
+              className="grid h-12 w-12 -translate-y-2 place-items-center rounded-full border-4 text-white"
+              style={{ background: "var(--kf-bordo)", borderColor: "var(--kf-surface)" }}
+            >
               <PenLine className="h-5 w-5" />
             </span>
             <span className="-mt-2">Registrar</span>
           </Link>
-          {mobileItems.slice(3).map((it) => {
-            const active = activeFor(it.to);
-            const Icon = it.icon;
-            return (
-              <Link key={it.to} to={it.to} className={`mobile-nav-item ${active ? "text-primary" : "text-muted-foreground"}`}>
-                <Icon className="h-5 w-5 shrink-0" />
-                <span className="w-full truncate text-center">{shortLabel(it.to, it.label)}</span>
-              </Link>
-            );
-          })}
-          <Button variant="ghost" className="mobile-nav-item h-auto rounded-none px-0 py-1" onClick={() => setMoreOpen((open) => !open)} aria-expanded={moreOpen}>
-            <Menu className="h-5 w-5 shrink-0" />
+          <Link to={baixo[2].to} className={`mobile-nav-item ${ativo(baixo[2].to) ? "ativo" : ""}`}>
+            <CalendarDays className="h-5 w-5" />
+            <span>Por dia</span>
+          </Link>
+          <button
+            type="button"
+            className="mobile-nav-item"
+            onClick={() => setMaisAberto((v) => !v)}
+            aria-expanded={maisAberto}
+          >
+            <Menu className="h-5 w-5" />
             Mais
-          </Button>
+          </button>
         </div>
       </nav>
-    </div>
+
+      <TrocarSenhaDialog open={trocarSenha} onOpenChange={setTrocarSenha} />
+    </>
   );
 }

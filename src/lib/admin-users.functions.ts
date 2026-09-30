@@ -1,200 +1,188 @@
+// Usuários do sistema — só admin. Cada ação vai para logs_acesso como admin_*.
 import { createServerFn } from "@tanstack/react-start";
-import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { comSessao, soAdmin, exigirSenhaAdmin } from "./middleware";
 
-const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,32}$/;
-const ADMIN_DOMAIN = "marmita.local";
-
-const strongPassword = z
+const uuid = z.string().uuid();
+const nomeUsuario = z
   .string()
-  .min(12, "Senha deve ter no mínimo 12 caracteres")
-  .max(72)
-  .regex(/[A-Z]/, "Senha deve conter letra maiúscula")
-  .regex(/[a-z]/, "Senha deve conter letra minúscula")
-  .regex(/[0-9]/, "Senha deve conter número")
-  .regex(/[^A-Za-z0-9]/, "Senha deve conter símbolo");
+  .trim()
+  .toLowerCase()
+  .regex(/^[a-z0-9_.-]{3,32}$/, "Usuário inválido (3 a 32 letras minúsculas, números, ponto, hífen ou _)");
+const senhaAdmin = z.string().min(1).max(200);
 
-async function assertAdmin(supabase: any, userId: string) {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("role", "admin")
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Acesso negado: somente admin");
-}
-
-async function audit(
-  actorId: string,
-  action: string,
-  table_name: string,
-  record_id: string | null,
-  new_data: Record<string, unknown> | null,
-  old_data: Record<string, unknown> | null = null,
-) {
-  const { data: prof } = await supabaseAdmin
-    .from("profiles")
-    .select("username")
-    .eq("id", actorId)
-    .maybeSingle();
-  let ip: string | null = null;
-  let ua: string | null = null;
-  try {
-    ip =
-      getRequestIP({ xForwardedFor: true }) ||
-      getRequestHeader("cf-connecting-ip") ||
-      getRequestHeader("x-real-ip") ||
-      null;
-    ua = getRequestHeader("user-agent") ?? null;
-  } catch {
-    /* noop */
-  }
-  await (supabaseAdmin.from("audit_logs") as any).insert({
-    user_id: actorId,
-    username: prof?.username ?? null,
-    action,
-    table_name,
-    record_id,
-    old_data,
-    new_data,
-    ip_address: ip,
-    user_agent: ua,
+async function registrar(ctx: any, acao: string, alvo: string | null, detalhe?: string) {
+  const { registrarAcesso } = await import("@/server/sessao");
+  await registrarAcesso({
+    usuario_id: ctx.usuario.id,
+    usuario: ctx.usuario.usuario,
+    acao,
+    detalhe: [alvo ? `alvo: ${alvo}` : null, detalhe].filter(Boolean).join(" — ") || null,
   });
 }
 
-export const listAppUsers = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { data: profiles, error } = await supabaseAdmin
-      .from("profiles")
-      .select("id, username, created_at")
-      .order("created_at", { ascending: false });
+async function nomeDoAlvo(db: any, id: string): Promise<{ usuario: string; nome: string; admin: boolean } | null> {
+  const { data } = await db.from("usuarios").select("usuario, nome, admin").eq("id", id).maybeSingle();
+  return data ?? null;
+}
+
+// Desativar, resetar 2FA ou trocar senha derruba as sessões abertas do alvo.
+async function encerrarSessoes(db: any, usuarioId: string) {
+  await db.from("sessoes").update({ ativo: false }).eq("usuario_id", usuarioId).eq("ativo", true);
+}
+
+export const listarUsuarios = createServerFn({ method: "GET" })
+  .middleware([soAdmin])
+  .handler(async ({ context: { db } }) => {
+    const [{ data: usuarios, error }, { data: sessoes }] = await Promise.all([
+      db
+        .from("usuarios")
+        .select("id, nome, usuario, admin, ativo, exige_2fa, totp_confirmado, criado_em, ultimo_acesso")
+        .order("usuario"),
+      db.from("sessoes").select("usuario_id").eq("ativo", true).gt("expira_em", new Date().toISOString()),
+    ]);
     if (error) throw new Error(error.message);
-    const { data: roles } = await supabaseAdmin.from("user_roles").select("user_id, role");
-
-    // Puxa banned_until de auth.users para saber quem está bloqueado
-    const { data: authList } = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-    const bannedMap = new Map<string, string | null>();
-    for (const u of authList?.users ?? []) {
-      const bu = (u as any).banned_until as string | null | undefined;
-      bannedMap.set(u.id, bu ?? null);
-    }
-
-    const now = Date.now();
-    return (profiles ?? []).map((p) => {
-      const bu = bannedMap.get(p.id) ?? null;
-      const blocked = !!bu && new Date(bu).getTime() > now;
-      return {
-        ...p,
-        roles: (roles ?? []).filter((r) => r.user_id === p.id).map((r) => r.role),
-        blocked,
-        banned_until: blocked ? bu : null,
-      };
-    });
+    const abertas = new Map<string, number>();
+    for (const s of sessoes ?? []) abertas.set(s.usuario_id, (abertas.get(s.usuario_id) ?? 0) + 1);
+    return (usuarios ?? []).map((u: any) => ({ ...u, sessoes_abertas: abertas.get(u.id) ?? 0 }));
   });
 
-export const setAppUserBlocked = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
-    z.object({ userId: z.string().uuid(), blocked: z.boolean() }).parse(input),
-  )
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    if (data.userId === context.userId && data.blocked) {
-      throw new Error("Você não pode bloquear a si mesmo");
-    }
-    const { data: prof } = await supabaseAdmin
-      .from("profiles")
-      .select("username")
-      .eq("id", data.userId)
-      .maybeSingle();
-    if (data.blocked && prof?.username === "admin") {
-      throw new Error("Não é possível bloquear o admin do sistema");
-    }
-    // 'none' desbloqueia; qualquer duração no futuro bloqueia. Usamos 100 anos = permanente.
-    const ban_duration = data.blocked ? "876000h" : "none";
-    const { error } = await (supabaseAdmin.auth.admin.updateUserById as any)(data.userId, {
-      ban_duration,
-    });
-    if (error) throw new Error(error.message);
-    await audit(
-      context.userId,
-      data.blocked ? "USER_BLOCKED" : "USER_UNBLOCKED",
-      "auth.users",
-      data.userId,
-      { username: prof?.username ?? null },
-    );
-    return { ok: true };
-  });
-
-
-export const createAppUser = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
+export const criarUsuario = createServerFn({ method: "POST" })
+  .middleware([soAdmin])
+  .inputValidator((i) =>
     z
       .object({
-        username: z.string().regex(USERNAME_RE, "Usuário inválido (3-32, letras/números/._-)"),
-        password: strongPassword,
+        nome: z.string().trim().min(2).max(80),
+        usuario: nomeUsuario,
+        senha: z.string().min(1).max(200),
+        admin: z.boolean(),
+        exige_2fa: z.boolean(),
       })
-      .parse(input),
+      .parse(i),
   )
   .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const username = data.username.toLowerCase();
-    if (username === "admin") throw new Error("Nome reservado");
-    const email = `${username}@${ADMIN_DOMAIN}`;
-    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: data.password,
-      email_confirm: true,
-      user_metadata: { username },
+    const { problemaSenha, hashSenha } = await import("@/server/sessao");
+    const problema = problemaSenha(data.senha, { usuario: data.usuario, nome: data.nome });
+    if (problema) throw new Error(problema);
+    const { error } = await context.db.from("usuarios").insert({
+      nome: data.nome,
+      usuario: data.usuario,
+      senha_hash: await hashSenha(data.senha),
+      admin: data.admin,
+      exige_2fa: data.admin || data.exige_2fa,
     });
-    if (error) throw new Error(error.message);
-    await audit(context.userId, "USER_CREATED", "auth.users", created.user?.id ?? null, {
-      username,
-      email,
-    });
-    return { id: created.user?.id, username };
-  });
-
-export const deleteAppUser = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ userId: z.string().uuid() }).parse(input))
-  .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    if (data.userId === context.userId) throw new Error("Você não pode excluir a si mesmo");
-    const { data: prof } = await supabaseAdmin
-      .from("profiles")
-      .select("username")
-      .eq("id", data.userId)
-      .maybeSingle();
-    if (prof?.username === "admin") throw new Error("Não é possível excluir o admin do sistema");
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
-    if (error) throw new Error(error.message);
-    await audit(context.userId, "USER_DELETED", "auth.users", data.userId, null, {
-      username: prof?.username ?? null,
-    });
+    if (error) throw new Error(error.code === "23505" ? "Já existe um usuário com esse nome" : error.message);
+    await registrar(context, "admin_usuario_criado", data.usuario, data.admin ? "administrador" : undefined);
     return { ok: true };
   });
 
-export const resetAppUserPassword = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input) =>
-    z.object({ userId: z.string().uuid(), password: strongPassword }).parse(input),
-  )
+export const alterarSenhaDeUsuario = createServerFn({ method: "POST" })
+  .middleware([soAdmin])
+  .inputValidator((i) => z.object({ id: uuid, senha: z.string().min(1).max(200) }).parse(i))
   .handler(async ({ context, data }) => {
-    await assertAdmin(context.supabase, context.userId);
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
-      password: data.password,
-    });
+    const alvo = await nomeDoAlvo(context.db, data.id);
+    if (!alvo) throw new Error("Usuário não encontrado");
+    const { problemaSenha, hashSenha } = await import("@/server/sessao");
+    const problema = problemaSenha(data.senha, alvo);
+    if (problema) throw new Error(problema);
+    const { error } = await context.db.from("usuarios").update({ senha_hash: await hashSenha(data.senha) }).eq("id", data.id);
     if (error) throw new Error(error.message);
-    await audit(context.userId, "ADMIN_PASSWORD_RESET", "auth.users", data.userId, null);
+    if (data.id !== context.usuario.id) await encerrarSessoes(context.db, data.id);
+    await registrar(context, "admin_senha_alterada", alvo.usuario);
+    return { ok: true };
+  });
+
+// Qualquer usuário troca a PRÓPRIA senha, confirmando a atual.
+export const trocarMinhaSenha = createServerFn({ method: "POST" })
+  .middleware([comSessao])
+  .inputValidator((i) => z.object({ atual: z.string().min(1).max(200), nova: z.string().min(1).max(200) }).parse(i))
+  .handler(async ({ context, data }) => {
+    const { problemaSenha, hashSenha } = await import("@/server/sessao");
+    const { data: eu } = await context.db.from("usuarios").select("senha_hash").eq("id", context.usuario.id).single();
+    const { data: ok } = await context.db.rpc("verificar_senha", { senha: data.atual, hash: eu.senha_hash });
+    if (ok !== true) throw new Error("Senha atual incorreta");
+    const problema = problemaSenha(data.nova, context.usuario);
+    if (problema) throw new Error(problema);
+    await context.db.from("usuarios").update({ senha_hash: await hashSenha(data.nova) }).eq("id", context.usuario.id);
+    await registrar(context, "senha_trocada", null);
+    return { ok: true };
+  });
+
+export const definirAtivo = createServerFn({ method: "POST" })
+  .middleware([soAdmin])
+  .inputValidator((i) => z.object({ id: uuid, ativo: z.boolean(), senha: senhaAdmin }).parse(i))
+  .handler(async ({ context, data }) => {
+    await exigirSenhaAdmin(context.usuario, data.senha);
+    if (data.id === context.usuario.id && !data.ativo) throw new Error("Você não pode desativar a si mesmo");
+    const alvo = await nomeDoAlvo(context.db, data.id);
+    if (!alvo) throw new Error("Usuário não encontrado");
+    await context.db.from("usuarios").update({ ativo: data.ativo }).eq("id", data.id);
+    if (!data.ativo) await encerrarSessoes(context.db, data.id);
+    await registrar(context, data.ativo ? "admin_usuario_reativado" : "admin_usuario_desativado", alvo.usuario);
+    return { ok: true };
+  });
+
+// Excluir só quem nunca registrou nada: a chave estrangeira (ON DELETE
+// RESTRICT, migration 001) recusa quem tem lançamento ou cadastro — antes era
+// CASCADE e excluir o usuário apagava tudo o que ele tinha lançado.
+export const excluirUsuario = createServerFn({ method: "POST" })
+  .middleware([soAdmin])
+  .inputValidator((i) => z.object({ id: uuid, senha: senhaAdmin }).parse(i))
+  .handler(async ({ context, data }) => {
+    await exigirSenhaAdmin(context.usuario, data.senha);
+    if (data.id === context.usuario.id) throw new Error("Você não pode excluir a si mesmo");
+    const alvo = await nomeDoAlvo(context.db, data.id);
+    if (!alvo) throw new Error("Usuário não encontrado");
+    const { error } = await context.db.from("usuarios").delete().eq("id", data.id);
+    if (error) {
+      if (error.code === "23503") throw new Error("Este usuário já registrou lançamentos ou cadastros. Desative em vez de excluir.");
+      throw new Error(error.message);
+    }
+    await registrar(context, "admin_usuario_excluido", alvo.usuario);
+    return { ok: true };
+  });
+
+export const resetar2fa = createServerFn({ method: "POST" })
+  .middleware([soAdmin])
+  .inputValidator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ context, data }) => {
+    const alvo = await nomeDoAlvo(context.db, data.id);
+    if (!alvo) throw new Error("Usuário não encontrado");
+    await context.db
+      .from("usuarios")
+      .update({ totp_secret: null, totp_confirmado: false, totp_ultimo_uso: null })
+      .eq("id", data.id);
+    await encerrarSessoes(context.db, data.id);
+    await registrar(context, "2fa_resetado", alvo.usuario);
+    return { ok: true };
+  });
+
+// Liga/desliga o 2FA de um usuário comum. Admin sempre tem 2FA.
+export const definirExige2fa = createServerFn({ method: "POST" })
+  .middleware([soAdmin])
+  .inputValidator((i) => z.object({ id: uuid, exige: z.boolean() }).parse(i))
+  .handler(async ({ context, data }) => {
+    const alvo = await nomeDoAlvo(context.db, data.id);
+    if (!alvo) throw new Error("Usuário não encontrado");
+    if (alvo.admin && !data.exige) throw new Error("Administrador sempre usa verificação em duas etapas");
+    await context.db.from("usuarios").update({ exige_2fa: data.exige }).eq("id", data.id);
+    await registrar(context, data.exige ? "2fa_ligado" : "2fa_desligado", alvo.usuario);
+    return { ok: true };
+  });
+
+export const definirAdmin = createServerFn({ method: "POST" })
+  .middleware([soAdmin])
+  .inputValidator((i) => z.object({ id: uuid, admin: z.boolean(), senha: senhaAdmin }).parse(i))
+  .handler(async ({ context, data }) => {
+    await exigirSenhaAdmin(context.usuario, data.senha);
+    if (data.id === context.usuario.id && !data.admin) throw new Error("Você não pode tirar o próprio acesso de administrador");
+    const alvo = await nomeDoAlvo(context.db, data.id);
+    if (!alvo) throw new Error("Usuário não encontrado");
+    await context.db
+      .from("usuarios")
+      .update({ admin: data.admin, ...(data.admin ? { exige_2fa: true } : {}) })
+      .eq("id", data.id);
+    await encerrarSessoes(context.db, data.id);
+    await registrar(context, data.admin ? "admin_promovido" : "admin_rebaixado", alvo.usuario);
     return { ok: true };
   });

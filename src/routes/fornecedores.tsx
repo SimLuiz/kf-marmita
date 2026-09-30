@@ -2,7 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  arquivarTipo,
+  cadastroMarmitas,
+  criarFornecedor,
+  criarTipo,
+  editarFornecedor,
+  editarTipo,
+  excluirFornecedor,
+} from "@/lib/dados.functions";
 import { useAuth } from "@/lib/auth";
 import { usePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
@@ -15,9 +23,9 @@ import { toUserMessage } from "@/lib/safe-error";
 export const Route = createFileRoute("/fornecedores")({
   head: () => ({
     meta: [
-      { title: "Fornecedores e marmitas | Marmita Control" },
+      { title: "Fornecedores e marmitas | KF Marmita" },
       { name: "description", content: "Gerencie fornecedores, tipos de marmita e os valores pagos pela empresa e pelo funcionário." },
-      { property: "og:title", content: "Fornecedores e marmitas | Marmita Control" },
+      { property: "og:title", content: "Fornecedores e marmitas | KF Marmita" },
       { property: "og:description", content: "Gerencie fornecedores, tipos de marmita e os valores pagos pela empresa e pelo funcionário." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -74,22 +82,13 @@ function Page() {
   const [pendingType, setPendingType] = useState<MealType | null>(null);
 
   const load = async () => {
-    const [{ data: sups }, { data: mts }] = await Promise.all([
-      supabase.from("suppliers").select("id,name").order("name"),
-      (supabase as any)
-        .from("meal_types")
-        .select("id,supplier_id,name,price,company_price,key")
-        .is("archived_at", null)
-        .order("name"),
-    ]);
-    setSuppliers((sups as Supplier[]) ?? []);
-    setTypes(
-      ((mts as any[]) ?? []).map((t) => ({
-        ...t,
-        price: Number(t.price),
-        company_price: Number(t.company_price ?? 0),
-      }))
-    );
+    try {
+      const cad = await cadastroMarmitas();
+      setSuppliers(cad.fornecedores as Supplier[]);
+      setTypes(cad.tipos as MealType[]);
+    } catch (e) {
+      toast.error(toUserMessage(e));
+    }
   };
 
 
@@ -100,10 +99,11 @@ function Page() {
   const addSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSupplier.trim() || !user) return;
-    const { error } = await supabase
-      .from("suppliers")
-      .insert({ name: newSupplier.trim(), owner_id: user.id });
-    if (error) return toast.error(toUserMessage(error));
+    try {
+      await criarFornecedor({ data: { name: newSupplier.trim() } });
+    } catch (e) {
+      return toast.error(toUserMessage(e));
+    }
     setNewSupplier("");
     toast.success("Fornecedor cadastrado");
     load();
@@ -113,11 +113,11 @@ function Page() {
 
   const saveSupplier = async () => {
     if (!editingSup || !editingSup.name.trim()) return;
-    const { error } = await supabase
-      .from("suppliers")
-      .update({ name: editingSup.name.trim() })
-      .eq("id", editingSup.id);
-    if (error) return toast.error(toUserMessage(error));
+    try {
+      await editarFornecedor({ data: { id: editingSup.id, name: editingSup.name.trim() } });
+    } catch (e) {
+      return toast.error(toUserMessage(e));
+    }
     setEditingSup(null);
     toast.success("Fornecedor atualizado");
     load();
@@ -129,20 +129,11 @@ function Page() {
     const price = parseFloat((f.price || "0").replace(",", ".")) || 0;
     const company_price = parseFloat((f.company_price || "0").replace(",", ".")) || 0;
     const key = slugKey(f.key?.trim() || f.name);
-    const { error } = await (supabase as any).from("meal_types").insert({
-      owner_id: user.id,
-      supplier_id: supplierId,
-      name: f.name.trim(),
-      price,
-      company_price,
-      key: key || null,
-    });
-    if (error)
-      return toast.error(
-        error.code === "23505"
-          ? "Já existe uma marmita com essa chave de integração"
-          : toUserMessage(error)
-      );
+    try {
+      await criarTipo({ data: { supplier_id: supplierId, name: f.name.trim(), price, company_price, key: key || undefined } });
+    } catch (e) {
+      return toast.error(toUserMessage(e));
+    }
     setTypeForms({
       ...typeForms,
       [supplierId]: { name: "", price: "", company_price: "", key: "" },
@@ -158,16 +149,11 @@ function Page() {
     const price = parseFloat((editingType.price || "0").replace(",", ".")) || 0;
     const company_price = parseFloat((editingType.company_price || "0").replace(",", ".")) || 0;
     const key = slugKey(editingType.key?.trim() || editingType.name);
-    const { error } = await (supabase as any)
-      .from("meal_types")
-      .update({ name: editingType.name.trim(), price, company_price, key: key || null })
-      .eq("id", editingType.id);
-    if (error)
-      return toast.error(
-        error.code === "23505"
-          ? "Já existe uma marmita com essa chave de integração"
-          : toUserMessage(error)
-      );
+    try {
+      await editarTipo({ data: { id: editingType.id, name: editingType.name.trim(), price, company_price, key: key || undefined } });
+    } catch (e) {
+      return toast.error(toUserMessage(e));
+    }
     setEditingType(null);
     toast.success("Atualizado");
     load();
@@ -177,7 +163,6 @@ function Page() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Fornecedores</h2>
         <p className="text-sm text-muted-foreground">
           Cadastre fornecedores e os tipos de marmita com valor
         </p>
@@ -455,11 +440,11 @@ function Page() {
         open={!!pendingSup}
         onOpenChange={(o: boolean) => !o && setPendingSup(null)}
         title="Excluir fornecedor"
-        description={`Digite a senha do admin para excluir "${pendingSup?.name ?? ""}" e todos os seus tipos de marmita.`}
-        onConfirmed={async () => {
+        description={`Digite a sua senha para excluir "${pendingSup?.name ?? ""}". Só é possível excluir fornecedor sem tipos de marmita — arquive os tipos antes.`}
+        confirmLabel="Excluir"
+        onConfirmed={async (senha) => {
           if (!pendingSup) return;
-          const { error } = await supabase.from("suppliers").delete().eq("id", pendingSup.id);
-          if (error) throw new Error(error.message);
+          await excluirFornecedor({ data: { id: pendingSup.id, senha } });
           toast.success("Fornecedor removido");
           setPendingSup(null);
           load();
@@ -470,14 +455,11 @@ function Page() {
         open={!!pendingType}
         onOpenChange={(o: boolean) => !o && setPendingType(null)}
         title="Arquivar marmita"
-        description={`Digite a senha do admin para arquivar "${pendingType?.name ?? ""}". Os registros históricos serão preservados no relatório.`}
-        onConfirmed={async () => {
+        description={`Digite a sua senha para arquivar "${pendingType?.name ?? ""}". Os registros históricos continuam no relatório.`}
+        confirmLabel="Arquivar"
+        onConfirmed={async (senha) => {
           if (!pendingType) return;
-          const { error } = await supabase
-            .from("meal_types")
-            .update({ archived_at: new Date().toISOString() })
-            .eq("id", pendingType.id);
-          if (error) throw new Error(error.message);
+          await arquivarTipo({ data: { id: pendingType.id, senha } });
           toast.success("Marmita arquivada");
           setPendingType(null);
           load();
