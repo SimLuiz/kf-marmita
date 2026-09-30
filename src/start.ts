@@ -4,14 +4,14 @@ import { avisoSessaoExpirada } from "@/lib/sessao.functions";
 
 // Desde a migration 002 o navegador não fala mais com o Supabase: o banco só é
 // acessado pelo Worker. O que sobra de domínio externo é o Turnstile (script +
-// iframe do anti-robô) e o Google Fonts. As assinaturas abrem por URL assinada
+// iframe do anti-robô). A fonte é servida daqui. As assinaturas abrem por URL assinada
 // do Storage (img-src https:).
 const CSP = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com`,
-  `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+  `style-src 'self' 'unsafe-inline'`,
   `img-src 'self' data: blob: https:`,
-  `font-src 'self' data: https://fonts.gstatic.com`,
+  `font-src 'self' data:`,
   // Storage: o Excel baixa as assinaturas pelas URLs assinadas.
   `connect-src 'self' https://uryjwyjswumyqhyqecjn.supabase.co`,
   `frame-src https://challenges.cloudflare.com`,

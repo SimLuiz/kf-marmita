@@ -22,9 +22,10 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" },
+      // Inter servida pelo próprio domínio (public/fonte/inter.woff2, o mesmo
+      // arquivo do kf-dashboard, hash 3100e775) — o @font-face está no
+      // kf-tokens.css. Nada de Google Fonts: a tela não depende de serviço externo.
+      { rel: "preload", href: "/fonte/inter.woff2?v=3100e775", as: "font", type: "font/woff2", crossOrigin: "anonymous" },
       { rel: "manifest", href: "/manifest.webmanifest" },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },

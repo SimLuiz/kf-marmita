@@ -13,9 +13,9 @@
 @custom-variant dark (&:is([data-theme="dark"] *));
 
 @theme inline {
-  /* Inter, a mesma do kf-garantia (com a mesma pilha de reserva). */
-  --font-sans: "Inter", "Segoe UI", Calibri, Tahoma, sans-serif;
-  --font-display: "Inter", "Segoe UI", Calibri, Tahoma, sans-serif;
+  /* A fonte é a do design system (--kf-fonte: Inter servida pelo próprio domínio). */
+  --font-sans: var(--kf-fonte);
+  --font-display: var(--kf-fonte);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
