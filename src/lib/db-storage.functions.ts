@@ -14,7 +14,7 @@ export interface DbStorage {
   generated_at: string;
 }
 
-// Disco provisionado no Lovable Cloud (visível em Advanced settings → Disk space)
+// Limite de referência para o alerta da tela Armazenamento (Supabase kf-marmita)
 const SOFT_LIMIT_BYTES = 2 * 1024 * 1024 * 1024;
 
 export const getDbStorage = createServerFn({ method: "GET" })

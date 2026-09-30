@@ -17,8 +17,6 @@ export const Route = createRootRoute({
       { name: "twitter:title", content: "Marmita Control" },
       { property: "og:description", content: "Controle de retirada de marmitas dos funcionários" },
       { name: "twitter:description", content: "Controle de retirada de marmitas dos funcionários" },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/250b0540-78e4-45ce-b8ad-dfdc9e90e317/id-preview-6ab146cb--df198fb0-60e9-4bd4-8070-6cdc5d64e774.lovable.app-1777488386949.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/250b0540-78e4-45ce-b8ad-dfdc9e90e317/id-preview-6ab146cb--df198fb0-60e9-4bd4-8070-6cdc5d64e774.lovable.app-1777488386949.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
     ],

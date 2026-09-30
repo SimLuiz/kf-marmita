@@ -1,7 +1,30 @@
 {
+  // KF Marmita — Cloudflare Worker (TanStack Start, build do nitro em .output/).
+  // Mesma receita do kf-garantia/kf-dashboard: endereço único no subdomínio de
+  // kfsistema.com.br, sem workers.dev nem URLs de preview.
+  //
+  // Os SEGREDOS não ficam aqui — vão para o cofre, um por vez:
+  //   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+  //   npx wrangler secret put RH_API_KEY          (o mesmo MARMITAS_TOKEN do kf-rh)
+  // SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY são públicos: ficam em "vars".
+  //
+  // ⚠️ O deploy usa o wrangler.json GERADO pelo build (.output/server), que é
+  // montado a partir deste arquivo. Rode sempre `npm run deploy` (build + deploy).
+  "workers_dev": false,
+  "preview_urls": false,
+
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "tanstack-start-app",
-  "compatibility_date": "2025-09-24",
+  "name": "kf-marmita",
+  "compatibility_date": "2026-09-30",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
+  "routes": [
+    // custom_domain: a Cloudflare cria o DNS e o certificado sozinha.
+    { "pattern": "marmita.kfsistema.com.br", "custom_domain": true }
+  ],
+  "vars": {
+    "SUPABASE_URL": "https://uryjwyjswumyqhyqecjn.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_iTXepVOQdZMMWSdG28gAWQ_wnpAVDJM"
+  },
+  "observability": { "enabled": true }
 }

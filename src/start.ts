@@ -2,8 +2,10 @@ import { createStart, createMiddleware } from "@tanstack/react-start";
 import { setResponseHeader } from "@tanstack/react-start/server";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
-const SUPABASE_HOST = "https://fumbcjoeylgizrzagnff.supabase.co";
-const SUPABASE_WS = "wss://fumbcjoeylgizrzagnff.supabase.co";
+// Supabase kf-marmita. Trocar o projeto exige mudar aqui também, senão o
+// navegador bloqueia as chamadas ao banco (connect-src).
+const SUPABASE_HOST = "https://uryjwyjswumyqhyqecjn.supabase.co";
+const SUPABASE_WS = "wss://uryjwyjswumyqhyqecjn.supabase.co";
 
 const CSP = [
   "default-src 'self'",
@@ -12,7 +14,7 @@ const CSP = [
   `img-src 'self' data: blob: https:`,
   `font-src 'self' data: https://fonts.gstatic.com`,
   `connect-src 'self' ${SUPABASE_HOST} ${SUPABASE_WS}`,
-  `frame-ancestors 'self' https://*.lovable.app https://lovable.dev`,
+  `frame-ancestors 'self'`,
   `base-uri 'self'`,
   `form-action 'self'`,
   `object-src 'none'`,

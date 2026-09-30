@@ -22,7 +22,6 @@ import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as ArmazenamentoRouteImport } from './routes/armazenamento'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as FuncionariosIdRouteImport } from './routes/funcionarios.$id'
-import { Route as ApiExportDumpRouteImport } from './routes/api/export/dump'
 import { Route as ApiPublicRhMarmitasRouteImport } from './routes/api/public/rh/marmitas'
 
 const UsuariosRoute = UsuariosRouteImport.update({
@@ -90,11 +89,6 @@ const FuncionariosIdRoute = FuncionariosIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => FuncionariosRoute,
 } as any)
-const ApiExportDumpRoute = ApiExportDumpRouteImport.update({
-  id: '/api/export/dump',
-  path: '/api/export/dump',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicRhMarmitasRoute = ApiPublicRhMarmitasRouteImport.update({
   id: '/api/public/rh/marmitas',
   path: '/api/public/rh/marmitas',
@@ -115,7 +109,6 @@ export interface FileRoutesByFullPath {
   '/seguranca': typeof SegurancaRoute
   '/usuarios': typeof UsuariosRoute
   '/funcionarios/$id': typeof FuncionariosIdRoute
-  '/api/export/dump': typeof ApiExportDumpRoute
   '/api/public/rh/marmitas': typeof ApiPublicRhMarmitasRoute
 }
 export interface FileRoutesByTo {
@@ -132,7 +125,6 @@ export interface FileRoutesByTo {
   '/seguranca': typeof SegurancaRoute
   '/usuarios': typeof UsuariosRoute
   '/funcionarios/$id': typeof FuncionariosIdRoute
-  '/api/export/dump': typeof ApiExportDumpRoute
   '/api/public/rh/marmitas': typeof ApiPublicRhMarmitasRoute
 }
 export interface FileRoutesById {
@@ -150,7 +142,6 @@ export interface FileRoutesById {
   '/seguranca': typeof SegurancaRoute
   '/usuarios': typeof UsuariosRoute
   '/funcionarios/$id': typeof FuncionariosIdRoute
-  '/api/export/dump': typeof ApiExportDumpRoute
   '/api/public/rh/marmitas': typeof ApiPublicRhMarmitasRoute
 }
 export interface FileRouteTypes {
@@ -169,7 +160,6 @@ export interface FileRouteTypes {
     | '/seguranca'
     | '/usuarios'
     | '/funcionarios/$id'
-    | '/api/export/dump'
     | '/api/public/rh/marmitas'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -186,7 +176,6 @@ export interface FileRouteTypes {
     | '/seguranca'
     | '/usuarios'
     | '/funcionarios/$id'
-    | '/api/export/dump'
     | '/api/public/rh/marmitas'
   id:
     | '__root__'
@@ -203,7 +192,6 @@ export interface FileRouteTypes {
     | '/seguranca'
     | '/usuarios'
     | '/funcionarios/$id'
-    | '/api/export/dump'
     | '/api/public/rh/marmitas'
   fileRoutesById: FileRoutesById
 }
@@ -220,7 +208,6 @@ export interface RootRouteChildren {
   RelatorioRoute: typeof RelatorioRoute
   SegurancaRoute: typeof SegurancaRoute
   UsuariosRoute: typeof UsuariosRoute
-  ApiExportDumpRoute: typeof ApiExportDumpRoute
   ApiPublicRhMarmitasRoute: typeof ApiPublicRhMarmitasRoute
 }
 
@@ -317,13 +304,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FuncionariosIdRouteImport
       parentRoute: typeof FuncionariosRoute
     }
-    '/api/export/dump': {
-      id: '/api/export/dump'
-      path: '/api/export/dump'
-      fullPath: '/api/export/dump'
-      preLoaderRoute: typeof ApiExportDumpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/rh/marmitas': {
       id: '/api/public/rh/marmitas'
       path: '/api/public/rh/marmitas'
@@ -359,7 +339,6 @@ const rootRouteChildren: RootRouteChildren = {
   RelatorioRoute: RelatorioRoute,
   SegurancaRoute: SegurancaRoute,
   UsuariosRoute: UsuariosRoute,
-  ApiExportDumpRoute: ApiExportDumpRoute,
   ApiPublicRhMarmitasRoute: ApiPublicRhMarmitasRoute,
 }
 export const routeTree = rootRouteImport
