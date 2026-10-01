@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ProtectedShell } from "@/components/ProtectedShell";
+import { SeletorPeriodo, type Periodo } from "@/components/SeletorPeriodo";
 import { relatorio, urlsDasAssinaturas } from "@/lib/dados.functions";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Download, FileText, CalendarRange } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/relatorio")({
@@ -41,8 +41,6 @@ interface DetailRow {
   photo_path: string | null;
 }
 
-const monthLabel = (d: Date) =>
-  d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 const brl = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDateTime = (iso: string) => {
@@ -54,75 +52,28 @@ const fmtDateTime = (iso: string) => {
     minute: "2-digit",
   });
 };
-const fmtDate = (d: Date) =>
-  d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
-const toInputDate = (d: Date) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-};
-const fromInputDate = (s: string) => {
-  const [y, m, d] = s.split("-").map(Number);
-  return new Date(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0);
-};
-
 function Page() {
   const { user } = useAuth();
-  const [mode, setMode] = useState<"month" | "range">("month");
-  const [cursor, setCursor] = useState(() => {
-    const d = new Date();
-    d.setDate(1);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
-  const [startDate, setStartDate] = useState<Date>(() => {
-    const d = new Date();
-    d.setDate(1);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
-  const [endDate, setEndDate] = useState<Date>(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  });
+  // Competência (26 a 25, igual ao kf-rh) é o modo padrão — ver SeletorPeriodo.
+  const [periodo, setPeriodo] = useState<Periodo | null>(null);
   const [allRows, setAllRows] = useState<DetailRow[]>([]);
+  const [cancelados, setCancelados] = useState(0);
   const [loading, setLoading] = useState(false);
   const [sigUrls, setSigUrls] = useState<Record<string, string>>({});
 
-  const range = useMemo(() => {
-    if (mode === "month") {
-      const start = new Date(cursor);
-      const end = new Date(cursor);
-      end.setMonth(end.getMonth() + 1);
-      return { start, end };
-    }
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(0, 0, 0, 0);
-    end.setDate(end.getDate() + 1); // inclusive end day
-    return { start, end };
-  }, [mode, cursor, startDate, endDate]);
-
-  const periodLabel = useMemo(() => {
-    if (mode === "month") return monthLabel(cursor);
-    const endInclusive = new Date(range.end);
-    endInclusive.setDate(endInclusive.getDate() - 1);
-    return `${fmtDate(startDate)} — ${fmtDate(endInclusive)}`;
-  }, [mode, cursor, startDate, endDate, range.end]);
+  const periodLabel = periodo?.rotulo ?? "";
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !periodo) return;
     setLoading(true);
     (async () => {
       try {
         // A junção (funcionário, tipo, fornecedor) e as URLs das assinaturas
-        // saem prontas do servidor.
-        const r = await relatorio({ data: { inicio: range.start.toISOString(), fim: range.end.toISOString() } });
+        // saem prontas do servidor. Cancelados ficam fora (só a contagem vem).
+        const r = await relatorio({ data: { inicio: periodo.inicio.toISOString(), fim: periodo.fim.toISOString() } });
         setAllRows(r.linhas as DetailRow[]);
         setSigUrls(r.assinaturas);
+        setCancelados(r.cancelados ?? 0);
       } catch (e) {
         toast.error("Não foi possível carregar o relatório");
         console.error(e);
@@ -130,7 +81,7 @@ function Page() {
         setLoading(false);
       }
     })();
-  }, [user, range.start, range.end]);
+  }, [user, periodo?.inicio.getTime(), periodo?.fim.getTime()]);
 
   // Todos os lançamentos do período entram no relatório — retiradas múltiplas
   // no mesmo dia (ou em sequência) são lançamentos legítimos.
@@ -139,7 +90,7 @@ function Page() {
   const totalCount = rows.length;
   const totalValue = rows.reduce((s, r) => s + r.price, 0);
   const totalCompany = rows.reduce((s, r) => s + r.company_price, 0);
-  const periodSlug = periodLabel.replace(/[^\w]+/g, "-").replace(/^-|-$/g, "");
+  const periodSlug = periodo?.slug ?? "periodo";
 
   // grouped per employee for on-screen display
   const byEmployee = useMemo(() => {
@@ -314,82 +265,13 @@ ${rows
 
   return (
     <div className="space-y-6">
-      <div
-        className="bg-card rounded-lg p-3 space-y-3"
-        style={{ boxShadow: "var(--shadow-card)" }}
-      >
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant={mode === "month" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setMode("month")}
-          >
-            Por mês
-          </Button>
-          <Button
-            variant={mode === "range" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setMode("range")}
-          >
-            <CalendarRange className="h-4 w-4 mr-1" /> Por período
-          </Button>
-        </div>
+      <SeletorPeriodo onChange={setPeriodo} />
 
-        {mode === "month" ? (
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                const d = new Date(cursor);
-                d.setMonth(d.getMonth() - 1);
-                setCursor(d);
-              }}
-              aria-label="Mês anterior"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <div className="font-semibold first-cap">{periodLabel}</div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                const d = new Date(cursor);
-                d.setMonth(d.getMonth() + 1);
-                setCursor(d);
-              }}
-              aria-label="Próximo mês"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <label className="text-xs text-muted-foreground space-y-1">
-                <span>De</span>
-                <Input
-                  type="date"
-                  value={toInputDate(startDate)}
-                  max={toInputDate(endDate)}
-                  onChange={(e) => e.target.value && setStartDate(fromInputDate(e.target.value))}
-                />
-              </label>
-              <label className="text-xs text-muted-foreground space-y-1">
-                <span>Até</span>
-                <Input
-                  type="date"
-                  value={toInputDate(endDate)}
-                  min={toInputDate(startDate)}
-                  onChange={(e) => e.target.value && setEndDate(fromInputDate(e.target.value))}
-                />
-              </label>
-            </div>
-            <div className="text-center text-sm font-semibold">{periodLabel}</div>
-          </div>
-        )}
-      </div>
-
+      {cancelados > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {cancelados} lançamento(s) cancelado(s) no período — fora dos totais e das exportações.
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div

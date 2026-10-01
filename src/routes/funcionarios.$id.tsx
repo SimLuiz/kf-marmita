@@ -3,13 +3,15 @@ import { useEffect, useMemo, useState } from "react";
 
 import { EditEmployeeDialog } from "@/components/EditEmployeeDialog";
 import { AdminPasswordDialog } from "@/components/AdminPasswordDialog";
+import { CancelarLancamentoDialog } from "@/components/CancelarLancamentoDialog";
 import {
   cadastroMarmitas,
   editarLancamento,
-  excluirLancamento,
   lancamentosDoFuncionario,
   obterFuncionario,
+  reativarLancamento,
 } from "@/lib/dados.functions";
+import { diaLocal } from "@/lib/formatos";
 import { useAuth } from "@/lib/auth";
 import { usePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
@@ -31,7 +33,8 @@ import {
   IdCard,
   Pencil,
   Briefcase,
-  Trash2,
+  Ban,
+  RotateCcw,
   Utensils,
 } from "lucide-react";
 
@@ -56,6 +59,9 @@ interface Record {
   photo_path: string;
   meal_type_id: string | null;
   unit_price: number | null;
+  cancelado: boolean;
+  cancelado_em: string | null;
+  motivo_cancelamento: string | null;
   meal_types: {
     name: string;
     price: number;
@@ -81,11 +87,6 @@ export const Route = createFileRoute("/funcionarios/$id")({
 });
 
 
-// Data LOCAL (Brasília) em AAAA-MM-DD. toISOString() dá a data em UTC: depois
-// das 21h ela já é "amanhã".
-const diaLocal = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
 const monthLabel = (d: Date) =>
   d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
@@ -98,7 +99,8 @@ function Page() {
   const [records, setRecords] = useState<RecordWithUrl[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<RecordWithUrl | null>(null);
+  const [aCancelar, setACancelar] = useState<RecordWithUrl | null>(null);
+  const [aReativar, setAReativar] = useState<RecordWithUrl | null>(null);
   const [editRec, setEditRec] = useState<RecordWithUrl | null>(null);
   const [mealTypes, setMealTypes] = useState<MealTypeOpt[]>([]);
   const [cursor, setCursor] = useState(() => {
@@ -165,8 +167,6 @@ function Page() {
       );
     })();
   }, [isAdmin]);
-
-  const askRemoveRecord = (rec: RecordWithUrl) => setPendingDelete(rec);
 
 
   if (!emp) {
@@ -258,9 +258,11 @@ function Page() {
       </div>
 
       {(() => {
+        // Cancelados não contam (aparecem riscados na lista, com o motivo).
+        const ativos = records.filter((r) => !r.cancelado);
         const priceOf = (r: Record) =>
           Number(r.unit_price ?? r.meal_types?.price ?? 0) || 0;
-        const total = records.reduce((s, r) => s + priceOf(r), 0);
+        const total = ativos.reduce((s, r) => s + priceOf(r), 0);
         const fmt = (v: number) =>
           v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         return (
@@ -270,7 +272,7 @@ function Page() {
           >
             <div>
               <Utensils className="h-5 w-5 mx-auto text-primary mb-1" />
-              <div className="text-3xl font-bold text-primary">{records.length}</div>
+              <div className="text-3xl font-bold text-primary">{ativos.length}</div>
               <div className="text-xs text-muted-foreground uppercase tracking-wide">
                 marmitas no mês
               </div>
@@ -312,7 +314,8 @@ function Page() {
               <div className="space-y-4">
                 {days.map(([day, items]) => {
                   const dayDate = new Date(day + "T00:00:00");
-                  const dayTotal = items.reduce(
+                  const doDia = items.filter((r) => !r.cancelado);
+                  const dayTotal = doDia.reduce(
                     (s, r) => s + (Number(r.unit_price ?? r.meal_types?.price) || 0),
                     0
                   );
@@ -327,7 +330,7 @@ function Page() {
                           })}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {items.length} {items.length === 1 ? "marmita" : "marmitas"} ·{" "}
+                          {doDia.length} {doDia.length === 1 ? "marmita" : "marmitas"} ·{" "}
                           <span className="font-semibold text-foreground">
                             {fmt(dayTotal)}
                           </span>
@@ -339,7 +342,7 @@ function Page() {
                         return (
                           <div
                             key={rec.id}
-                            className="bg-card rounded-lg p-3 flex items-center gap-3"
+                            className={`bg-card rounded-lg p-3 flex items-center gap-3 ${rec.cancelado ? "opacity-60" : ""}`}
                             style={{ boxShadow: "var(--shadow-card)" }}
                           >
                             {rec.photoUrl ? (
@@ -359,9 +362,14 @@ function Page() {
                               <div className="h-16 w-16 rounded-lg bg-muted shrink-0" />
                             )}
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium truncate">
+                              <div className={`font-medium truncate ${rec.cancelado ? "line-through" : ""}`}>
                                 {rec.meal_types?.name ?? "Marmita"}
                               </div>
+                              {rec.cancelado && (
+                                <div className="text-xs font-semibold text-destructive">
+                                  Cancelado{rec.motivo_cancelamento ? ` — ${rec.motivo_cancelamento}` : ""}
+                                </div>
+                              )}
                               <div className="text-xs text-muted-foreground truncate">
                                 {rec.meal_types?.suppliers?.name ?? "Sem fornecedor"}
                               </div>
@@ -375,7 +383,7 @@ function Page() {
                             </div>
                             {(isAdmin || can("can_edit_records")) && (
                               <div className="flex flex-col gap-1">
-                                {can("can_edit_records") && (
+                                {can("can_edit_records") && !rec.cancelado && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -385,14 +393,26 @@ function Page() {
                                   <Pencil className="h-4 w-4" />
                                 </Button>
                                 )}
-                                {isAdmin && (
+                                {isAdmin && !rec.cancelado && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => askRemoveRecord(rec)}
-                                  aria-label="Excluir registro"
+                                  onClick={() => setACancelar(rec)}
+                                  aria-label="Cancelar lançamento"
+                                  title="Cancelar lançamento"
                                 >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                  <Ban className="h-4 w-4 text-destructive" />
+                                </Button>
+                                )}
+                                {isAdmin && rec.cancelado && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setAReativar(rec)}
+                                  aria-label="Reativar lançamento"
+                                  title="Desfazer o cancelamento"
+                                >
+                                  <RotateCcw className="h-4 w-4" />
                                 </Button>
                                 )}
                               </div>
@@ -417,17 +437,38 @@ function Page() {
         onSaved={loadEmployee}
       />
 
+      <CancelarLancamentoDialog
+        lancamento={
+          aCancelar
+            ? {
+                id: aCancelar.id,
+                descricao: `${aCancelar.meal_types?.name ?? "Marmita"} de ${new Date(aCancelar.taken_at).toLocaleString("pt-BR", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}`,
+              }
+            : null
+        }
+        onOpenChange={(o) => !o && setACancelar(null)}
+        onCancelado={() => {
+          setACancelar(null);
+          loadRecords();
+        }}
+      />
+
       <AdminPasswordDialog
-        open={!!pendingDelete}
-        onOpenChange={(o: boolean) => !o && setPendingDelete(null)}
-        title="Excluir registro"
-        description="Digite a sua senha para excluir este registro de marmita. A assinatura também é apagada."
-        confirmLabel="Excluir registro"
+        open={!!aReativar}
+        onOpenChange={(o: boolean) => !o && setAReativar(null)}
+        title="Desfazer o cancelamento"
+        description="O lançamento volta a valer e o RH volta a cobrar. Digite a sua senha para confirmar."
+        confirmLabel="Reativar"
         onConfirmed={async (senha) => {
-          if (!pendingDelete) return;
-          await excluirLancamento({ data: { id: pendingDelete.id, senha } });
-          toast.success("Registro removido");
-          setPendingDelete(null);
+          if (!aReativar) return;
+          await reativarLancamento({ data: { id: aReativar.id, senha } });
+          toast.success("Lançamento reativado");
+          setAReativar(null);
           loadRecords();
         }}
       />

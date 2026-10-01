@@ -1,0 +1,30 @@
+{
+  // KF Marmita — BACKUP DAS ASSINATURAS (01/10).
+  // O backup diário do Supabase (plano Pro) NÃO inclui os arquivos do Storage:
+  // as assinaturas (PNG) ficariam sem cópia nenhuma. Este Worker copia cada
+  // assinatura nova para o R2 da própria conta Cloudflare, a cada 15 minutos.
+  // Só ACRESCENTA — nunca apaga do backup o que sumiu do Supabase.
+  //
+  // Segredo (cofre do Worker, NÃO aqui):
+  //   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+  // Bucket: npx wrangler r2 bucket create kf-marmita-assinaturas
+  // Deploy: cd backup && npx wrangler deploy --config wrangler.jsonc
+  //   (o --config é obrigatório: sem ele o wrangler acha a config do build do
+  //   sistema principal em ../.wrangler e se confunde)
+  "workers_dev": false,
+  "preview_urls": false,
+
+  "name": "kf-marmita-backup",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "vars": {
+    "SUPABASE_URL": "https://uryjwyjswumyqhyqecjn.supabase.co"
+  },
+  "r2_buckets": [{ "binding": "BACKUP", "bucket_name": "kf-marmita-assinaturas" }],
+  "triggers": {
+    // A cada 15 min. A primeira cópia (3.589 arquivos) leva umas 4 horas, em
+    // lotes; depois cada execução só confere se há algo novo (1 consulta).
+    "crons": ["*/15 * * * *"]
+  },
+  "observability": { "enabled": true }
+}

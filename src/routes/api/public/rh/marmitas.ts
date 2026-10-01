@@ -1,182 +1,174 @@
+// ============================================================================
+// ROTA DO RH — lançamentos de marmita para o kf-rh (desconto em folha)
+// ============================================================================
+// Contrato no CLAUDE.md. Peças puras (formato, cursor) em src/lib/rh.ts,
+// testadas em tests/rh.test.ts.
+//
+// QUEM PODE CHAMAR (01/10):
+//   1. a chave (Bearer) — RH_API_KEY, ou RH_API_KEY_ANTERIOR durante a troca
+//      de chave (as duas valem até a antiga ser removida do cofre);
+//   2. E a ORIGEM: ou o Worker kf-rh pela service binding `MARMITAS` (chamada
+//      interna da Cloudflare, sem passar pela internet — chega sem o cabeçalho
+//      CF-Connecting-IP, que a borda da Cloudflare sempre põe em quem vem de
+//      fora e que o cliente não consegue forjar), ou um IP das REDES DA
+//      EMPRESA (config_acesso, migration 004 — a mesma lista do login, editada
+//      na tela Usuários): os scripts do kf-rh rodados no PC da empresa.
+//      Lista vazia = qualquer IP com a chave passa.
+// ⚠️ Sem CORS de propósito: nenhum navegador chama esta rota (o Lovable
+// respondia "Access-Control-Allow-Origin: *", que deixava qualquer site
+// chamá-la de dentro do navegador de alguém que tivesse a chave).
+// ============================================================================
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { dinheiro, iguaisSeguro, lerCursor, montarLancamento, paraSaoPaulo } from "@/lib/rh";
+import { ipPermitido } from "@/lib/rede";
 
-const TZ_OFFSET = "-03:00";
-const PAGE_SIZE = 1000;
+const FUSO = "-03:00";
+const PAGINA = 1000;
 
-const querySchema = z.object({
+const parametros = z.object({
   inicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   fim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   cursor: z.string().max(120).optional(),
 });
 
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, content-type",
-};
-
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json; charset=utf-8", ...cors },
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
   });
 }
-
-function safeEqual(a: string, b: string) {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-/** Converte um timestamp ISO (UTC) para ISO 8601 com fuso -03:00 */
-function toSaoPaulo(iso: string) {
-  const d = new Date(iso);
-  const shifted = new Date(d.getTime() - 3 * 60 * 60 * 1000);
-  return shifted.toISOString().replace(/\.\d{3}Z$/, "") + TZ_OFFSET;
-}
-
-const money = (v: unknown) => Math.round((Number(v ?? 0) + Number.EPSILON) * 100) / 100;
 
 export const Route = createFileRoute("/api/public/rh/marmitas")({
   server: {
     handlers: {
-      OPTIONS: async () => new Response(null, { status: 204, headers: cors }),
       GET: async ({ request }) => {
-        const apiKey = process.env["RH_API_KEY"];
-        if (!apiKey) return json({ erro: "integracao_nao_configurada" }, 500);
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const db = supabaseAdmin as any;
+
+        const ipCliente = request.headers.get("cf-connecting-ip");
+        const origem = ipCliente ? `ip ${ipCliente}` : "service binding (kf-rh)";
+        const registrar = (acao: string, detalhe: string) =>
+          db
+            .from("logs_acesso")
+            .insert({ usuario: "kf-rh", ip: ipCliente ?? "binding", acao, detalhe })
+            .then(
+              () => {},
+              () => {},
+            );
+
+        const chave = process.env["RH_API_KEY"];
+        if (!chave) return json({ erro: "integracao_nao_configurada" }, 500);
+
+        // Origem: binding (sem CF-Connecting-IP) ou IP das redes da empresa.
+        if (ipCliente) {
+          const { data: cfg, error } = await db.from("config_acesso").select("redes_empresa").limit(1).maybeSingle();
+          if (error) return json({ erro: "falha_na_consulta" }, 500);
+          if (!ipPermitido(ipCliente, cfg?.redes_empresa ?? [])) {
+            await registrar("rh_origem_recusada", `chamada de fora das redes da empresa (${origem})`);
+            return json({ erro: "origem_nao_permitida" }, 403);
+          }
+        }
 
         const auth = request.headers.get("authorization") ?? "";
         const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
-        if (!token || !safeEqual(token, apiKey)) {
+        const anterior = process.env["RH_API_KEY_ANTERIOR"];
+        if (!token || !(iguaisSeguro(token, chave) || (!!anterior && iguaisSeguro(token, anterior)))) {
+          await registrar("rh_chave_recusada", `chave ausente ou errada (${origem})`);
           return json({ erro: "nao_autorizado" }, 401);
         }
 
         const url = new URL(request.url);
-        const parsed = querySchema.safeParse({
+        const p = parametros.safeParse({
           inicio: url.searchParams.get("inicio") ?? "",
           fim: url.searchParams.get("fim") ?? "",
           cursor: url.searchParams.get("cursor") ?? undefined,
         });
-        if (!parsed.success) {
-          return json(
-            { erro: "parametros_invalidos", detalhe: "informe inicio e fim no formato AAAA-MM-DD" },
-            400,
-          );
+        if (!p.success) {
+          return json({ erro: "parametros_invalidos", detalhe: "informe inicio e fim no formato AAAA-MM-DD" }, 400);
         }
-        const { inicio, fim, cursor } = parsed.data;
-        const from = new Date(`${inicio}T00:00:00${TZ_OFFSET}`);
-        const to = new Date(`${fim}T23:59:59.999${TZ_OFFSET}`);
-        if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from > to) {
+        const { inicio, fim, cursor } = p.data;
+        const de = new Date(`${inicio}T00:00:00${FUSO}`);
+        const ate = new Date(`${fim}T23:59:59.999${FUSO}`);
+        if (Number.isNaN(de.getTime()) || Number.isNaN(ate.getTime()) || de > ate) {
           return json({ erro: "periodo_invalido" }, 400);
         }
+        const posicao = cursor ? lerCursor(cursor) : null;
+        if (cursor && !posicao) return json({ erro: "cursor_invalido" }, 400);
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const db = supabaseAdmin as any;
-
-        // ---- totais do período inteiro (calculados no servidor)
-        let totalCount = 0;
-        let totalFunc = 0;
-        let totalEmp = 0;
-        for (let offset = 0; ; offset += PAGE_SIZE) {
+        // ---- totais do período inteiro, calculados no servidor.
+        // ⚠️ INCLUEM os cancelados: o kf-rh soma TUDO o que recebe e compara
+        // com estes totais (fontes.mjs, lerMarmitas) — quem não cobra o
+        // cancelado é ele, pelo campo `cancelado` de cada lançamento.
+        let qtd = 0;
+        let somaFunc = 0;
+        let somaEmp = 0;
+        for (let offset = 0; ; offset += PAGINA) {
           const { data, error } = await db
             .from("meal_records")
             .select("unit_price, company_unit_price")
-            .gte("taken_at", from.toISOString())
-            .lte("taken_at", to.toISOString())
+            .gte("taken_at", de.toISOString())
+            .lte("taken_at", ate.toISOString())
             .order("taken_at", { ascending: true })
             .order("id", { ascending: true })
-            .range(offset, offset + PAGE_SIZE - 1);
+            .range(offset, offset + PAGINA - 1);
           if (error) return json({ erro: "falha_na_consulta" }, 500);
-          const rows = data ?? [];
-          totalCount += rows.length;
-          for (const r of rows) {
-            totalFunc += Number(r.unit_price ?? 0);
-            totalEmp += Number(r.company_unit_price ?? 0);
+          const linhas = data ?? [];
+          qtd += linhas.length;
+          for (const r of linhas) {
+            somaFunc += Number(r.unit_price ?? 0);
+            somaEmp += Number(r.company_unit_price ?? 0);
           }
-          if (rows.length < PAGE_SIZE) break;
-          if (offset > 500000) break;
+          if (linhas.length < PAGINA || offset > 500000) break;
         }
 
-        // ---- página de lançamentos (cursor keyset: taken_at|id)
-        let query = db
+        // ---- página de lançamentos (keyset: taken_at|id)
+        let consulta = db
           .from("meal_records")
           .select(
-            "id, taken_at, employee_id, unit_price, company_unit_price, meal_types(name, key, suppliers(name))",
+            "id, taken_at, employee_id, unit_price, company_unit_price, cancelado, motivo_cancelamento, meal_types(key, suppliers(name))",
           )
-          .gte("taken_at", from.toISOString())
-          .lte("taken_at", to.toISOString())
+          .gte("taken_at", de.toISOString())
+          .lte("taken_at", ate.toISOString())
           .order("taken_at", { ascending: true })
           .order("id", { ascending: true })
-          .limit(PAGE_SIZE);
-
-        if (cursor) {
-          const [cTaken, cId, ...resto] = cursor.split("|");
-          // 🔴 Os dois pedaços entram DENTRO do filtro `.or(...)` do PostgREST:
-          // sem validar o formato, um cursor como "x,id.gt.0|…" reescreveria o
-          // filtro. Só passa o que o próprio servidor gera em `proxima_pagina`
-          // (timestamp do Postgres + uuid).
-          const TS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+00:00|Z)$/;
-          const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          if (!cTaken || !cId || resto.length || !TS.test(cTaken) || !UUID.test(cId)) {
-            return json({ erro: "cursor_invalido" }, 400);
-          }
-          query = query.or(`taken_at.gt.${cTaken},and(taken_at.eq.${cTaken},id.gt.${cId})`);
+          .limit(PAGINA);
+        if (posicao) {
+          consulta = consulta.or(
+            `taken_at.gt.${posicao.momento},and(taken_at.eq.${posicao.momento},id.gt.${posicao.id})`,
+          );
         }
+        const { data: lanc, error: errLanc } = await consulta;
+        if (errLanc) return json({ erro: "falha_na_consulta" }, 500);
+        const registros = lanc ?? [];
 
-        const { data: recs, error: recErr } = await query;
-        if (recErr) return json({ erro: "falha_na_consulta" }, 500);
-        const records = recs ?? [];
-
-        const ids = [...new Set(records.map((r: any) => r.employee_id))];
-        const empMap = new Map<string, any>();
+        const ids = [...new Set(registros.map((r: any) => r.employee_id))];
+        const funcionarios = new Map<string, any>();
         for (let i = 0; i < ids.length; i += 200) {
-          const { data: emps, error: empErr } = await db
+          const { data: f, error } = await db
             .from("employees_view")
             .select("id, name, cpf, company, sector, vinculo")
             .in("id", ids.slice(i, i + 200));
-          if (empErr) return json({ erro: "falha_na_consulta" }, 500);
-          for (const e of emps ?? []) empMap.set(e.id, e);
+          if (error) return json({ erro: "falha_na_consulta" }, 500);
+          for (const e of f ?? []) funcionarios.set(e.id, e);
         }
 
-        const lancamentos = records.map((r: any) => {
-          const e = empMap.get(r.employee_id);
-          const cpf = (e?.cpf ?? "").replace(/\D/g, "");
-          return {
-            id: r.id,
-            momento: toSaoPaulo(r.taken_at),
-            cpf: cpf.length === 11 ? cpf : null,
-            nome: e?.name ?? null,
-            empresa: e?.company ?? null,
-            setor: e?.sector ?? null,
-            vinculo: e?.vinculo ?? "clt",
-            tipo: r.meal_types?.key ?? null,
-            fornecedor: r.meal_types?.suppliers?.name ?? null,
-            valor_funcionario: money(r.unit_price),
-            valor_empresa: money(r.company_unit_price),
-            cancelado: false,
-            observacao: null,
-          };
-        });
-
-        const last = records[records.length - 1] as any | undefined;
+        const ultimo = registros[registros.length - 1] as any | undefined;
         const proxima =
-          records.length === PAGE_SIZE && last
+          registros.length === PAGINA && ultimo
             ? `${url.origin}${url.pathname}?inicio=${inicio}&fim=${fim}&cursor=${encodeURIComponent(
-                `${last.taken_at}|${last.id}`,
+                `${ultimo.taken_at}|${ultimo.id}`,
               )}`
             : null;
 
+        // Só a primeira página vai para o log (uma consulta = uma linha).
+        if (!cursor) await registrar("rh_consulta", `${inicio} a ${fim}: ${qtd} lançamento(s) (${origem})`);
+
         return json({
           periodo: { inicio, fim },
-          gerado_em: toSaoPaulo(new Date().toISOString()),
-          totais: {
-            lancamentos: totalCount,
-            valor_funcionario: money(totalFunc),
-            valor_empresa: money(totalEmp),
-          },
-          lancamentos,
+          gerado_em: paraSaoPaulo(new Date().toISOString()),
+          totais: { lancamentos: qtd, valor_funcionario: dinheiro(somaFunc), valor_empresa: dinheiro(somaEmp) },
+          lancamentos: registros.map((r: any) => montarLancamento(r, funcionarios.get(r.employee_id))),
           proxima_pagina: proxima,
         });
       },

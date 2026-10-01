@@ -14,7 +14,7 @@ export const eu = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const entrar = createServerFn({ method: "POST" })
-  .inputValidator((input) =>
+  .validator((input) =>
     z
       .object({
         usuario: campoUsuario,
@@ -33,7 +33,7 @@ export const entrar = createServerFn({ method: "POST" })
   });
 
 export const confirmar2fa = createServerFn({ method: "POST" })
-  .inputValidator((input) =>
+  .validator((input) =>
     z.object({ usuario: campoUsuario, codigo: z.string().regex(/^\d{6}$/) }).parse(input),
   )
   .handler(async ({ data }) => {

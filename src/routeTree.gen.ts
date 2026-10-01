@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArmazenamentoRouteImport } from './routes/armazenamento'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
+import { Route as ConferenciaRouteImport } from './routes/conferencia'
 import { Route as FornecedoresRouteImport } from './routes/fornecedores'
 import { Route as FuncionariosRouteImport } from './routes/funcionarios'
 import { Route as IntegracaoRouteImport } from './routes/integracao'
@@ -37,6 +38,11 @@ const ArmazenamentoRoute = ArmazenamentoRouteImport.update({
 const AuditoriaRoute = AuditoriaRouteImport.update({
   id: '/auditoria',
   path: '/auditoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConferenciaRoute = ConferenciaRouteImport.update({
+  id: '/conferencia',
+  path: '/conferencia',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FornecedoresRoute = FornecedoresRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/armazenamento': typeof ArmazenamentoRoute
   '/auditoria': typeof AuditoriaRoute
+  '/conferencia': typeof ConferenciaRoute
   '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/integracao': typeof IntegracaoRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/armazenamento': typeof ArmazenamentoRoute
   '/auditoria': typeof AuditoriaRoute
+  '/conferencia': typeof ConferenciaRoute
   '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/integracao': typeof IntegracaoRoute
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/armazenamento': typeof ArmazenamentoRoute
   '/auditoria': typeof AuditoriaRoute
+  '/conferencia': typeof ConferenciaRoute
   '/fornecedores': typeof FornecedoresRoute
   '/funcionarios': typeof FuncionariosRouteWithChildren
   '/integracao': typeof IntegracaoRoute
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/'
     | '/armazenamento'
     | '/auditoria'
+    | '/conferencia'
     | '/fornecedores'
     | '/funcionarios'
     | '/integracao'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/'
     | '/armazenamento'
     | '/auditoria'
+    | '/conferencia'
     | '/fornecedores'
     | '/funcionarios'
     | '/integracao'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/'
     | '/armazenamento'
     | '/auditoria'
+    | '/conferencia'
     | '/fornecedores'
     | '/funcionarios'
     | '/integracao'
@@ -199,6 +211,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ArmazenamentoRoute: typeof ArmazenamentoRoute
   AuditoriaRoute: typeof AuditoriaRoute
+  ConferenciaRoute: typeof ConferenciaRoute
   FornecedoresRoute: typeof FornecedoresRoute
   FuncionariosRoute: typeof FuncionariosRouteWithChildren
   IntegracaoRoute: typeof IntegracaoRoute
@@ -232,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/auditoria'
       fullPath: '/auditoria'
       preLoaderRoute: typeof AuditoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/conferencia': {
+      id: '/conferencia'
+      path: '/conferencia'
+      fullPath: '/conferencia'
+      preLoaderRoute: typeof ConferenciaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fornecedores': {
@@ -330,6 +350,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ArmazenamentoRoute: ArmazenamentoRoute,
   AuditoriaRoute: AuditoriaRoute,
+  ConferenciaRoute: ConferenciaRoute,
   FornecedoresRoute: FornecedoresRoute,
   FuncionariosRoute: FuncionariosRouteWithChildren,
   IntegracaoRoute: IntegracaoRoute,

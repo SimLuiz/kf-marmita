@@ -3,23 +3,23 @@ import { z } from "zod";
 import { exigirSenhaAdmin, soAdmin, falhaDoBanco } from "./middleware";
 import { getRequestHeader, getRequestIP } from "@tanstack/react-start/server";
 
-export type PurgeTarget = "meal_records" | "audit_logs" | "login_attempts";
+export type PurgeTarget = "meal_records" | "audit_logs" | "logs_acesso";
 
 const TARGET_COLUMN: Record<PurgeTarget, string> = {
   meal_records: "taken_at",
   audit_logs: "created_at",
-  login_attempts: "attempted_at",
+  logs_acesso: "criado_em",
 };
 
 const TARGET_LABEL: Record<PurgeTarget, string> = {
   meal_records: "Lançamentos de refeições",
   audit_logs: "Logs de auditoria",
-  login_attempts: "Tentativas de login",
+  logs_acesso: "Registro de acessos (entradas, saídas, falhas)",
 };
 
 const rangeSchema = z
   .object({
-    targets: z.array(z.enum(["meal_records", "audit_logs", "login_attempts"])).min(1),
+    targets: z.array(z.enum(["meal_records", "audit_logs", "logs_acesso"])).min(1),
     from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
     to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida"),
   })
@@ -29,7 +29,7 @@ const rangeSchema = z
 
 export const previewPurge = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => rangeSchema.parse(i))
+  .validator((i) => rangeSchema.parse(i))
   .handler(async ({ context, data }) => {
     // Conexão com o autor nos cabeçalhos: a auditoria registra quem apagou.
     const supabaseAdmin = context.db;
@@ -53,7 +53,7 @@ export const previewPurge = createServerFn({ method: "POST" })
 // conferir (era o caso até 30/09).
 export const executePurge = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) =>
+  .validator((i) =>
     rangeSchema.and(z.object({ senha: z.string().min(1).max(200) })).parse(i),
   )
   .handler(async ({ context, data }) => {

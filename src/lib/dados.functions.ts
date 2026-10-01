@@ -59,13 +59,14 @@ async function urlsAssinadas(db: any, caminhos: string[]): Promise<Record<string
 // ---------------------------------------------------------------------------
 export const resumoInicio = createServerFn({ method: "GET" })
   .middleware([comSessao])
-  .inputValidator((i) => z.object({ inicioDia: iso, inicioMes: iso }).parse(i))
+  .validator((i) => z.object({ inicioDia: iso, inicioMes: iso }).parse(i))
   .handler(async ({ context: { db }, data }) => {
     const contar = (q: any) => q.then((r: any) => r.count ?? 0);
+    // Cancelados não contam (continuam no banco e no histórico do funcionário).
     const [funcionarios, hoje, mes] = await Promise.all([
       contar(db.from("employees").select("id", { count: "exact", head: true }).is("archived_at", null)),
-      contar(db.from("meal_records").select("id", { count: "exact", head: true }).gte("taken_at", data.inicioDia)),
-      contar(db.from("meal_records").select("id", { count: "exact", head: true }).gte("taken_at", data.inicioMes)),
+      contar(db.from("meal_records").select("id", { count: "exact", head: true }).eq("cancelado", false).gte("taken_at", data.inicioDia)),
+      contar(db.from("meal_records").select("id", { count: "exact", head: true }).eq("cancelado", false).gte("taken_at", data.inicioMes)),
     ]);
     return { funcionarios, hoje, mes };
   });
@@ -73,21 +74,85 @@ export const resumoInicio = createServerFn({ method: "GET" })
 // ---------------------------------------------------------------------------
 // Permissões (o que o usuário comum pode fazer)
 // ---------------------------------------------------------------------------
+const CHAVES_PERMISSAO = ["can_create_employees", "can_edit_employees", "can_manage_suppliers", "can_edit_records", "can_backdate_records"] as const;
+type Permissoes = Record<(typeof CHAVES_PERMISSAO)[number], boolean>;
+
+async function permissoesPadrao(db: any): Promise<Permissoes> {
+  const { data } = await db.from("app_permissions").select(CHAVES_PERMISSAO.join(",")).limit(1).maybeSingle();
+  return Object.fromEntries(CHAVES_PERMISSAO.map((k) => [k, !!data?.[k]])) as Permissoes;
+}
+
+// As permissões EFETIVAS de quem está logado (por usuário desde a migration
+// 003; o padrão só preenche o que o usuário ainda não tem). Só decide o que a
+// tela MOSTRA — quem barra é o servidor (exigirPermissao).
 export const obterPermissoes = createServerFn({ method: "GET" })
   .middleware([comSessao])
-  .handler(async ({ context: { db } }) => {
-    const { data } = await db.from("app_permissions").select("*").limit(1).maybeSingle();
-    return data ?? null;
+  .handler(async ({ context: { db, usuario } }) => {
+    if (usuario.admin) return Object.fromEntries(CHAVES_PERMISSAO.map((k) => [k, true])) as Permissoes;
+    const padrao = await permissoesPadrao(db);
+    const propria = usuario.permissoes ?? {};
+    return Object.fromEntries(
+      CHAVES_PERMISSAO.map((k) => [k, typeof propria[k] === "boolean" ? propria[k] : padrao[k]]),
+    ) as Permissoes;
   });
 
-const CHAVES_PERMISSAO = ["can_create_employees", "can_edit_employees", "can_manage_suppliers", "can_edit_records", "can_backdate_records"] as const;
+// Tela Permissões: a matriz usuário × permissão + o padrão para quem for criado.
+export const listarPermissoes = createServerFn({ method: "GET" })
+  .middleware([soAdmin])
+  .handler(async ({ context: { db } }) => {
+    const padrao = await permissoesPadrao(db);
+    const { data, error } = await db
+      .from("usuarios")
+      .select("id, nome, usuario, admin, ativo, permissoes")
+      .order("usuario");
+    if (error) falhaDoBanco(error);
+    return {
+      padrao,
+      usuarios: (data ?? []).map((u: any) => ({
+        id: u.id,
+        nome: u.nome,
+        usuario: u.usuario,
+        admin: u.admin,
+        ativo: u.ativo,
+        permissoes: Object.fromEntries(
+          CHAVES_PERMISSAO.map((k) => [k, u.admin ? true : typeof u.permissoes?.[k] === "boolean" ? u.permissoes[k] : padrao[k]]),
+        ) as Permissoes,
+      })),
+    };
+  });
 
+/** O padrão — copiado para cada usuário criado depois. */
 export const salvarPermissao = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => z.object({ chave: z.enum(CHAVES_PERMISSAO), valor: z.boolean() }).parse(i))
+  .validator((i) => z.object({ chave: z.enum(CHAVES_PERMISSAO), valor: z.boolean() }).parse(i))
   .handler(async ({ context: { db }, data }) => {
     const { error } = await db.from("app_permissions").update({ [data.chave]: data.valor }).eq("singleton", true);
     if (error) falhaDoBanco(error);
+    return { ok: true };
+  });
+
+/** Uma permissão de UM usuário. Vale na próxima chamada dele (a sessão relê). */
+export const salvarPermissaoUsuario = createServerFn({ method: "POST" })
+  .middleware([soAdmin])
+  .validator((i) => z.object({ id: uuid, chave: z.enum(CHAVES_PERMISSAO), valor: z.boolean() }).parse(i))
+  .handler(async ({ context: { db, usuario }, data }) => {
+    const { data: alvo, error } = await db.from("usuarios").select("usuario, admin, permissoes").eq("id", data.id).maybeSingle();
+    if (error) falhaDoBanco(error);
+    if (!alvo) throw new Error("Usuário não encontrado");
+    if (alvo.admin) throw new Error("Administrador tem todas as permissões");
+    const atuais = { ...(await permissoesPadrao(db)), ...(alvo.permissoes ?? {}) };
+    const { error: e2 } = await db
+      .from("usuarios")
+      .update({ permissoes: { ...atuais, [data.chave]: data.valor } })
+      .eq("id", data.id);
+    if (e2) falhaDoBanco(e2);
+    const { registrarAcesso } = await import("@/server/sessao");
+    await registrarAcesso({
+      usuario_id: usuario.id,
+      usuario: usuario.usuario,
+      acao: "admin_permissao_alterada",
+      detalhe: `alvo: ${alvo.usuario} — ${data.chave} = ${data.valor ? "sim" : "não"}`,
+    });
     return { ok: true };
   });
 
@@ -109,7 +174,7 @@ export const listarFuncionarios = createServerFn({ method: "GET" })
 
 export const obterFuncionario = createServerFn({ method: "GET" })
   .middleware([comSessao])
-  .inputValidator((i) => z.object({ id: uuid }).parse(i))
+  .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ context: { db }, data }) => {
     const { data: f, error } = await db
       .from("employees_view")
@@ -132,7 +197,7 @@ const dadosFuncionario = z.object({
 
 export const criarFuncionario = createServerFn({ method: "POST" })
   .middleware([comSessao])
-  .inputValidator((i) => dadosFuncionario.parse(i))
+  .validator((i) => dadosFuncionario.parse(i))
   .handler(async ({ context, data }) => {
     await exigirPermissao(context, "can_create_employees");
     const { error } = await context.db.from("employees").insert({
@@ -146,7 +211,7 @@ export const criarFuncionario = createServerFn({ method: "POST" })
 
 export const editarFuncionario = createServerFn({ method: "POST" })
   .middleware([comSessao])
-  .inputValidator((i) => dadosFuncionario.extend({ id: uuid }).parse(i))
+  .validator((i) => dadosFuncionario.extend({ id: uuid }).parse(i))
   .handler(async ({ context, data }) => {
     await exigirPermissao(context, "can_edit_employees");
     const { id, ...campos } = data;
@@ -160,7 +225,7 @@ export const editarFuncionario = createServerFn({ method: "POST" })
 
 export const arquivarFuncionario = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => z.object({ id: uuid, senha: z.string().min(1).max(200) }).parse(i))
+  .validator((i) => z.object({ id: uuid, senha: z.string().min(1).max(200) }).parse(i))
   .handler(async ({ context, data }) => {
     await exigirSenhaAdmin(context.usuario, data.senha);
     const { error } = await context.db.from("employees").update({ archived_at: new Date().toISOString() }).eq("id", data.id);
@@ -193,7 +258,7 @@ export const cadastroMarmitas = createServerFn({ method: "GET" })
 
 export const criarFornecedor = createServerFn({ method: "POST" })
   .middleware([comSessao])
-  .inputValidator((i) => z.object({ name: texto() }).parse(i))
+  .validator((i) => z.object({ name: texto() }).parse(i))
   .handler(async ({ context, data }) => {
     await exigirPermissao(context, "can_manage_suppliers");
     const { error } = await context.db.from("suppliers").insert({ name: data.name, owner_id: context.usuario.id });
@@ -203,7 +268,7 @@ export const criarFornecedor = createServerFn({ method: "POST" })
 
 export const editarFornecedor = createServerFn({ method: "POST" })
   .middleware([comSessao])
-  .inputValidator((i) => z.object({ id: uuid, name: texto() }).parse(i))
+  .validator((i) => z.object({ id: uuid, name: texto() }).parse(i))
   .handler(async ({ context, data }) => {
     await exigirPermissao(context, "can_manage_suppliers");
     const { error } = await context.db.from("suppliers").update({ name: data.name }).eq("id", data.id);
@@ -213,7 +278,7 @@ export const editarFornecedor = createServerFn({ method: "POST" })
 
 export const excluirFornecedor = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => z.object({ id: uuid, senha: z.string().min(1).max(200) }).parse(i))
+  .validator((i) => z.object({ id: uuid, senha: z.string().min(1).max(200) }).parse(i))
   .handler(async ({ context, data }) => {
     await exigirSenhaAdmin(context.usuario, data.senha);
     const { error } = await context.db.from("suppliers").delete().eq("id", data.id);
@@ -245,7 +310,7 @@ function erroDeChave(error: any): never {
 
 export const criarTipo = createServerFn({ method: "POST" })
   .middleware([comSessao])
-  .inputValidator((i) => dadosTipo.extend({ supplier_id: uuid }).parse(i))
+  .validator((i) => dadosTipo.extend({ supplier_id: uuid }).parse(i))
   .handler(async ({ context, data }) => {
     await exigirPermissao(context, "can_manage_suppliers");
     const { error } = await context.db.from("meal_types").insert({
@@ -262,7 +327,7 @@ export const criarTipo = createServerFn({ method: "POST" })
 
 export const editarTipo = createServerFn({ method: "POST" })
   .middleware([comSessao])
-  .inputValidator((i) => dadosTipo.extend({ id: uuid }).parse(i))
+  .validator((i) => dadosTipo.extend({ id: uuid }).parse(i))
   .handler(async ({ context, data }) => {
     await exigirPermissao(context, "can_manage_suppliers");
     const { error } = await context.db
@@ -275,7 +340,7 @@ export const editarTipo = createServerFn({ method: "POST" })
 
 export const arquivarTipo = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => z.object({ id: uuid, senha: z.string().min(1).max(200) }).parse(i))
+  .validator((i) => z.object({ id: uuid, senha: z.string().min(1).max(200) }).parse(i))
   .handler(async ({ context, data }) => {
     await exigirSenhaAdmin(context.usuario, data.senha);
     const { error } = await context.db.from("meal_types").update({ archived_at: new Date().toISOString() }).eq("id", data.id);
@@ -298,7 +363,7 @@ const assinaturaPNG = z
 
 export const registrarRetirada = createServerFn({ method: "POST" })
   .middleware([comSessao])
-  .inputValidator((i) =>
+  .validator((i) =>
     z.object({ employee_id: uuid, meal_type_id: uuid, assinatura: assinaturaPNG, taken_at: iso.optional() }).parse(i),
   )
   .handler(async ({ context, data }) => {
@@ -342,12 +407,14 @@ export const registrarRetirada = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 export const lancamentosDoFuncionario = createServerFn({ method: "GET" })
   .middleware([comSessao])
-  .inputValidator((i) => z.object({ id: uuid, inicio: iso, fim: iso }).parse(i))
+  .validator((i) => z.object({ id: uuid, inicio: iso, fim: iso }).parse(i))
   .handler(async ({ context: { db }, data }) => {
     const linhas = await todas((de, ate) =>
       db
         .from("meal_records")
-        .select("id,taken_at,photo_path,meal_type_id,unit_price,meal_types(name,price,suppliers(name))")
+        .select(
+          "id,taken_at,photo_path,meal_type_id,unit_price,cancelado,cancelado_em,motivo_cancelamento,meal_types(name,price,suppliers(name))",
+        )
         .eq("employee_id", data.id)
         .gte("taken_at", data.inicio)
         .lt("taken_at", data.fim)
@@ -360,7 +427,7 @@ export const lancamentosDoFuncionario = createServerFn({ method: "GET" })
 
 export const editarLancamento = createServerFn({ method: "POST" })
   .middleware([comSessao])
-  .inputValidator((i) => z.object({ id: uuid, meal_type_id: uuid, taken_at: iso.optional() }).parse(i))
+  .validator((i) => z.object({ id: uuid, meal_type_id: uuid, taken_at: iso.optional() }).parse(i))
   .handler(async ({ context, data }) => {
     await exigirPermissao(context, "can_edit_records");
     const { data: tipo } = await context.db
@@ -369,7 +436,7 @@ export const editarLancamento = createServerFn({ method: "POST" })
       .eq("id", data.meal_type_id)
       .maybeSingle();
     if (!tipo) throw new Error("Tipo de marmita não encontrado");
-    const { error } = await context.db
+    const { data: alterados, error } = await context.db
       .from("meal_records")
       .update({
         meal_type_id: tipo.id,
@@ -377,20 +444,64 @@ export const editarLancamento = createServerFn({ method: "POST" })
         company_unit_price: tipo.company_price,
         ...(data.taken_at ? { taken_at: data.taken_at } : {}),
       })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("cancelado", false)
+      .select("id");
     if (error) falhaDoBanco(error);
+    if (!alterados?.length) throw new Error("Lançamento cancelado não pode ser editado. Reative antes.");
     return { ok: true };
   });
 
-export const excluirLancamento = createServerFn({ method: "POST" })
+// ---------------------------------------------------------------------------
+// CANCELAR EM VEZ DE EXCLUIR (01/10)
+// ---------------------------------------------------------------------------
+// O lançamento continua no banco (com quem cancelou, quando e por quê) e vai
+// para o kf-rh com `cancelado: true` e o motivo em `observacao` — o RH não
+// cobra. Excluir de verdade só pela limpeza de dados (Armazenamento), que
+// serve à política de retenção, não a corrigir lançamento.
+export const cancelarLancamento = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => z.object({ id: uuid, senha: z.string().min(1).max(200) }).parse(i))
+  .validator((i) =>
+    z
+      .object({
+        id: uuid,
+        motivo: z.string().trim().min(3, "Informe o motivo do cancelamento").max(300),
+        senha: z.string().min(1).max(200),
+      })
+      .parse(i),
+  )
   .handler(async ({ context, data }) => {
     await exigirSenhaAdmin(context.usuario, data.senha);
-    const { data: apagados, error } = await context.db.from("meal_records").delete().eq("id", data.id).select("photo_path");
+    const { data: alterados, error } = await context.db
+      .from("meal_records")
+      .update({
+        cancelado: true,
+        cancelado_em: new Date().toISOString(),
+        cancelado_por: context.usuario.id,
+        motivo_cancelamento: data.motivo,
+      })
+      .eq("id", data.id)
+      .eq("cancelado", false)
+      .select("id");
     if (error) falhaDoBanco(error);
-    const caminho = apagados?.[0]?.photo_path;
-    if (caminho) await context.db.storage.from(BUCKET).remove([caminho]);
+    if (!alterados?.length) throw new Error("Lançamento não encontrado ou já cancelado");
+    return { ok: true };
+  });
+
+/** Desfaz um cancelamento feito por engano. */
+export const reativarLancamento = createServerFn({ method: "POST" })
+  .middleware([soAdmin])
+  .validator((i) => z.object({ id: uuid, senha: z.string().min(1).max(200) }).parse(i))
+  .handler(async ({ context, data }) => {
+    await exigirSenhaAdmin(context.usuario, data.senha);
+    const { data: alterados, error } = await context.db
+      .from("meal_records")
+      .update({ cancelado: false, cancelado_em: null, cancelado_por: null, motivo_cancelamento: null })
+      .eq("id", data.id)
+      .eq("cancelado", true)
+      .select("id");
+    if (error) falhaDoBanco(error);
+    if (!alterados?.length) throw new Error("Lançamento não encontrado ou não está cancelado");
     return { ok: true };
   });
 
@@ -399,22 +510,31 @@ export const excluirLancamento = createServerFn({ method: "POST" })
 // ---------------------------------------------------------------------------
 export const relatorio = createServerFn({ method: "GET" })
   .middleware([comSessao])
-  .inputValidator((i) => z.object({ inicio: iso, fim: iso }).parse(i))
+  .validator((i) => z.object({ inicio: iso, fim: iso }).parse(i))
   .handler(async ({ context: { db }, data }) => {
-    const [funcionarios, fornecedores, tipos, lancamentos] = await Promise.all([
+    const [funcionarios, fornecedores, tipos, lancamentos, { count: cancelados }] = await Promise.all([
       todas((de, ate) => db.from("employees_view").select("id,name,cpf,company,sector").range(de, ate)),
       todas((de, ate) => db.from("suppliers").select("id,name").range(de, ate)),
       todas((de, ate) => db.from("meal_types").select("id,supplier_id,name,price,company_price").range(de, ate)),
+      // Cancelados ficam FORA do relatório (não são cobrados); a tela só
+      // informa quantos houve no período.
       todas((de, ate) =>
         db
           .from("meal_records")
           .select("id,employee_id,meal_type_id,photo_path,taken_at,unit_price,company_unit_price")
+          .eq("cancelado", false)
           .gte("taken_at", data.inicio)
           .lt("taken_at", data.fim)
           .order("taken_at", { ascending: false })
           .order("id", { ascending: false })
           .range(de, ate),
       ),
+      db
+        .from("meal_records")
+        .select("id", { count: "exact", head: true })
+        .eq("cancelado", true)
+        .gte("taken_at", data.inicio)
+        .lt("taken_at", data.fim),
     ]);
     const porId = <T extends { id: string }>(l: T[]) => new Map(l.map((x) => [x.id, x]));
     const f = porId(funcionarios as any[]);
@@ -450,14 +570,14 @@ export const relatorio = createServerFn({ method: "GET" })
     const assinaturas: Record<string, string> = {};
     for (const [emp, caminho] of primeira) if (urls[caminho]) assinaturas[emp] = urls[caminho];
 
-    return { linhas, assinaturas };
+    return { linhas, assinaturas, cancelados: cancelados ?? 0 };
   });
 
 // Para o Excel (uma imagem por linha). Só devolve URL de caminho que é de fato
 // de um lançamento — não é um "gerador de links" para o bucket inteiro.
 export const urlsDasAssinaturas = createServerFn({ method: "POST" })
   .middleware([comSessao])
-  .inputValidator((i) =>
+  .validator((i) =>
     z.object({ caminhos: z.array(z.string().max(200).regex(/^[\w-]+\/[\w.-]+$/)).max(20000) }).parse(i),
   )
   .handler(async ({ context: { db }, data }) => {
@@ -472,7 +592,7 @@ export const urlsDasAssinaturas = createServerFn({ method: "POST" })
 
 export const marmitasPorDia = createServerFn({ method: "GET" })
   .middleware([comSessao])
-  .inputValidator((i) => z.object({ inicio: iso, fim: iso }).parse(i))
+  .validator((i) => z.object({ inicio: iso, fim: iso }).parse(i))
   .handler(async ({ context: { db }, data }) =>
     todas((de, ate) =>
       db
@@ -480,9 +600,59 @@ export const marmitasPorDia = createServerFn({ method: "GET" })
         .select(
           "id, employee_id, meal_type_id, taken_at, unit_price, company_unit_price, employees(name), meal_types(name, price, company_price)",
         )
+        .eq("cancelado", false)
         .gte("taken_at", data.inicio)
         .lte("taken_at", data.fim)
         .order("taken_at", { ascending: true })
         .range(de, ate),
     ),
   );
+
+// ---------------------------------------------------------------------------
+// Conferência com o fornecedor (01/10): quantidade e valor por dia × tipo,
+// para bater com a nota fiscal. Cancelados fora. O dia é o de São Paulo —
+// o servidor roda em UTC, e uma retirada às 22h seria contada no dia seguinte.
+// ---------------------------------------------------------------------------
+export const conferenciaFornecedor = createServerFn({ method: "GET" })
+  .middleware([comSessao])
+  .validator((i) => z.object({ inicio: iso, fim: iso }).parse(i))
+  .handler(async ({ context: { db }, data }) => {
+    const [lancamentos, { count: cancelados }] = await Promise.all([
+      todas((de, ate) =>
+        db
+          .from("meal_records")
+          .select("taken_at, unit_price, company_unit_price, meal_type_id, meal_types(name, supplier_id, suppliers(name))")
+          .eq("cancelado", false)
+          .gte("taken_at", data.inicio)
+          .lt("taken_at", data.fim)
+          .order("taken_at", { ascending: true })
+          .range(de, ate),
+      ),
+      db
+        .from("meal_records")
+        .select("id", { count: "exact", head: true })
+        .eq("cancelado", true)
+        .gte("taken_at", data.inicio)
+        .lt("taken_at", data.fim),
+    ]);
+    const diaSP = (iso: string) => new Date(new Date(iso).getTime() - 3 * 3600 * 1000).toISOString().slice(0, 10);
+    const grupos = new Map<
+      string,
+      { dia: string; fornecedor: string; tipo: string; qtd: number; valor_funcionario: number; valor_empresa: number }
+    >();
+    for (const r of lancamentos as any[]) {
+      const fornecedor = r.meal_types?.suppliers?.name ?? "(sem fornecedor)";
+      const tipo = r.meal_types?.name ?? "(sem tipo)";
+      const dia = diaSP(r.taken_at);
+      const chave = `${dia}|${fornecedor}|${tipo}`;
+      const g = grupos.get(chave) ?? { dia, fornecedor, tipo, qtd: 0, valor_funcionario: 0, valor_empresa: 0 };
+      g.qtd += 1;
+      g.valor_funcionario += Number(r.unit_price ?? 0);
+      g.valor_empresa += Number(r.company_unit_price ?? 0);
+      grupos.set(chave, g);
+    }
+    const linhas = [...grupos.values()].sort(
+      (a, b) => a.fornecedor.localeCompare(b.fornecedor) || a.dia.localeCompare(b.dia) || a.tipo.localeCompare(b.tipo),
+    );
+    return { linhas, cancelados: cancelados ?? 0 };
+  });

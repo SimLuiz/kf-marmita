@@ -14,6 +14,19 @@
 import { getRequest, getRequestIP } from "@tanstack/react-start/server";
 import { banco } from "./banco";
 import { gerarSecretTOTP, montarUrlTOTP, totpDecrypt, totpEncrypt, verificarTOTP } from "./totp";
+import { acessoPermitido } from "@/lib/rede";
+
+// Redes da empresa (config_acesso, migration 004). Lidas no máximo 1x por
+// minuto por instância do Worker: são consultadas em TODA chamada de quem é
+// restrito, e mudam quase nunca. Mudança na tela vale em até 1 minuto.
+let cacheRedes: { redes: string[]; ate: number } | null = null;
+export async function redesDaEmpresa(forcar = false): Promise<string[]> {
+  if (!forcar && cacheRedes && cacheRedes.ate > Date.now()) return cacheRedes.redes;
+  const { data } = await banco().from("config_acesso").select("redes_empresa").limit(1).maybeSingle();
+  const redes: string[] = data?.redes_empresa ?? [];
+  cacheRedes = { redes, ate: Date.now() + 60_000 };
+  return redes;
+}
 
 export interface Usuario {
   id: string;
@@ -22,10 +35,12 @@ export interface Usuario {
   admin: boolean;
   exige_2fa: boolean;
   sessao_id: string;
+  /** Permissões próprias (migration 003). null = usa o padrão (app_permissions). */
+  permissoes: Record<string, boolean> | null;
 }
 
 export type RespostaLogin =
-  | { ok: true; usuario: Omit<Usuario, "sessao_id"> }
+  | { ok: true; usuario: Pick<Usuario, "id" | "nome" | "usuario" | "admin" | "exige_2fa"> }
   | { precisaConfigurar2fa: true; secret: string; qrCodeUrl: string }
   | { precisaCodigo2fa: true }
   | { erro: string };
@@ -110,23 +125,9 @@ async function verificarSenha(senha: string, hash: string): Promise<boolean> {
   return !error && data === true;
 }
 
-// Política de senha do padrão KF: recusa com o MOTIVO exato.
-const SENHA_MIN = 10;
-const TERMOS_OBVIOS = ["senha", "password", "kfbaterias", "marmita", "bateria", "admin", "operador", "teste", "trocar", "mudar"];
-const SEQUENCIAS = ["01234", "12345", "23456", "34567", "45678", "56789", "98765", "abcde", "bcdef", "qwert", "asdfg", "zxcvb"];
-export function problemaSenha(senha: string, ctx?: { usuario?: string; nome?: string }): string | null {
-  if (typeof senha !== "string" || senha.length < SENHA_MIN) return `A senha deve ter no mínimo ${SENHA_MIN} caracteres`;
-  if (senha.length > 72) return "A senha deve ter no máximo 72 caracteres";
-  const s = senha.toLowerCase();
-  if (/^(.)\1+$/.test(senha)) return "A senha não pode ser um único caractere repetido";
-  if (TERMOS_OBVIOS.some((t) => s.includes(t))) return "A senha contém um termo óbvio (senha, admin, marmita, teste…). Escolha outra";
-  if (SEQUENCIAS.some((t) => s.includes(t))) return "A senha não pode conter sequências óbvias (12345, abcde, qwerty…)";
-  for (const p of [ctx?.usuario, ...String(ctx?.nome ?? "").split(/\s+/)]) {
-    const t = String(p || "").toLowerCase();
-    if (t.length >= 4 && s.includes(t)) return "A senha não pode conter seu nome ou usuário";
-  }
-  return null;
-}
+// Política de senha: em src/lib/senha.ts (pura, testada). Reexportada daqui
+// porque admin-users.functions.ts a importa junto com hashSenha.
+export { problemaSenha } from "@/lib/senha";
 
 // ----------------------------------------------------------------------------
 // Registro de acesso
@@ -244,11 +245,24 @@ export async function entrar(dados: {
 
   const { data: linhas } = await db
     .from("usuarios")
-    .select("id, nome, usuario, senha_hash, admin, exige_2fa, totp_secret, totp_confirmado, totp_ultimo_uso")
+    .select("id, nome, usuario, senha_hash, admin, exige_2fa, totp_secret, totp_confirmado, totp_ultimo_uso, acesso_qualquer_rede")
     .eq("usuario", nomeUsuario)
     .eq("ativo", true)
     .limit(1);
   const u = linhas?.[0];
+
+  // ── Redes permitidas (01/10): ANTES da senha. Quem está fora da rede não
+  // chega nem a testar senha — por isso não conta como `login_falha` (não
+  // escala bloqueio de IP) e não diz se a senha estava certa.
+  if (u && !u.acesso_qualquer_rede && !acessoPermitido(ip, u, await redesDaEmpresa())) {
+    await registrarAcesso({ usuario_id: u.id, usuario: u.usuario, acao: "login_fora_da_rede", detalhe: det(`IP ${ip} fora das redes permitidas`, disp) });
+    return {
+      resposta: {
+        erro: `Este usuário só entra pela rede da empresa (seu IP agora: ${ip}). Se você está na empresa, peça ao administrador para liberar esta rede.`,
+      },
+    };
+  }
+
   const senhaOk = await verificarSenha(dados.senha, u ? u.senha_hash : HASH_FICTICIO);
   if (!u || !senhaOk) {
     await registrarAcesso({
@@ -264,7 +278,10 @@ export async function entrar(dados: {
   if (u.admin || u.exige_2fa) {
     if (!u.totp_confirmado) {
       const secret = gerarSecretTOTP();
-      await db.from("totp_setup_temp").insert({ usuario_id: u.id, secret });
+      // Um QR pendente por vez, e cifrado como o definitivo (antes ficava em
+      // texto puro e nunca saía do banco — ver confirmar2FA).
+      await db.from("totp_setup_temp").delete().eq("usuario_id", u.id);
+      await db.from("totp_setup_temp").insert({ usuario_id: u.id, secret: await totpEncrypt(secret) });
       return { resposta: { precisaConfigurar2fa: true, secret, qrCodeUrl: montarUrlTOTP(u.usuario, secret) } };
     }
     if (!dados.codigo) return { resposta: { precisaCodigo2fa: true } };
@@ -319,13 +336,17 @@ export async function confirmar2FA(dados: { usuario: string; codigo: string }) {
     .order("criado_em", { ascending: false })
     .limit(1);
   if (!temp?.[0]) return erroGenerico;
-  const { secret, usuario_id } = temp[0];
-  if (!(await verificarTOTP(secret, dados.codigo))) {
+  const { secret: guardado, usuario_id } = temp[0];
+  const secret = await totpDecrypt(guardado);
+  if (!secret || !(await verificarTOTP(secret, dados.codigo))) {
     await registrarAcesso({ usuario_id, usuario: nomeUsuario, acao: "login_falha", detalhe: det("código incorreto na confirmação do 2FA", dispositivo()) });
     return { erro: "Código inválido. Confira o app e tente de novo." };
   }
   await db.from("usuarios").update({ totp_secret: await totpEncrypt(secret), totp_confirmado: true }).eq("id", usuario_id);
-  await db.from("totp_setup_temp").update({ expira_em: new Date().toISOString() }).eq("usuario_id", usuario_id);
+  // 🔴 APAGA o pendente (01/10): o padrão KF só marcava como vencido, e o
+  // secret ficava para sempre em texto puro nesta tabela — anulando a cifra
+  // do definitivo em `usuarios`. O definitivo fica SÓ cifrado, lá.
+  await db.from("totp_setup_temp").delete().eq("usuario_id", usuario_id);
   await registrarAcesso({ usuario_id, usuario: nomeUsuario, acao: "2fa_configurado", detalhe: dispositivo() || null });
   return { ok: true as const };
 }
@@ -342,7 +363,7 @@ export async function verificarSessao(): Promise<Usuario | null> {
   // sessão de um usuário DESATIVADO deixar de valer na hora.
   const { data } = await banco()
     .from("sessoes")
-    .select("id, criado_em, ultima_atividade, usuarios!inner(id, nome, usuario, admin, exige_2fa, ativo)")
+    .select("id, criado_em, ultima_atividade, usuarios!inner(id, nome, usuario, admin, exige_2fa, ativo, acesso_qualquer_rede, permissoes)")
     .eq("token", token)
     .eq("ativo", true)
     .gt("expira_em", agora.toISOString())
@@ -351,6 +372,16 @@ export async function verificarSessao(): Promise<Usuario | null> {
   const s = data?.[0];
   if (!s?.usuarios) return null;
   const u = s.usuarios;
+
+  // Redes permitidas valem a sessão inteira, não só o login: o cookie levado
+  // para fora da empresa (outro aparelho, 4G) deixa de valer — e a sessão é
+  // encerrada, para não voltar a valer quando o aparelho voltar à rede.
+  // (só consulta a lista da empresa para quem é restrito)
+  if (!u.acesso_qualquer_rede && !acessoPermitido(ipDoPedido(), u, await redesDaEmpresa())) {
+    await banco().from("sessoes").update({ ativo: false }).eq("id", s.id);
+    await registrarAcesso({ usuario_id: u.id, usuario: u.usuario, acao: "sessao_fora_da_rede", detalhe: `IP ${ipDoPedido()}` });
+    return null;
+  }
 
   const limite = u.admin ? INATIVIDADE_MIN_ADMIN : INATIVIDADE_MIN_DEMAIS;
   const ultima = new Date(s.ultima_atividade ?? s.criado_em);
@@ -363,7 +394,15 @@ export async function verificarSessao(): Promise<Usuario | null> {
   if (minutosInativo > 1) {
     await banco().from("sessoes").update({ ultima_atividade: agora.toISOString() }).eq("id", s.id);
   }
-  return { id: u.id, nome: u.nome, usuario: u.usuario, admin: !!u.admin, exige_2fa: !!u.exige_2fa, sessao_id: s.id };
+  return {
+    id: u.id,
+    nome: u.nome,
+    usuario: u.usuario,
+    admin: !!u.admin,
+    exige_2fa: !!u.exige_2fa,
+    sessao_id: s.id,
+    permissoes: (u.permissoes as Record<string, boolean> | null) ?? null,
+  };
 }
 
 export async function sair(): Promise<string> {

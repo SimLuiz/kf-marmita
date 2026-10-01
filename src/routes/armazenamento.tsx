@@ -70,7 +70,7 @@ function Page() {
   const [targets, setTargets] = useState<Record<PurgeTarget, boolean>>({
     meal_records: false,
     audit_logs: true,
-    login_attempts: true,
+    logs_acesso: false,
   });
   const [preview, setPreview] = useState<
     { target: PurgeTarget; label: string; count: number }[] | null
@@ -252,7 +252,7 @@ function Page() {
                 [
                   { key: "meal_records", label: "Lançamentos de refeições (+ fotos)" },
                   { key: "audit_logs", label: "Logs de auditoria" },
-                  { key: "login_attempts", label: "Tentativas de login" },
+                  { key: "logs_acesso", label: "Registro de acessos" },
                 ] as { key: PurgeTarget; label: string }[]
               ).map((it) => (
                 <label

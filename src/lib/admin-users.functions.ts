@@ -37,7 +37,7 @@ export const listarUsuarios = createServerFn({ method: "GET" })
     const [{ data: usuarios, error }, { data: sessoes }] = await Promise.all([
       db
         .from("usuarios")
-        .select("id, nome, usuario, admin, ativo, exige_2fa, totp_confirmado, criado_em, ultimo_acesso")
+        .select("id, nome, usuario, admin, ativo, exige_2fa, totp_confirmado, criado_em, ultimo_acesso, acesso_qualquer_rede")
         .order("usuario"),
       db.from("sessoes").select("usuario_id").eq("ativo", true).gt("expira_em", new Date().toISOString()),
     ]);
@@ -49,7 +49,7 @@ export const listarUsuarios = createServerFn({ method: "GET" })
 
 export const criarUsuario = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) =>
+  .validator((i) =>
     z
       .object({
         nome: z.string().trim().min(2).max(80),
@@ -57,6 +57,7 @@ export const criarUsuario = createServerFn({ method: "POST" })
         senha: z.string().min(1).max(200),
         admin: z.boolean(),
         exige_2fa: z.boolean(),
+        acesso_qualquer_rede: z.boolean().optional(),
       })
       .parse(i),
   )
@@ -64,12 +65,22 @@ export const criarUsuario = createServerFn({ method: "POST" })
     const { problemaSenha, hashSenha } = await import("@/server/sessao");
     const problema = problemaSenha(data.senha, { usuario: data.usuario, nome: data.nome });
     if (problema) throw new Error(problema);
+    // Permissões por usuário (migration 003): quem nasce leva uma CÓPIA do
+    // padrão (tela Permissões); mudar o padrão depois não mexe nos existentes.
+    const { data: padrao } = await context.db
+      .from("app_permissions")
+      .select("can_create_employees, can_edit_employees, can_manage_suppliers, can_edit_records, can_backdate_records")
+      .limit(1)
+      .maybeSingle();
     const { error } = await context.db.from("usuarios").insert({
       nome: data.nome,
       usuario: data.usuario,
       senha_hash: await hashSenha(data.senha),
       admin: data.admin,
       exige_2fa: data.admin || data.exige_2fa,
+      permissoes: data.admin ? null : (padrao ?? null),
+      // Sem escolha explícita: admin entra de qualquer rede, os demais só da empresa.
+      acesso_qualquer_rede: data.acesso_qualquer_rede ?? data.admin,
     });
     if (error) { if (error.code === "23505") throw new Error("Já existe um usuário com esse nome"); falhaDoBanco(error); }
     await registrar(context, "admin_usuario_criado", data.usuario, data.admin ? "administrador" : undefined);
@@ -78,7 +89,7 @@ export const criarUsuario = createServerFn({ method: "POST" })
 
 export const alterarSenhaDeUsuario = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => z.object({ id: uuid, senha: z.string().min(1).max(200) }).parse(i))
+  .validator((i) => z.object({ id: uuid, senha: z.string().min(1).max(200) }).parse(i))
   .handler(async ({ context, data }) => {
     const alvo = await nomeDoAlvo(context.db, data.id);
     if (!alvo) throw new Error("Usuário não encontrado");
@@ -99,7 +110,7 @@ export const alterarSenhaDeUsuario = createServerFn({ method: "POST" })
 // barreira no servidor vale para quem chamar a função direto.
 export const trocarMinhaSenha = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => z.object({ atual: z.string().min(1).max(200), nova: z.string().min(1).max(200) }).parse(i))
+  .validator((i) => z.object({ atual: z.string().min(1).max(200), nova: z.string().min(1).max(200) }).parse(i))
   .handler(async ({ context, data }) => {
     const { problemaSenha, hashSenha } = await import("@/server/sessao");
     const { data: eu } = await context.db.from("usuarios").select("senha_hash").eq("id", context.usuario.id).single();
@@ -114,7 +125,7 @@ export const trocarMinhaSenha = createServerFn({ method: "POST" })
 
 export const definirAtivo = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => z.object({ id: uuid, ativo: z.boolean(), senha: senhaAdmin }).parse(i))
+  .validator((i) => z.object({ id: uuid, ativo: z.boolean(), senha: senhaAdmin }).parse(i))
   .handler(async ({ context, data }) => {
     await exigirSenhaAdmin(context.usuario, data.senha);
     if (data.id === context.usuario.id && !data.ativo) throw new Error("Você não pode desativar a si mesmo");
@@ -131,7 +142,7 @@ export const definirAtivo = createServerFn({ method: "POST" })
 // CASCADE e excluir o usuário apagava tudo o que ele tinha lançado.
 export const excluirUsuario = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => z.object({ id: uuid, senha: senhaAdmin }).parse(i))
+  .validator((i) => z.object({ id: uuid, senha: senhaAdmin }).parse(i))
   .handler(async ({ context, data }) => {
     await exigirSenhaAdmin(context.usuario, data.senha);
     if (data.id === context.usuario.id) throw new Error("Você não pode excluir a si mesmo");
@@ -148,7 +159,7 @@ export const excluirUsuario = createServerFn({ method: "POST" })
 
 export const resetar2fa = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => z.object({ id: uuid }).parse(i))
+  .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ context, data }) => {
     const alvo = await nomeDoAlvo(context.db, data.id);
     if (!alvo) throw new Error("Usuário não encontrado");
@@ -164,7 +175,7 @@ export const resetar2fa = createServerFn({ method: "POST" })
 // Liga/desliga o 2FA de um usuário comum. Admin sempre tem 2FA.
 export const definirExige2fa = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => z.object({ id: uuid, exige: z.boolean() }).parse(i))
+  .validator((i) => z.object({ id: uuid, exige: z.boolean() }).parse(i))
   .handler(async ({ context, data }) => {
     const alvo = await nomeDoAlvo(context.db, data.id);
     if (!alvo) throw new Error("Usuário não encontrado");
@@ -176,7 +187,7 @@ export const definirExige2fa = createServerFn({ method: "POST" })
 
 export const definirAdmin = createServerFn({ method: "POST" })
   .middleware([soAdmin])
-  .inputValidator((i) => z.object({ id: uuid, admin: z.boolean(), senha: senhaAdmin }).parse(i))
+  .validator((i) => z.object({ id: uuid, admin: z.boolean(), senha: senhaAdmin }).parse(i))
   .handler(async ({ context, data }) => {
     await exigirSenhaAdmin(context.usuario, data.senha);
     if (data.id === context.usuario.id && !data.admin) throw new Error("Você não pode tirar o próprio acesso de administrador");
@@ -188,5 +199,118 @@ export const definirAdmin = createServerFn({ method: "POST" })
       .eq("id", data.id);
     await encerrarSessoes(context.db, data.id);
     await registrar(context, data.admin ? "admin_promovido" : "admin_rebaixado", alvo.usuario);
+    return { ok: true };
+  });
+
+// ---------------------------------------------------------------------------
+// CONECTADOS AGORA (01/10) — sessões abertas, com o botão de encerrar
+// ---------------------------------------------------------------------------
+// O id da LINHA de `sessoes` vai para a tela, nunca o hash do token.
+export const listarSessoes = createServerFn({ method: "GET" })
+  .middleware([soAdmin])
+  .handler(async ({ context: { db, usuario } }) => {
+    const { data, error } = await db
+      .from("sessoes")
+      .select("id, ip, dispositivo, criado_em, ultima_atividade, expira_em, usuarios!inner(nome, usuario, admin)")
+      .eq("ativo", true)
+      .gt("expira_em", new Date().toISOString())
+      .order("ultima_atividade", { ascending: false });
+    if (error) falhaDoBanco(error);
+    return (data ?? []).map((s: any) => ({
+      id: s.id,
+      nome: s.usuarios?.nome,
+      usuario: s.usuarios?.usuario,
+      admin: !!s.usuarios?.admin,
+      ip: s.ip,
+      dispositivo: s.dispositivo,
+      criado_em: s.criado_em,
+      ultima_atividade: s.ultima_atividade,
+      esta_e_a_sua: s.id === usuario.sessao_id,
+    }));
+  });
+
+export const encerrarSessao = createServerFn({ method: "POST" })
+  .middleware([soAdmin])
+  .validator((i) => z.object({ id: uuid }).parse(i))
+  .handler(async ({ context, data }) => {
+    if (data.id === context.usuario.sessao_id) throw new Error("Para encerrar a sua própria sessão, use o botão Sair");
+    const { data: s, error } = await context.db
+      .from("sessoes")
+      .update({ ativo: false })
+      .eq("id", data.id)
+      .eq("ativo", true)
+      .select("usuario_id, usuarios(usuario)");
+    if (error) falhaDoBanco(error);
+    if (!s?.length) throw new Error("Sessão não encontrada ou já encerrada");
+    await registrar(context, "admin_sessao_encerrada", s[0].usuarios?.usuario ?? null);
+    return { ok: true };
+  });
+
+// ---------------------------------------------------------------------------
+// REDES DA EMPRESA (migration 004) — de onde entra quem NÃO tem "qualquer rede"
+// ---------------------------------------------------------------------------
+// Uma lista só para a empresa (IPs/faixas CIDR) + um interruptor por usuário.
+// Regra em src/lib/rede.ts (acessoPermitido); vale no login e em cada chamada
+// (src/server/sessao.ts). Lista vazia = ninguém é restrito.
+
+/** A lista da empresa + o IP de onde o admin está agora (para "adicionar esta rede"). */
+export const redesDaEmpresa = createServerFn({ method: "GET" })
+  .middleware([soAdmin])
+  .handler(async () => {
+    const { redesDaEmpresa: ler, ipDoPedido } = await import("@/server/sessao");
+    return { redes: await ler(true), ipAtual: ipDoPedido() };
+  });
+
+export const definirRedesEmpresa = createServerFn({ method: "POST" })
+  .middleware([soAdmin])
+  .validator((i) =>
+    z
+      .object({
+        redes: z.array(z.string().trim().min(2).max(64)).max(30),
+        senha: senhaAdmin,
+      })
+      .parse(i),
+  )
+  .handler(async ({ context, data }) => {
+    await exigirSenhaAdmin(context.usuario, data.senha);
+    const { redeValida, acessoPermitido } = await import("./rede");
+    const invalidas = data.redes.filter((r) => !redeValida(r));
+    if (invalidas.length) throw new Error(`Rede inválida: ${invalidas.join(", ")}. Use um IP (177.73.89.230) ou faixa (2804:1874:a033:bd00::/64)`);
+    const unicas = [...new Set(data.redes)];
+    // Trava: quem está salvando não pode se trancar para fora (só acontece se
+    // ele próprio for restrito e não estiver numa rede da nova lista).
+    const { ipDoPedido, redesDaEmpresa: ler } = await import("@/server/sessao");
+    const { data: eu } = await context.db.from("usuarios").select("acesso_qualquer_rede").eq("id", context.usuario.id).single();
+    if (!acessoPermitido(ipDoPedido(), eu ?? {}, unicas)) {
+      throw new Error("A lista não inclui a rede de onde você está agora — você seria desconectado. Inclua a rede atual.");
+    }
+    const { error } = await context.db
+      .from("config_acesso")
+      .update({ redes_empresa: unicas, atualizado_em: new Date().toISOString() })
+      .eq("singleton", true);
+    if (error) falhaDoBanco(error);
+    await ler(true); // esta instância passa a usar a lista nova na hora
+    await registrar(context, "admin_redes_alteradas", null, unicas.length ? unicas.join(", ") : "lista vazia: ninguém restrito");
+    return { ok: true };
+  });
+
+/** "Pode entrar de qualquer rede" de um usuário. */
+export const definirAcessoQualquerRede = createServerFn({ method: "POST" })
+  .middleware([soAdmin])
+  .validator((i) => z.object({ id: uuid, qualquer: z.boolean(), senha: senhaAdmin }).parse(i))
+  .handler(async ({ context, data }) => {
+    await exigirSenhaAdmin(context.usuario, data.senha);
+    const alvo = await nomeDoAlvo(context.db, data.id);
+    if (!alvo) throw new Error("Usuário não encontrado");
+    if (data.id === context.usuario.id && !data.qualquer) {
+      const { ipDoPedido, redesDaEmpresa: ler } = await import("@/server/sessao");
+      const { acessoPermitido } = await import("./rede");
+      if (!acessoPermitido(ipDoPedido(), { acesso_qualquer_rede: false }, await ler(true))) {
+        throw new Error("Você não está numa rede da empresa agora — seria desconectado. Faça isso de dentro da empresa.");
+      }
+    }
+    const { error } = await context.db.from("usuarios").update({ acesso_qualquer_rede: data.qualquer }).eq("id", data.id);
+    if (error) falhaDoBanco(error);
+    await registrar(context, data.qualquer ? "admin_acesso_qualquer_rede" : "admin_acesso_so_empresa", alvo.usuario);
     return { ok: true };
   });

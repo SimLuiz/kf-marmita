@@ -47,9 +47,13 @@ export type ChavePermissao =
 // ⚠️ `createServerOnlyFn`: estas funções só existem no servidor. Sem o
 // invólucro, a importação de @/server/sessao ficaria no código do navegador e
 // a proteção de importação (vite.config.ts) barra a página inteira em `dev`.
+// Permissão POR USUÁRIO (migration 003): vale a do próprio usuário; quem ainda
+// não tem a sua (null) usa o padrão de app_permissions. Admin pode tudo.
 export const temPermissao = createServerOnlyFn(
   async (ctx: { usuario: Usuario; db: any }, chave: ChavePermissao): Promise<boolean> => {
     if (ctx.usuario.admin) return true;
+    const propria = ctx.usuario.permissoes;
+    if (propria && typeof propria[chave] === "boolean") return propria[chave];
     const { data } = await ctx.db.from("app_permissions").select(chave).limit(1).maybeSingle();
     return !!data?.[chave];
   },

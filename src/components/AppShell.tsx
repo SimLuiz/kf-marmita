@@ -7,6 +7,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   CalendarDays,
+  ClipboardCheck,
   FileText,
   HardDrive,
   Home,
@@ -42,7 +43,8 @@ const OPERACAO: Item[] = [
   { to: "/funcionarios", label: "Funcionários", icon: Users, sub: "Cadastro e histórico de retiradas" },
   { to: "/fornecedores", label: "Fornecedores", icon: Truck, sub: "Tipos de marmita e valores" },
   { to: "/por-dia", label: "Marmitas por dia", icon: CalendarDays, sub: "Totais do dia por tipo e por funcionário" },
-  { to: "/relatorio", label: "Relatórios", icon: FileText, sub: "Fechamento por período · Excel e PDF" },
+  { to: "/relatorio", label: "Relatórios", icon: FileText, sub: "Fechamento por competência · Excel e PDF" },
+  { to: "/conferencia", label: "Conferência fornecedor", icon: ClipboardCheck, sub: "Quantidades por dia para bater com a nota" },
 ];
 
 const ADMINISTRACAO: Item[] = [
