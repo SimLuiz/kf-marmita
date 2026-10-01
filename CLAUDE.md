@@ -53,7 +53,8 @@ tudo com a chave pública, pulando as regras da tela.
   🔴 **QR pendente (`totp_setup_temp`) é gravado cifrado, um por usuário, e
   APAGADO ao confirmar** (migration 005). O padrão KF original só o marcava
   como vencido — o secret ficava para sempre em texto puro, anulando a cifra
-  do definitivo. kf-garantia/kf-rh/kf-dashboard ainda têm o padrão antigo.
+  do definitivo. Corrigido do mesmo jeito no kf-garantia, kf-rh e kf-dashboard
+  em 01/10 (as 7 cópias abertas que havia lá foram apagadas).
   **Senha:** só o admin troca senha — a dos demais pela tela Usuários, a
   própria pelo "Trocar minha senha" (que só aparece para admin; o servidor
   recusa os demais). Usuário comum não escolhe a própria senha (pedido do
