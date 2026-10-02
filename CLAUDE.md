@@ -66,8 +66,7 @@ tudo com a chave pública, pulando as regras da tela.
   toda chamada (`verificarSessao`). Regra pura em `src/lib/rede.ts`
   (`acessoPermitido`), testada. **Lista vazia = ninguém restrito**, de
   propósito. O admin não consegue se trancar para fora (o servidor recusa).
-  A lista é lida com cache de 1 min por instância do Worker. A coluna
-  `usuarios.redes_permitidas` (003) ficou sem uso — pode ser removida.
+  A lista é lida com cache de 1 min por instância do Worker.
 - **Permissões por usuário** (`usuarios.permissoes`, jsonb): cada chave vale
   para aquele usuário; sem a chave, cai no padrão de `app_permissions`. Admin
   pode tudo. Usuário novo nasce com uma cópia do padrão.
@@ -143,7 +142,10 @@ obrigatório). ⚠️ Depende do R2 ativado na conta (painel da Cloudflare).
   Lovable; o `routeTree.gen.ts` é regenerado pelo build.
 - `db/migrations/` são as migrations nossas (001 login KF, 002 fecha o banco
   para o navegador, 003 cancelamento/permissões/backup, 004 redes da empresa,
-  005 2FA pendente), aplicadas pelo MCP do Supabase.
+  005 2FA pendente, 006 limpeza: `login_attempts` do Lovable virou histórico
+  em `logs_acesso` e saiu), aplicadas pelo MCP do Supabase.
+- `src/integrations/supabase/types.ts` (gerado pelo Lovable) ainda descreve
+  tabelas que já não existem (`login_attempts`). Só tipos — nada lê dali.
 - `supabase/migrations/` é o histórico do Lovable. O que foi aplicado no
   kf-marmita é o mesmo, **exceto** o seed do usuário `admin@marmita.local` com
   senha fixa (removido).
